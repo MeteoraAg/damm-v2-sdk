@@ -1,0 +1,30 @@
+{
+	"name": "@meteora-ag/cp-amm-sdk",
+	"version": "1.0.0",
+	"description": "SDK for Cp Amm",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
+	"source": "./src/index.ts",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist/**"
+	],
+	"scripts": {
+		"lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
+		"lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
+		"build": "tsup",
+		"start": "npm run build -- --watch"
+	},
+	"devDependencies": {
+		"typescript": "^5.8.2",
+		"@types/invariant": "^2.2.35"
+	},
+	"dependencies": {
+		"tsup": "^8.4.0",
+		"@coral-xyz/anchor": "^0.29.0",
+		"@solana/web3.js": "^1.95.3",
+		"@solana/spl-token": "^0.4.8",
+		"decimal.js": "^10.4.2",
+		"invariant": "^2.2.4"
+	}
+}

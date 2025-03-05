@@ -25,6 +25,7 @@ import {
   ConfigState,
   CreatePoolParams,
   CreatePositionParams,
+  GetQuoteParams,
   InitializeCustomizeablePoolParams,
   PermanentLockParams,
   PoolState,
@@ -32,6 +33,7 @@ import {
   RefreshVestingParams,
   RemoveLiquidityParams,
   RewardInfo,
+  TxBuilder,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -44,11 +46,14 @@ import {
 import { decimalToQ64, priceToSqrtPrice } from "./math";
 import Decimal from "decimal.js";
 import {
+  calculateFee,
   getOrCreateATAInstruction,
   getTokenDecimals,
+  getTokenProgram,
   unwrapSOLInstruction,
   wrapSOLInstruction,
 } from "./utils";
+import { calculateSwap } from "./utils/quote";
 
 export class CpAmm {
   _program: AmmProgram;
@@ -100,6 +105,20 @@ export class CpAmm {
     return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };
   }
 
+  private async buildTransaction(
+    feePayer: PublicKey,
+    instructions: TransactionInstruction[]
+  ) {
+    const { blockhash, lastValidBlockHeight } =
+      await this._program.provider.connection.getLatestBlockhash("confirmed");
+
+    return new Transaction({
+      blockhash,
+      lastValidBlockHeight,
+      feePayer,
+    }).add(...instructions);
+  }
+
   // fetcher
   async fetchConfigState(config: PublicKey): Promise<ConfigState> {
     const configState = await this._program.account.config.fetchNullable(
@@ -126,9 +145,61 @@ export class CpAmm {
     return positionState;
   }
 
-  async getQuote(): Promise<any> {}
+  async getQuote(
+    params: GetQuoteParams
+  ): Promise<{ actualAmount: BN; totalFee: BN }> {
+    const { pool, inAmount, inputTokenMint } = params;
+    const poolState = await this.fetchPoolState(pool);
+    const {
+      sqrtPrice: sqrtPriceQ64,
+      liquidity: liquidityQ64,
+      activationType,
+      activationPoint,
+      poolFees,
+    } = poolState;
 
-  async createPool(params: CreatePoolParams): Promise<Transaction> {
+    const {
+      feeSchedulerMode,
+      cliffFeeNumerator,
+      numberOfPeriod,
+      reductionFactor,
+      dynamicFee,
+      periodFrequency,
+    } = poolFees;
+
+    const aToB = poolState.tokenAMint.equals(inputTokenMint);
+
+    const outAmount = calculateSwap(inAmount, sqrtPriceQ64, liquidityQ64, aToB);
+
+    const currentPoint = activationType
+      ? Math.floor(Date.now() / 1000)
+      : await this._program.provider.connection.getSlot();
+
+    const period = new BN(currentPoint).lt(activationPoint)
+      ? numberOfPeriod
+      : BN.min(
+          numberOfPeriod,
+          new BN(currentPoint).sub(activationPoint).div(periodFrequency)
+        );
+    const hasDynamicFee = Boolean(dynamicFee.initialize);
+    const { actualAmount, lpFee } = calculateFee(
+      outAmount,
+      feeSchedulerMode,
+      cliffFeeNumerator,
+      period,
+      reductionFactor,
+      hasDynamicFee
+    );
+
+    return {
+      actualAmount,
+      totalFee: lpFee,
+    };
+  }
+
+  async getLiquidityDelta(params: any): Promise<any> {}
+
+  async createPool(params: CreatePoolParams): TxBuilder {
     let {
       payer,
       creator,
@@ -206,14 +277,7 @@ export class CpAmm {
       })
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    const tx = new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: payer,
-    }).add(instructions);
+    const tx = await this.buildTransaction(payer, [instructions]);
     tx.partialSign(positionNft);
 
     return tx;
@@ -221,7 +285,7 @@ export class CpAmm {
 
   async createCustomizePool(
     params: InitializeCustomizeablePoolParams
-  ): Promise<Transaction> {
+  ): TxBuilder {
     const {
       tokenX,
       tokenY,
@@ -308,21 +372,14 @@ export class CpAmm {
       })
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    const tx = new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: payer,
-    }).add(instructions);
+    const tx = await this.buildTransaction(payer, [instructions]);
 
     tx.partialSign(positionNft);
 
     return tx;
   }
 
-  async createPosition(params: CreatePositionParams): Promise<Transaction> {
+  async createPosition(params: CreatePositionParams): TxBuilder {
     const { owner, payer, pool } = params;
     const poolAuthority = derivePoolAuthority();
 
@@ -345,21 +402,14 @@ export class CpAmm {
       })
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    const tx = new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: payer,
-    }).add(instructions);
+    const tx = await this.buildTransaction(payer, [instructions]);
 
     tx.partialSign(positionNft);
 
     return tx;
   }
 
-  async addLiquidity(params: AddLiquidityParams): Promise<Transaction> {
+  async addLiquidity(params: AddLiquidityParams): TxBuilder {
     const {
       owner,
       position,
@@ -373,10 +423,8 @@ export class CpAmm {
     const poolState = await this.fetchPoolState(positionState.pool);
     const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
 
-    const tokenAProgram =
-      poolState.tokenAFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
-    const tokenBProgram =
-      poolState.tokenBFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
+    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
+    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
 
     const tokenAAccount = getAssociatedTokenAddressSync(
       poolState.tokenAMint,
@@ -413,17 +461,10 @@ export class CpAmm {
       })
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: owner,
-    }).add(instructions);
+    return await this.buildTransaction(owner, [instructions]);
   }
 
-  async removeLiquidity(params: RemoveLiquidityParams): Promise<Transaction> {
+  async removeLiquidity(params: RemoveLiquidityParams): TxBuilder {
     const {
       owner,
       position,
@@ -437,10 +478,8 @@ export class CpAmm {
     const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
 
     const poolAuthority = derivePoolAuthority();
-    const tokenAProgram =
-      poolState.tokenAFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
-    const tokenBProgram =
-      poolState.tokenBFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
+    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
+    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -491,17 +530,10 @@ export class CpAmm {
       .preInstructions([...preInstructions])
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: owner,
-    }).add(instructions);
+    return await this.buildTransaction(owner, [instructions]);
   }
 
-  async swap(params: any): Promise<Transaction> {
+  async swap(params: any): TxBuilder {
     const {
       payer,
       pool,
@@ -515,10 +547,8 @@ export class CpAmm {
     const poolState = await this.fetchPoolState(pool);
     const poolAuthority = derivePoolAuthority();
 
-    const tokenAProgram =
-      poolState.tokenAFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
-    const tokenBProgram =
-      poolState.tokenBFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
+    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
+    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -585,17 +615,10 @@ export class CpAmm {
       .postInstructions(postInstructions)
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: payer,
-    }).add(instructions);
+    return await this.buildTransaction(payer, [instructions]);
   }
 
-  async lockPosition(params: any): Promise<Transaction> {
+  async lockPosition(params: any): TxBuilder {
     const { owner, payer, position } = params;
     const positionState = await this.fetchPositionState(position);
     const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
@@ -615,23 +638,14 @@ export class CpAmm {
       })
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    const tx = new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: owner,
-    }).add(instructions);
+    const tx = await this.buildTransaction(owner, [instructions]);
 
     tx.partialSign(vestingAccount);
 
     return tx;
   }
 
-  async permanentLockPosition(
-    params: PermanentLockParams
-  ): Promise<Transaction> {
+  async permanentLockPosition(params: PermanentLockParams): TxBuilder {
     const { owner, position } = params;
     const positionState = await this.fetchPositionState(position);
     const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
@@ -646,17 +660,10 @@ export class CpAmm {
       })
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: owner,
-    }).add(instructions);
+    return await this.buildTransaction(owner, [instructions]);
   }
 
-  async refreshVesting(params: RefreshVestingParams): Promise<Transaction> {
+  async refreshVesting(params: RefreshVestingParams): TxBuilder {
     const { owner, position, vestings } = params;
 
     const positionState = await this.fetchPositionState(position);
@@ -681,17 +688,10 @@ export class CpAmm {
       )
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: owner,
-    }).add(instructions);
+    return await this.buildTransaction(owner, [instructions]);
   }
 
-  async claimPositionFee(params: ClaimPositionFeeParams): Promise<Transaction> {
+  async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
     const { owner, position } = params;
 
     const positionState = await this.fetchPositionState(position);
@@ -702,11 +702,8 @@ export class CpAmm {
 
     const poolAuthority = derivePoolAuthority();
 
-    const tokenAProgram =
-      poolState.tokenAFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
-
-    const tokenBProgram =
-      poolState.tokenBFlag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
+    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
+    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -765,17 +762,10 @@ export class CpAmm {
       .postInstructions(postInstructions)
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: owner,
-    }).add(instructions);
+    return await this.buildTransaction(owner, [instructions]);
   }
 
-  async claimReward(params: ClaimRewardParams): Promise<Transaction> {
+  async claimReward(params: ClaimRewardParams): TxBuilder {
     const { user, position, rewardIndex } = params;
     const poolAuthority = derivePoolAuthority();
 
@@ -824,13 +814,6 @@ export class CpAmm {
       .postInstructions(postInstructions)
       .instruction();
 
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: user,
-    }).add(instructions);
+    return await this.buildTransaction(user, [instructions]);
   }
 }

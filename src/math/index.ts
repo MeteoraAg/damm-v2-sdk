@@ -12,13 +12,22 @@ export function shlDiv(x: BN, y: BN, offset: number, rounding: Rounding) {
   return mulDiv(x, scale, y, rounding);
 }
 
-export function mulDiv(x: BN, y: BN, denominator: BN, rounding: Rounding) {
+export function mulDiv(x: BN, y: BN, denominator: BN, rounding: Rounding): BN {
   const { div, mod } = x.mul(y).divmod(denominator);
 
   if (rounding == Rounding.Up && !mod.isZero()) {
     return div.add(new BN(1));
   }
   return div;
+}
+
+export function divCeil(a: BN, b: BN): BN {
+  if (a.isZero()) {
+    return new BN(0);
+  } else {
+    // (a + b - 1) /b
+    return a.add(b.sub(new BN(1))).div(b);
+  }
 }
 
 export function q64ToDecimal(num: BN, decimalPlaces?: number): Decimal {

@@ -5,6 +5,7 @@ import {
   getAssociatedTokenAddressSync,
   getMint,
   NATIVE_MINT,
+  TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   TokenAccountNotFoundError,
   TokenInvalidAccountOwnerError,
@@ -16,6 +17,9 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 
+export function getTokenProgram(flag: number): PublicKey {
+  return flag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
+}
 export const getTokenDecimals = async (
   connection: Connection,
   mint: PublicKey

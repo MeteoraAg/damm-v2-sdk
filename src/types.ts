@@ -1,8 +1,10 @@
 import { IdlAccounts, IdlTypes, Program, BN } from "@coral-xyz/anchor";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Transaction } from "@solana/web3.js";
 import { CpAmm } from "./idl";
 
 export type AmmProgram = Program<CpAmm>;
+
+export type TxBuilder = Promise<Transaction>;
 
 export enum Rounding {
   Up,
@@ -12,6 +14,26 @@ export enum Rounding {
 export enum ActivationPoint {
   Timestamp,
   Slot,
+}
+
+export enum FeeSchedulerMode {
+  Linear,
+  Exponential,
+}
+
+export enum CollectFeeMode {
+  BothToken,
+  OnlyB,
+}
+
+export enum TradeDirection {
+  AtoB,
+  BtoA,
+}
+
+export enum ActivationType {
+  Slot,
+  Timestamp,
 }
 
 // Account state types
@@ -98,6 +120,12 @@ export type AddLiquidityParams = {
 };
 
 export type RemoveLiquidityParams = AddLiquidityParams;
+
+export type GetQuoteParams = {
+  pool: PublicKey;
+  inAmount: BN;
+  inputTokenMint: PublicKey;
+};
 
 export type ClaimPositionFeeParams = {
   owner: PublicKey;

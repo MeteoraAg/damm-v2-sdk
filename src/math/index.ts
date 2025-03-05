@@ -21,13 +21,13 @@ export function mulDiv(x: BN, y: BN, denominator: BN, rounding: Rounding) {
   return div;
 }
 
-export function x64ToDecimal(num: BN, decimalPlaces?: number): Decimal {
+export function q64ToDecimal(num: BN, decimalPlaces?: number): Decimal {
   return new Decimal(num.toString())
     .div(Decimal.pow(2, 64))
     .toDecimalPlaces(decimalPlaces);
 }
 
-export function decimalToX64(num: Decimal): BN {
+export function decimalToQ64(num: Decimal): BN {
   return new BN(num.mul(Decimal.pow(2, 64)).floor().toFixed());
 }
 
@@ -36,11 +36,7 @@ export function priceToSqrtPrice(
   tokenADecimal: number,
   tokenBDecimal: number
 ) {
-  decimalToX64(
+  decimalToQ64(
     initPrice.mul(Decimal.pow(10, tokenBDecimal - tokenADecimal)).sqrt()
   );
 }
-
-export function sqrtPriceToX64() {}
-
-export function liquidityToX64() {}

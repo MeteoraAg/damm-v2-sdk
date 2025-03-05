@@ -78,3 +78,23 @@ export function calculateSwap(
     return getDeltaAmountA(sqrtPrice, nextSqrtPrice, liquidity, Rounding.Down);
   }
 }
+
+export function getLiquidityDeltaFromAmountB(
+  maxAmountB: BN,
+  lowerSqrtPrice: BN,
+  upperSqrtPrice: BN
+) {
+  const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
+  return maxAmountB.div(denominator);
+}
+
+export function getLiquidityDeltaFromAmountA(
+  maxAmountA: BN,
+  lowerSqrtPrice: BN,
+  upperSqrtPrice: BN
+) {
+  // TODO check overflow
+  const prod = maxAmountA.mul(upperSqrtPrice.mul(lowerSqrtPrice));
+  const delta = upperSqrtPrice.sub(lowerSqrtPrice);
+  return prod.div(delta);
+}

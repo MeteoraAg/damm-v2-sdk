@@ -53,7 +53,7 @@ import {
   unwrapSOLInstruction,
   wrapSOLInstruction,
 } from "./utils";
-import { calculateSwap } from "./utils/quote";
+import { calculateSwap } from "./utils/curve";
 
 export class CpAmm {
   _program: AmmProgram;
@@ -172,7 +172,7 @@ export class CpAmm {
     const outAmount = calculateSwap(inAmount, sqrtPriceQ64, liquidityQ64, aToB);
 
     const currentPoint = activationType
-      ? Math.floor(Date.now() / 1000)
+      ? Math.floor(Date.now() / 1000) // reduce RPC call
       : await this._program.provider.connection.getSlot();
 
     const period = new BN(currentPoint).lt(activationPoint)

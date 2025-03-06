@@ -32,6 +32,7 @@ import {
   CreatePositionParams,
   GetQuoteParams,
   InitializeCustomizeablePoolParams,
+  InitializeRewardParams,
   PermanentLockParams,
   PoolState,
   PositionState,
@@ -39,6 +40,9 @@ import {
   RemoveLiquidityParams,
   RewardInfo,
   TxBuilder,
+  UpdateRewardDurationParams,
+  UpdateRewardFunderParams,
+  WithdrawIneligibleRewardParams,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -46,6 +50,7 @@ import {
   derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
+  deriveRewardVaultAddress,
   deriveTokenVaultAddress,
 } from "./pda";
 import { decimalToQ64, priceToSqrtPrice } from "./math";
@@ -784,6 +789,92 @@ export class CpAmm {
       .instruction();
 
     return await this.buildTransaction(owner, [instructions]);
+  }
+
+  async initializeReward(params: InitializeRewardParams): TxBuilder {
+    const { rewardIndex, rewardDuration, pool, rewardMint, payer } = params;
+
+    const poolAuthority = derivePoolAuthority();
+    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+
+    const tokenProgram = (
+      await this._program.provider.connection.getParsedAccountInfo(rewardMint)
+    )?.value?.owner;
+
+    const instruction = await this._program.methods
+      .initializeReward(rewardIndex, rewardDuration, payer)
+      .accounts({
+        pool,
+        poolAuthority,
+        rewardVault,
+        rewardMint,
+        admin: payer,
+        tokenProgram,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+    return await this.buildTransaction(payer, [instruction]);
+  }
+
+  async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
+    const { pool, admin, rewardIndex, newDuration } = params;
+    const instruction = await this._program.methods
+      .updateRewardDuration(rewardIndex, newDuration)
+      .accounts({
+        pool,
+        admin: admin,
+      })
+      .instruction();
+
+    return await this.buildTransaction(admin, [instruction]);
+  }
+
+  async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder {
+    const { pool, admin, rewardIndex, newFunder } = params;
+    const instruction = await this._program.methods
+      .updateRewardFunder(rewardIndex, newFunder)
+      .accounts({
+        pool,
+        admin: admin,
+      })
+      .instruction();
+
+    return await this.buildTransaction(admin, [instruction]);
+  }
+
+  async withdrawIneligibleReward(
+    params: WithdrawIneligibleRewardParams
+  ): TxBuilder {
+    const { rewardIndex, pool, funder } = params;
+
+    const poolState = await this.fetchPoolState(pool);
+    const poolAuthority = derivePoolAuthority();
+
+    const rewardInfo = poolState.rewardInfos[rewardIndex];
+    const { mint, vault, rewardTokenFlag } = rewardInfo;
+    const tokenProgram = getTokenProgram(rewardTokenFlag);
+
+    const funderTokenAccount = getAssociatedTokenAddressSync(
+      mint,
+      funder,
+      true,
+      tokenProgram
+    );
+
+    const instruction = await this._program.methods
+      .withdrawIneligibleReward(rewardIndex)
+      .accounts({
+        pool,
+        rewardVault: vault,
+        rewardMint: mint,
+        poolAuthority,
+        funderTokenAccount,
+        funder: funder,
+        tokenProgram,
+      })
+      .instruction();
+
+    return await this.buildTransaction(funder, [instruction]);
   }
 
   async claimReward(params: ClaimRewardParams): TxBuilder {

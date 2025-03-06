@@ -132,6 +132,34 @@ export type ClaimPositionFeeParams = {
   position: PublicKey;
 };
 
+export type InitializeRewardParams = {
+  rewardIndex: number;
+  rewardDuration: BN;
+  pool: PublicKey;
+  rewardMint: PublicKey;
+  payer: PublicKey;
+};
+
+export type UpdateRewardDurationParams = {
+  pool: PublicKey;
+  admin: PublicKey;
+  rewardIndex: number;
+  newDuration: BN;
+};
+
+export type UpdateRewardFunderParams = {
+  pool: PublicKey;
+  admin: PublicKey;
+  rewardIndex: number;
+  newFunder: PublicKey;
+};
+
+export type WithdrawIneligibleRewardParams = {
+  rewardIndex: number;
+  pool: PublicKey;
+  funder: PublicKey;
+};
+
 export type ClaimRewardParams = {
   user: PublicKey;
   position: PublicKey;

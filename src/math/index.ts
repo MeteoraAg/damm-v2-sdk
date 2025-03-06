@@ -44,7 +44,7 @@ export function priceToSqrtPrice(
   initPrice: Decimal,
   tokenADecimal: number,
   tokenBDecimal: number
-) {
+): BN {
   decimalToQ64(
     initPrice.mul(Decimal.pow(10, tokenBDecimal - tokenADecimal)).sqrt()
   );

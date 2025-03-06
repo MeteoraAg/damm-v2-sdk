@@ -128,6 +128,16 @@ export class CpAmm {
       tokenADecimal,
       tokenBDecimal
     );
+
+    invariant(
+      sqrtPriceQ64.gte(MIN_SQRT_PRICE),
+      `sqrtPrice must be >= ${MIN_SQRT_PRICE.toString()}`
+    );
+    invariant(
+      sqrtPriceQ64.lte(MAX_SQRT_PRICE),
+      `sqrtPrice must be <= ${MAX_SQRT_PRICE.toString()}`
+    );
+
     const liquidityQ64 = decimalToQ64(liquidity);
 
     return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };

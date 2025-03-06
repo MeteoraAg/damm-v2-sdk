@@ -11,3 +11,5 @@ export const FEE_DENOMINATOR = 1_000_000_000;
 
 export const MIN_SQRT_PRICE = new BN("4295048016");
 export const MAX_SQRT_PRICE = new BN("79226673521066979257578248091");
+export const MIN_CU_BUFFER = 50_000;
+export const MAX_CU_BUFFER = 200_000;

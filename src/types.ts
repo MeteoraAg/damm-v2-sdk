@@ -127,6 +127,12 @@ export type GetQuoteParams = {
   inputTokenMint: PublicKey;
 };
 
+export type LockPositionParams = {
+  owner: PublicKey;
+  payer: PublicKey;
+  position: PublicKey;
+};
+
 export type ClaimPositionFeeParams = {
   owner: PublicKey;
   position: PublicKey;
@@ -154,10 +160,25 @@ export type UpdateRewardFunderParams = {
   newFunder: PublicKey;
 };
 
+export type FundRewardParams = {
+  funder: PublicKey;
+  rewardIndex: number;
+  pool: PublicKey;
+  carryForward: boolean;
+  amount: BN;
+};
+
 export type WithdrawIneligibleRewardParams = {
   rewardIndex: number;
   pool: PublicKey;
   funder: PublicKey;
+};
+
+export type ClaimPartnerFeeParams = {
+  partner: PublicKey;
+  pool: PublicKey;
+  maxAmountA: BN;
+  maxAmountB: BN;
 };
 
 export type ClaimRewardParams = {

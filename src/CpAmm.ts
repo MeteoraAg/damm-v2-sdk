@@ -3,9 +3,9 @@ import {
   getAssociatedTokenAddressSync,
   NATIVE_MINT,
   TOKEN_2022_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import invariant from "invariant";
+import Decimal from "decimal.js";
 
 import { CpAmm as CpmmIdl, IDL } from "./idl";
 import {
@@ -25,20 +25,22 @@ import {
 import {
   AddLiquidityParams,
   AmmProgram,
+  ClaimPartnerFeeParams,
   ClaimPositionFeeParams,
   ClaimRewardParams,
   ConfigState,
   CreatePoolParams,
   CreatePositionParams,
+  FundRewardParams,
   GetQuoteParams,
   InitializeCustomizeablePoolParams,
   InitializeRewardParams,
+  LockPositionParams,
   PermanentLockParams,
   PoolState,
   PositionState,
   RefreshVestingParams,
   RemoveLiquidityParams,
-  RewardInfo,
   TxBuilder,
   UpdateRewardDurationParams,
   UpdateRewardFunderParams,
@@ -54,7 +56,7 @@ import {
   deriveTokenVaultAddress,
 } from "./pda";
 import { decimalToQ64, priceToSqrtPrice } from "./math";
-import Decimal from "decimal.js";
+
 import {
   calculateFee,
   getBaseFeeNumerator,
@@ -76,10 +78,24 @@ export class CpAmm {
   }
 
   /**
-   * initialPrice = tokenX/tokenY
-   * initPrice = tokenB/tokenA
-   * will invert the price with correct token order
-   */
+    Prepares token ordering, calculates the initial sqrtPrice in Q64 format,
+    and converts the provided liquidity to Q64 format for internal usage.
+    * initialPrice = tokenX/tokenY
+    * initPrice = tokenB/tokenA
+    * will invert the price with correct token order
+    @private
+    @async
+    @param {PublicKey} tokenX - One token mint address in the pair.
+    @param {PublicKey} tokenY - The other token mint address in the pair.
+    @param {Decimal} initialPrice - The initial price ratio of tokenX/tokenY (will be inverted if needed).
+    @param {Decimal} liquidity - The initial liquidity value.
+    @returns {Promise<{
+    tokenAMint: PublicKey,
+    tokenBMint: PublicKey,
+    sqrtPriceQ64: BN,
+    liquidityQ64: BN
+    }>} Object containing the ordered token mints and their Q64 price/liquidity values. 
+  */
   private async preparePoolCreationParams(
     tokenX: PublicKey,
     tokenY: PublicKey,
@@ -117,10 +133,20 @@ export class CpAmm {
     return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };
   }
 
+  /**
+    Builds a transaction with the provided instructions, setting the blockhash
+    and last valid block height under the hood.
+    @private
+    @async
+    @param {PublicKey} feePayer - The public key responsible for paying transaction fees.
+    @param {TransactionInstruction[]} instructions - Array of transaction instructions to include.
+    @returns {TxBuilder} A Solana Transaction object with the instructions attached. 
+  */
+
   private async buildTransaction(
     feePayer: PublicKey,
     instructions: TransactionInstruction[]
-  ) {
+  ): TxBuilder {
     const { blockhash, lastValidBlockHeight } =
       await this._program.provider.connection.getLatestBlockhash("confirmed");
 
@@ -223,7 +249,9 @@ export class CpAmm {
     };
   }
 
-  async getLiquidityDelta(params: any): Promise<any> {}
+  async getLiquidityDelta(params: any): Promise<any> {
+    // TODO
+  }
 
   async createPool(params: CreatePoolParams): TxBuilder {
     let {
@@ -465,6 +493,8 @@ export class CpAmm {
       tokenBProgram
     );
 
+    //TODO handle warp sol
+
     const instructions = await this._program.methods
       .addLiquidity({
         liquidityDelta: liquidityDeltaQ64,
@@ -532,6 +562,17 @@ export class CpAmm {
     createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
     createTokenBAccountIx && preInstructions.push(createTokenBAccountIx);
 
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [
+        poolState.tokenAMint.toBase58(),
+        poolState.tokenBMint.toBase58(),
+      ].includes(NATIVE_MINT.toBase58())
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
     const instructions = await this._program.methods
       .removeLiquidity({
         maxLiquidityDelta: liquidityDeltaQ64,
@@ -553,7 +594,8 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
       })
-      .preInstructions([...preInstructions])
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
       .instruction();
 
     return await this.buildTransaction(owner, [instructions]);
@@ -644,7 +686,7 @@ export class CpAmm {
     return await this.buildTransaction(payer, [instructions]);
   }
 
-  async lockPosition(params: any): TxBuilder {
+  async lockPosition(params: LockPositionParams): TxBuilder {
     const { owner, payer, position } = params;
     const positionState = await this.fetchPositionState(position);
     const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
@@ -842,6 +884,55 @@ export class CpAmm {
     return await this.buildTransaction(admin, [instruction]);
   }
 
+  async fundReward(params: FundRewardParams): TxBuilder {
+    const { rewardIndex, carryForward, pool, funder, amount } = params;
+
+    const poolState = await this.fetchPoolState(pool);
+    const rewardInfo = poolState.rewardInfos[rewardIndex];
+    const { vault, mint, rewardTokenFlag } = rewardInfo;
+    const tokenProgram = getTokenProgram(rewardIndex);
+
+    const preInstructions: TransactionInstruction[] = [];
+
+    const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
+      await getOrCreateATAInstruction(
+        this._program.provider.connection,
+        mint,
+        funder,
+        funder,
+        true,
+        tokenProgram
+      );
+
+    createFunderTokenAccountIx &&
+      preInstructions.push(createFunderTokenAccountIx);
+
+    // TODO: check case reward mint is wSOL && carryForward is true => total amount > amount
+    if (mint.equals(NATIVE_MINT) && !amount.isZero()) {
+      const wrapSOLIx = wrapSOLInstruction(
+        funder,
+        funderTokenAccount,
+        BigInt(amount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    const instruction = await this._program.methods
+      .fundReward(rewardIndex, amount, carryForward)
+      .accounts({
+        pool,
+        rewardVault: vault,
+        rewardMint: mint,
+        funderTokenAccount,
+        funder: funder,
+        tokenProgram,
+      })
+      .instruction();
+
+    return await this.buildTransaction(funder, [instruction]);
+  }
+
   async withdrawIneligibleReward(
     params: WithdrawIneligibleRewardParams
   ): TxBuilder {
@@ -854,12 +945,24 @@ export class CpAmm {
     const { mint, vault, rewardTokenFlag } = rewardInfo;
     const tokenProgram = getTokenProgram(rewardTokenFlag);
 
-    const funderTokenAccount = getAssociatedTokenAddressSync(
-      mint,
-      funder,
-      true,
-      tokenProgram
-    );
+    const preInstructions: TransactionInstruction[] = [];
+    const postInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
+      await getOrCreateATAInstruction(
+        this._program.provider.connection,
+        mint,
+        funder,
+        funder,
+        true,
+        tokenProgram
+      );
+    createFunderTokenAccountIx &&
+      preInstructions.push(createFunderTokenAccountIx);
+
+    if (mint.equals(NATIVE_MINT)) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(funder);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
 
     const instruction = await this._program.methods
       .withdrawIneligibleReward(rewardIndex)
@@ -872,9 +975,85 @@ export class CpAmm {
         funder: funder,
         tokenProgram,
       })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
       .instruction();
 
     return await this.buildTransaction(funder, [instruction]);
+  }
+
+  async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
+    const { partner, pool, maxAmountA, maxAmountB } = params;
+    const poolState = await this.fetchPoolState(pool);
+    const poolAuthority = derivePoolAuthority();
+    const {
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAFlag,
+      tokenBFlag,
+    } = poolState;
+
+    const tokenAProgram = getTokenProgram(tokenAFlag);
+    const tokenBProgram = getTokenProgram(tokenBFlag);
+
+    const preInstructions: TransactionInstruction[] = [];
+    const [
+      { ataPubkey: tokenAAccount, ix: createTokenAAccountIx },
+      { ataPubkey: tokenBAccount, ix: createTokenBAccountIx },
+    ] = await Promise.all([
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        poolState.tokenAMint,
+        partner,
+        partner,
+        true,
+        tokenAProgram
+      ),
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        poolState.tokenBMint,
+        partner,
+        partner,
+        true,
+        tokenBProgram
+      ),
+    ]);
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+    createTokenBAccountIx && preInstructions.push(createTokenBAccountIx);
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [
+        poolState.tokenAMint.toBase58(),
+        poolState.tokenBMint.toBase58(),
+      ].includes(NATIVE_MINT.toBase58())
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(partner);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    const instruction = await this._program.methods
+      .claimPartnerFee(maxAmountA, maxAmountB)
+      .accounts({
+        poolAuthority,
+        pool,
+        tokenAAccount,
+        tokenBAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
+        partner,
+        tokenAProgram,
+        tokenBProgram,
+      })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .instruction();
+
+    return await this.buildTransaction(partner, [instruction]);
   }
 
   async claimReward(params: ClaimRewardParams): TxBuilder {
@@ -886,11 +1065,8 @@ export class CpAmm {
 
     const positionNftAccount = derivePositionNftAccount(positionState!.nftMint);
 
-    const rewardInfo: RewardInfo = poolState?.rewardInfos[rewardIndex];
-    const tokenProgram =
-      rewardInfo.rewardTokenFlag == 0
-        ? TOKEN_PROGRAM_ID
-        : TOKEN_2022_PROGRAM_ID;
+    const rewardInfo = poolState.rewardInfos[rewardIndex];
+    const tokenProgram = getTokenProgram(rewardInfo.rewardTokenFlag);
 
     const preInstructions: TransactionInstruction[] = [];
     const postInstructions: TransactionInstruction[] = [];

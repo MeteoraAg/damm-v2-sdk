@@ -16,7 +16,12 @@ import {
   SystemProgram,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { CP_AMM_PROGRAM_ID, MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "./constants";
+import {
+  CP_AMM_PROGRAM_ID,
+  MAX_FEE_NUMERATOR,
+  MAX_SQRT_PRICE,
+  MIN_SQRT_PRICE,
+} from "./constants";
 import {
   AddLiquidityParams,
   AmmProgram,
@@ -47,6 +52,8 @@ import { decimalToQ64, priceToSqrtPrice } from "./math";
 import Decimal from "decimal.js";
 import {
   calculateFee,
+  getBaseFeeNumerator,
+  getDynamicFeeNumerator,
   getOrCreateATAInstruction,
   getTokenDecimals,
   getTokenProgram,
@@ -181,15 +188,29 @@ export class CpAmm {
           numberOfPeriod,
           new BN(currentPoint).sub(activationPoint).div(periodFrequency)
         );
-    const hasDynamicFee = Boolean(dynamicFee.initialize);
-    const { actualAmount, lpFee } = calculateFee(
-      outAmount,
+
+    let feeNumerator = getBaseFeeNumerator(
       feeSchedulerMode,
       cliffFeeNumerator,
       period,
-      reductionFactor,
-      hasDynamicFee
+      reductionFactor
     );
+
+    if (dynamicFee.initialize != 0) {
+      const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
+      const dynamicFeeNumberator = getDynamicFeeNumerator(
+        volatilityAccumulator,
+        binStep,
+        variableFeeControl
+      );
+      feeNumerator.add(dynamicFeeNumberator);
+    }
+
+    const tradeFeeNumerator = feeNumerator.gt(MAX_FEE_NUMERATOR)
+      ? MAX_FEE_NUMERATOR
+      : feeNumerator;
+
+    const { actualAmount, lpFee } = calculateFee(outAmount, tradeFeeNumerator);
 
     return {
       actualAmount,

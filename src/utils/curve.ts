@@ -3,6 +3,10 @@ import { divCeil, mulDiv } from "../math";
 import { Rounding } from "../types";
 import { SCALE_OFFSET } from "../constants";
 
+// aToB
+// √P' = √P * L / (L + Δx*√P)
+// bToA
+// √P' = √P + Δy / L
 export function getNextSqrtPrice(
   amount: BN,
   sqrtPrice: BN,
@@ -22,6 +26,25 @@ export function getNextSqrtPrice(
   return result;
 }
 
+/// Gets the delta amount_a for given liquidity and price range
+///
+/// # Formula
+///
+/// * `Δa = L * (1 / √P_lower - 1 / √P_upper)`
+/// * i.e. `L * (√P_upper - √P_lower) / (√P_upper * √P_lower)`
+export function getDeltaAmountA(
+  lowerSqrtPrice: BN,
+  upperSqrtPrice: BN,
+  liquidity: BN,
+  rounding: Rounding
+): BN {
+  const deltaSqrtPrice = upperSqrtPrice.sub(lowerSqrtPrice);
+  const denominator = lowerSqrtPrice.mul(upperSqrtPrice);
+  return mulDiv(liquidity, deltaSqrtPrice, denominator, rounding);
+}
+
+/// Gets the delta amount_b for given liquidity and price range
+/// * `Δb = L (√P_upper - √P_lower)`
 export function getDeltaAmountB(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
@@ -42,17 +65,7 @@ export function getDeltaAmountB(
   return result;
 }
 
-export function getDeltaAmountA(
-  lowerSqrtPrice: BN,
-  upperSqrtPrice: BN,
-  liquidity: BN,
-  rounding: Rounding
-): BN {
-  const deltaSqrtPrice = upperSqrtPrice.sub(lowerSqrtPrice);
-  const denominator = lowerSqrtPrice.mul(upperSqrtPrice);
-  return mulDiv(liquidity, deltaSqrtPrice, denominator, rounding);
-}
-
+// calculate outAmount without fee charging
 export function calculateSwap(
   inAmount: BN,
   sqrtPrice: BN,

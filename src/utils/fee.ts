@@ -31,34 +31,17 @@ export function getBaseFeeNumerator(
   return feeNumerator;
 }
 
-export function getDynamicFeeNumerator(): BN {
-  // TODO
+export function getDynamicFeeNumerator(
+  volatilityAccumulator: BN,
+  binStep: BN,
+  variableFeeControl: BN
+): BN {
+  const squareVfaBin = volatilityAccumulator.mul(binStep).pow(2);
+  const vFee = squareVfaBin.mul(variableFeeControl);
+  return vFee.add(99_999_999_999).div(100_000_000_000);
 }
 
-export function calculateFee(
-  amount: BN,
-  feeSchedulerMode: FeeSchedulerMode,
-  cliffFeeNumerator: BN,
-  period: BN,
-  reductionFactor: BN,
-  enableDynamicFee: boolean
-) {
-  let feeNumerator = getBaseFeeNumerator(
-    feeSchedulerMode,
-    cliffFeeNumerator,
-    period,
-    reductionFactor
-  );
-
-  if (enableDynamicFee) {
-    const dynamicFee = getDynamicFeeNumerator();
-    feeNumerator.add(dynamicFee);
-  }
-
-  const tradeFeeNumerator = feeNumerator.gt(MAX_FEE_NUMERATOR)
-    ? MAX_FEE_NUMERATOR
-    : feeNumerator;
-
+export function calculateFee(amount: BN, tradeFeeNumerator: BN) {
   const lpFee = mulDiv(
     amount,
     tradeFeeNumerator,

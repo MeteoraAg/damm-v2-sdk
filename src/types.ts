@@ -85,13 +85,31 @@ export type InitializeCustomizeablePoolParams = {
   creator: PublicKey;
   tokenX: PublicKey;
   tokenY: PublicKey;
+  tokenXAmount: BN;
+  tokenYAmount: BN;
+  tokenXDecimal: number;
+  tokenYDecimal: number;
   poolFees: PoolFeesParams;
   hasAlphaVault: boolean;
-  liquidity: BN;
-  initialPrice: BN;
   activationType: number;
   collectFeeMode: number;
   activationPoint: BN | null;
+};
+
+export type PreparePoolCreationParams = {
+  tokenX: PublicKey;
+  tokenY: PublicKey;
+  tokenXAmount: BN;
+  tokenYAmount: BN;
+  tokenXDecimal: number;
+  tokenYDecimal: number;
+};
+
+export type PreparedPoolCreation = {
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  sqrtPriceQ64: BN;
+  liquidityQ64: BN;
 };
 
 export type CreatePoolParams = {
@@ -100,8 +118,10 @@ export type CreatePoolParams = {
   config: PublicKey;
   tokenX: PublicKey;
   tokenY: PublicKey;
-  initialPrice: BN;
-  liquidity: BN;
+  tokenXAmount: BN;
+  tokenYAmount: BN;
+  tokenXDecimal: number;
+  tokenYDecimal: number;
   activationPoint: ActivationPoint;
 };
 

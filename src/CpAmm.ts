@@ -40,6 +40,8 @@ import {
   PermanentLockParams,
   PoolState,
   PositionState,
+  PreparedPoolCreation,
+  PreparePoolCreationParams,
   RefreshVestingParams,
   RemoveLiquidityParams,
   TxBuilder,
@@ -102,37 +104,67 @@ export class CpAmm {
     }>} Object containing the ordered token mints and their Q64 price/liquidity values. 
   */
   private async preparePoolCreationParams(
-    tokenX: PublicKey,
-    tokenY: PublicKey,
-    initialPrice: Decimal,
-    liquidity: Decimal
-  ): Promise<{
-    tokenAMint: PublicKey;
-    tokenBMint: PublicKey;
-    sqrtPriceQ64: BN;
-    liquidityQ64: BN;
-  }> {
-    const [tokenAMint, tokenBMint, initPrice] = new BN(tokenX.toBuffer()).gt(
-      new BN(tokenY.toBuffer())
-    )
-      ? [tokenY, tokenX, new Decimal(1).div(initialPrice)]
-      : [tokenX, tokenY, initialPrice];
-
-    const tokenADecimal = await getTokenDecimals(
-      this._program.provider.connection,
-      tokenAMint
-    );
-
-    const tokenBDecimal = await getTokenDecimals(
-      this._program.provider.connection,
-      tokenBMint
-    );
+    params: PreparePoolCreationParams
+  ): Promise<PreparedPoolCreation> {
+    const {
+      tokenX,
+      tokenY,
+      tokenXAmount,
+      tokenYAmount,
+      tokenXDecimal,
+      tokenYDecimal,
+    } = params;
+    const [
+      tokenAMint,
+      tokenBMint,
+      tokenADecimal,
+      tokenBDecimal,
+      initPrice,
+      tokenAAmount,
+      tokenBAmount,
+    ] = new BN(tokenX.toBuffer()).gt(new BN(tokenY.toBuffer()))
+      ? [
+          tokenY,
+          tokenX,
+          tokenYDecimal,
+          tokenXDecimal,
+          new Decimal(tokenXAmount).div(new Decimal(tokenYAmount)), // SQRT(tokenB/TokenA) => SQRT(tokenX/tokenY),
+          tokenYAmount,
+          tokenXAmount,
+        ]
+      : [
+          tokenX,
+          tokenY,
+          tokenXDecimal,
+          tokenYDecimal,
+          new Decimal(tokenYAmount).div(new Decimal(tokenXAmount)), // SQRT(tokenB/TokenA) => SQRT(tokenY/tokenX),
+          tokenXAmount,
+          tokenYAmount,
+        ];
 
     const sqrtPriceQ64 = priceToSqrtPrice(
-      new Decimal(initPrice),
+      initPrice,
       tokenADecimal,
       tokenBDecimal
     );
+
+    const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
+      tokenAAmount,
+      sqrtPriceQ64,
+      MAX_SQRT_PRICE
+    );
+
+    const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
+      tokenBAmount,
+      MIN_SQRT_PRICE,
+      sqrtPriceQ64
+    );
+
+    const liquidityQ64 = liquidityDeltaFromAmountA.gte(
+      liquidityDeltaFromAmountB
+    )
+      ? liquidityDeltaFromAmountB
+      : liquidityDeltaFromAmountA;
 
     invariant(
       sqrtPriceQ64.gte(MIN_SQRT_PRICE),
@@ -142,8 +174,6 @@ export class CpAmm {
       sqrtPriceQ64.lte(MAX_SQRT_PRICE),
       `sqrtPrice must be <= ${MAX_SQRT_PRICE.toString()}`
     );
-
-    const liquidityQ64 = decimalToQ64(liquidity);
 
     return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };
   }
@@ -316,17 +346,21 @@ export class CpAmm {
       tokenX,
       tokenY,
       activationPoint,
-      initialPrice, //
-      liquidity,
+      tokenXAmount,
+      tokenYAmount,
+      tokenXDecimal,
+      tokenYDecimal,
     } = params;
 
     const { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 } =
-      await this.preparePoolCreationParams(
+      await this.preparePoolCreationParams({
         tokenX,
         tokenY,
-        new Decimal(initialPrice),
-        new Decimal(liquidity)
-      );
+        tokenXAmount,
+        tokenYAmount,
+        tokenXDecimal,
+        tokenYDecimal,
+      });
 
     const poolAuthority = derivePoolAuthority();
     const pool = derivePoolAddress(config, tokenX, tokenY);
@@ -398,24 +432,28 @@ export class CpAmm {
     const {
       tokenX,
       tokenY,
+      tokenXAmount,
+      tokenYAmount,
+      tokenXDecimal,
+      tokenYDecimal,
       payer,
       creator,
       poolFees,
       hasAlphaVault,
-      liquidity,
-      initialPrice,
       collectFeeMode,
       activationPoint,
       activationType,
     } = params;
 
     const { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 } =
-      await this.preparePoolCreationParams(
+      await this.preparePoolCreationParams({
         tokenX,
         tokenY,
-        new Decimal(initialPrice),
-        new Decimal(liquidity)
-      );
+        tokenXAmount,
+        tokenYAmount,
+        tokenXDecimal,
+        tokenYDecimal,
+      });
 
     const poolAuthority = derivePoolAuthority();
     const pool = deriveCustomizablePoolAddress(tokenAMint, tokenBMint);

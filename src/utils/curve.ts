@@ -1,7 +1,7 @@
 import { BN } from "@coral-xyz/anchor";
 import { divCeil, mulDiv, shlDiv } from "../math";
-import { Rounding } from "../types";
-import { SCALE_OFFSET } from "../constants";
+import { CollectFeeMode, Rounding } from "../types";
+import { FEE_DENOMINATOR, SCALE_OFFSET } from "../constants";
 
 // aToB
 // √P' = √P * L / (L + Δx*√P)
@@ -70,26 +70,54 @@ export function calculateSwap(
   inAmount: BN,
   sqrtPrice: BN,
   liquidity: BN,
-  aToB: boolean
-): BN {
-  if (aToB) {
-    const nextSqrtPrice = getNextSqrtPrice(
-      inAmount,
-      sqrtPrice,
-      liquidity,
-      true
-    );
+  tradeFeeNumerator: BN,
+  aToB: boolean,
+  collectFeeMode: number
+): { actualAmount: BN; lpFee: BN } {
+  let nextSqrtPrice: BN;
+  let outAmount: BN;
+  let lpFee: BN;
 
-    return getDeltaAmountB(nextSqrtPrice, sqrtPrice, liquidity, Rounding.Down);
-  } else {
-    const nextSqrtPrice = getNextSqrtPrice(
-      inAmount,
+  if (aToB) {
+    nextSqrtPrice = getNextSqrtPrice(inAmount, sqrtPrice, liquidity, true);
+    outAmount = getDeltaAmountB(
+      nextSqrtPrice,
       sqrtPrice,
       liquidity,
-      false
+      Rounding.Down
     );
-    return getDeltaAmountA(sqrtPrice, nextSqrtPrice, liquidity, Rounding.Down);
+    lpFee = mulDiv(
+      outAmount,
+      tradeFeeNumerator,
+      FEE_DENOMINATOR,
+      Rounding.Down
+    );
+  } else {
+    if (collectFeeMode === CollectFeeMode.BothToken) {
+      nextSqrtPrice = getNextSqrtPrice(inAmount, sqrtPrice, liquidity, false);
+    } else {
+      lpFee = mulDiv(
+        inAmount,
+        tradeFeeNumerator,
+        FEE_DENOMINATOR,
+        Rounding.Down
+      );
+      nextSqrtPrice = getNextSqrtPrice(
+        inAmount.sub(lpFee),
+        sqrtPrice,
+        liquidity,
+        false
+      );
+    }
+    outAmount = getDeltaAmountA(
+      sqrtPrice,
+      nextSqrtPrice,
+      liquidity,
+      Rounding.Down
+    );
   }
+
+  return { actualAmount: outAmount.sub(lpFee), lpFee };
 }
 
 export function getLiquidityDeltaFromAmountA(

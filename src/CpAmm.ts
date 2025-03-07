@@ -58,14 +58,13 @@ import {
   deriveRewardVaultAddress,
   deriveTokenVaultAddress,
 } from "./pda";
-import { decimalToQ64, priceToSqrtPrice } from "./math";
+import { priceToSqrtPrice } from "./math";
 
 import {
-  calculateFee,
   getBaseFeeNumerator,
   getDynamicFeeNumerator,
+  getFeeNumerator,
   getOrCreateATAInstruction,
-  getTokenDecimals,
   getTokenProgram,
   unwrapSOLInstruction,
   wrapSOLInstruction,
@@ -86,22 +85,13 @@ export class CpAmm {
 
   /**
     Prepares token ordering, calculates the initial sqrtPrice in Q64 format,
-    and converts the provided liquidity to Q64 format for internal usage.
-    * initialPrice = tokenX/tokenY
-    * initPrice = tokenB/tokenA
-    * will invert the price with correct token order
     @private
     @async
     @param {PublicKey} tokenX - One token mint address in the pair.
     @param {PublicKey} tokenY - The other token mint address in the pair.
     @param {Decimal} initialPrice - The initial price ratio of tokenX/tokenY (will be inverted if needed).
     @param {Decimal} liquidity - The initial liquidity value.
-    @returns {Promise<{
-    tokenAMint: PublicKey,
-    tokenBMint: PublicKey,
-    sqrtPriceQ64: BN,
-    liquidityQ64: BN
-    }>} Object containing the ordered token mints and their Q64 price/liquidity values. 
+    @returns {PreparedPoolCreation} Object containing the ordered token mints and their Q64 price/liquidity values. 
   */
   private async preparePoolCreationParams(
     params: PreparePoolCreationParams
@@ -148,6 +138,10 @@ export class CpAmm {
       tokenBDecimal
     );
 
+    if (sqrtPriceQ64.lt(MIN_SQRT_PRICE) || sqrtPriceQ64.gt(MAX_SQRT_PRICE)) {
+      throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);
+    }
+
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       tokenAAmount,
       sqrtPriceQ64,
@@ -165,15 +159,6 @@ export class CpAmm {
     )
       ? liquidityDeltaFromAmountB
       : liquidityDeltaFromAmountA;
-
-    invariant(
-      sqrtPriceQ64.gte(MIN_SQRT_PRICE),
-      `sqrtPrice must be >= ${MIN_SQRT_PRICE.toString()}`
-    );
-    invariant(
-      sqrtPriceQ64.lte(MAX_SQRT_PRICE),
-      `sqrtPrice must be <= ${MAX_SQRT_PRICE.toString()}`
-    );
 
     return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };
   }
@@ -238,6 +223,7 @@ export class CpAmm {
       liquidity: liquidityQ64,
       activationType,
       activationPoint,
+      collectFeeMode,
       poolFees,
     } = poolState;
 
@@ -251,42 +237,37 @@ export class CpAmm {
     } = poolFees;
 
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
+    const slot = await this._program.provider.connection.getSlot();
+    const blockInfo = await this._program.provider.connection.getBlock(slot, {
+      maxSupportedTransactionVersion: 0,
+    });
+    const currentTime = blockInfo?.blockTime ?? Math.floor(Date.now() / 1000);
+    const currentPoint = activationType ? currentTime : slot;
 
-    const outAmount = calculateSwap(inAmount, sqrtPriceQ64, liquidityQ64, aToB);
-
-    const currentPoint = activationType
-      ? Math.floor(Date.now() / 1000) // reduce RPC call
-      : await this._program.provider.connection.getSlot();
-
-    const period = new BN(currentPoint).lt(activationPoint)
-      ? numberOfPeriod
-      : BN.min(
-          numberOfPeriod,
-          new BN(currentPoint).sub(activationPoint).div(periodFrequency)
-        );
-
-    let feeNumerator = getBaseFeeNumerator(
+    let dynamicFeeParams;
+    if (dynamicFee != 0) {
+      const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
+      dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
+    }
+    const tradeFeeNumerator = getFeeNumerator(
+      currentPoint,
+      activationPoint,
+      numberOfPeriod,
+      periodFrequency,
       feeSchedulerMode,
       cliffFeeNumerator,
-      period,
-      reductionFactor
+      reductionFactor,
+      dynamicFeeParams
     );
 
-    if (dynamicFee.initialize != 0) {
-      const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
-      const dynamicFeeNumberator = getDynamicFeeNumerator(
-        volatilityAccumulator,
-        binStep,
-        variableFeeControl
-      );
-      feeNumerator.add(dynamicFeeNumberator);
-    }
-
-    const tradeFeeNumerator = feeNumerator.gt(MAX_FEE_NUMERATOR)
-      ? MAX_FEE_NUMERATOR
-      : feeNumerator;
-
-    const { actualAmount, lpFee } = calculateFee(outAmount, tradeFeeNumerator);
+    const { actualAmount, lpFee } = calculateSwap(
+      inAmount,
+      sqrtPriceQ64,
+      liquidityQ64,
+      tradeFeeNumerator,
+      aToB,
+      collectFeeMode
+    );
 
     return {
       actualAmount,
@@ -314,7 +295,7 @@ export class CpAmm {
       poolState;
 
     if (!tokenX.equals(tokenAMint) && !tokenX.equals(tokenBMint)) {
-      throw new Error("Token is not existed in pool");
+      throw new Error("Token does not exist in the pool.");
     }
 
     const [maxAmountTokenA, maxAmountTokenB] = tokenAMint.equals(tokenX)
@@ -339,7 +320,7 @@ export class CpAmm {
   }
 
   async createPool(params: CreatePoolParams): TxBuilder {
-    let {
+    const {
       payer,
       creator,
       config,
@@ -415,7 +396,8 @@ export class CpAmm {
         payerTokenA,
         payerTokenB,
         token2022Program: TOKEN_2022_PROGRAM_ID,
-
+        tokenAProgram,
+        tokenBProgram,
         systemProgram: SystemProgram.programId,
       })
       .instruction();
@@ -426,9 +408,7 @@ export class CpAmm {
     return tx;
   }
 
-  async createCustomizePool(
-    params: InitializeCustomizeablePoolParams
-  ): TxBuilder {
+  async createCustomPool(params: InitializeCustomizeablePoolParams): TxBuilder {
     const {
       tokenX,
       tokenY,

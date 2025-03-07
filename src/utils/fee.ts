@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { FeeSchedulerMode, Rounding } from "../types";
+import { CollectFeeMode, FeeSchedulerMode, Rounding } from "../types";
 import {
   BASIS_POINT_MAX,
   FEE_DENOMINATOR,
@@ -41,16 +41,44 @@ export function getDynamicFeeNumerator(
   return vFee.add(99_999_999_999).div(100_000_000_000);
 }
 
-export function calculateFee(amount: BN, tradeFeeNumerator: BN) {
-  const lpFee = mulDiv(
-    amount,
-    tradeFeeNumerator,
-    FEE_DENOMINATOR,
-    Rounding.Down
+export function getFeeNumerator(
+  currentPoint: number,
+  activationPoint: number,
+  numberOfPeriod: number,
+  periodFrequency: number,
+  feeSchedulerMode: number,
+  cliffFeeNumerator: number,
+  reductionFactor: number,
+  dynamicFeeParams?: {
+    volatilityAccumulator: BN;
+    binStep: BN;
+    variableFeeControl: BN;
+  }
+): number {
+  const period = new BN(currentPoint).lt(activationPoint)
+    ? numberOfPeriod
+    : BN.min(
+        numberOfPeriod,
+        new BN(currentPoint).sub(activationPoint).div(periodFrequency)
+      );
+
+  let feeNumerator = getBaseFeeNumerator(
+    feeSchedulerMode,
+    cliffFeeNumerator,
+    period,
+    reductionFactor
   );
 
-  return {
-    actualAmount: amount.sub(lpFee),
-    lpFee,
-  };
+  if (dynamicFeeParams) {
+    const { volatilityAccumulator, binStep, variableFeeControl } =
+      dynamicFeeParams;
+    const dynamicFeeNumberator = getDynamicFeeNumerator(
+      volatilityAccumulator,
+      binStep,
+      variableFeeControl
+    );
+    feeNumerator.add(dynamicFeeNumberator);
+  }
+
+  return feeNumerator.gt(MAX_FEE_NUMERATOR) ? MAX_FEE_NUMERATOR : feeNumerator;
 }

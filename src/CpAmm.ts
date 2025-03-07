@@ -35,6 +35,7 @@ import {
   GetQuoteParams,
   InitializeCustomizeablePoolParams,
   InitializeRewardParams,
+  LiquidityDeltaParams,
   LockPositionParams,
   PermanentLockParams,
   PoolState,
@@ -67,7 +68,11 @@ import {
   unwrapSOLInstruction,
   wrapSOLInstruction,
 } from "./utils";
-import { calculateSwap } from "./utils/curve";
+import {
+  calculateSwap,
+  getLiquidityDeltaFromAmountA,
+  getLiquidityDeltaFromAmountB,
+} from "./utils/curve";
 
 export class CpAmm {
   _program: AmmProgram;
@@ -259,8 +264,48 @@ export class CpAmm {
     };
   }
 
-  async getLiquidityDelta(params: any): Promise<any> {
-    // TODO
+  /**
+   * Computes the liquidity delta based on the provided token amounts and pool state.
+   *
+   * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation, including:
+   *   - tokenX: The mint address of token X.
+   *   - tokenY: The mint address of token Y.
+   *   - maxAmountX: The maximum amount of token X available.
+   *   - maxAmountY: The maximum amount of token Y available.
+   *   - pool: The address of the liquidity pool.
+   *
+   * @returns {Promise<BN>} - The computed liquidity delta in Q64 value.
+   */
+  async getLiquidityDelta(params: LiquidityDeltaParams): Promise<BN> {
+    const { tokenX, tokenY, maxAmountX, maxAmountY, pool } = params;
+    const poolState = await this.fetchPoolState(pool);
+
+    const { tokenAMint, tokenBMint, sqrtPrice, sqrtMaxPrice, sqrtMinPrice } =
+      poolState;
+
+    if (!tokenX.equals(tokenAMint) && !tokenX.equals(tokenBMint)) {
+      throw new Error("Token is not existed in pool");
+    }
+
+    const [maxAmountTokenA, maxAmountTokenB] = tokenAMint.equals(tokenX)
+      ? [maxAmountX, maxAmountY]
+      : [maxAmountY, maxAmountX];
+
+    const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
+      maxAmountTokenA,
+      sqrtPrice,
+      sqrtMaxPrice
+    );
+
+    const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
+      maxAmountTokenB,
+      sqrtMinPrice,
+      sqrtPrice
+    );
+
+    return liquidityDeltaFromAmountA.gte(liquidityDeltaFromAmountB)
+      ? liquidityDeltaFromAmountB
+      : liquidityDeltaFromAmountA;
   }
 
   async createPool(params: CreatePoolParams): TxBuilder {
@@ -477,12 +522,10 @@ export class CpAmm {
     const {
       owner,
       position,
-      liquidityDelta,
+      liquidityDeltaQ64,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
     } = params;
-    const liquidityDeltaQ64 = decimalToQ64(new Decimal(liquidityDelta));
-
     const positionState = await this.fetchPositionState(position);
     const poolState = await this.fetchPoolState(positionState.pool);
     const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
@@ -534,11 +577,10 @@ export class CpAmm {
     const {
       owner,
       position,
-      liquidityDelta,
+      liquidityDeltaQ64,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
     } = params;
-    const liquidityDeltaQ64 = decimalToQ64(new Decimal(liquidityDelta));
     const positionState = await this.fetchPositionState(position);
     const poolState = await this.fetchPoolState(positionState.pool);
     const positionNftAccount = derivePositionNftAccount(positionState.nftMint);

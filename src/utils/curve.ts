@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { divCeil, mulDiv } from "../math";
+import { divCeil, mulDiv, shlDiv } from "../math";
 import { Rounding } from "../types";
 import { SCALE_OFFSET } from "../constants";
 
@@ -92,22 +92,21 @@ export function calculateSwap(
   }
 }
 
-export function getLiquidityDeltaFromAmountB(
-  maxAmountB: BN,
-  lowerSqrtPrice: BN,
-  upperSqrtPrice: BN
-) {
-  const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
-  return maxAmountB.div(denominator);
-}
-
 export function getLiquidityDeltaFromAmountA(
   maxAmountA: BN,
-  lowerSqrtPrice: BN,
-  upperSqrtPrice: BN
-) {
-  // TODO check overflow
+  lowerSqrtPrice: BN, // current sqrt price
+  upperSqrtPrice: BN // max sqrt price
+): BN {
   const prod = maxAmountA.mul(upperSqrtPrice.mul(lowerSqrtPrice));
   const delta = upperSqrtPrice.sub(lowerSqrtPrice);
   return prod.div(delta);
+}
+
+export function getLiquidityDeltaFromAmountB(
+  maxAmountB: BN,
+  lowerSqrtPrice: BN, // mint sqrt price
+  upperSqrtPrice: BN // current sqrt price
+): BN {
+  const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
+  return maxAmountB.div(denominator);
 }

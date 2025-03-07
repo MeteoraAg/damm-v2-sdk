@@ -114,9 +114,17 @@ export type CreatePositionParams = {
 export type AddLiquidityParams = {
   owner: PublicKey;
   position: PublicKey;
-  liquidityDelta: BN;
+  liquidityDeltaQ64: BN;
   tokenAAmountThreshold: BN;
   tokenBAmountThreshold: BN;
+};
+
+export type LiquidityDeltaParams = {
+  maxAmountX: BN;
+  maxAmountY: BN;
+  tokenX: PublicKey;
+  tokenY: PublicKey;
+  pool: PublicKey;
 };
 
 export type RemoveLiquidityParams = AddLiquidityParams;

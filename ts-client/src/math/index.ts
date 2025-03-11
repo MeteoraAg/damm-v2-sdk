@@ -2,12 +2,12 @@ import { BN } from "@coral-xyz/anchor";
 import Decimal from "decimal.js";
 import { Rounding } from "../types";
 
-export function mulShr(x: BN, y: BN, offset: number, rounding: Rounding) {
+export function mulShr(x: BN, y: BN, offset: number, rounding: Rounding): BN {
   const denominator = new BN(1).shln(offset);
   return mulDiv(x, y, denominator, rounding);
 }
 
-export function shlDiv(x: BN, y: BN, offset: number, rounding: Rounding) {
+export function shlDiv(x: BN, y: BN, offset: number, rounding: Rounding): BN {
   const scale = new BN(1).shln(offset);
   return mulDiv(x, scale, y, rounding);
 }
@@ -35,7 +35,7 @@ export function q64ToDecimal(num: BN, decimalPlaces?: number): Decimal {
     .toDecimalPlaces(decimalPlaces);
 }
 
-export function decimalToQ64(num: Decimal): BN {
+export function decimalToQ64(num: Decimal): Decimal {
   return new BN(num.mul(Decimal.pow(2, 64)).floor().toFixed());
 }
 
@@ -44,7 +44,9 @@ export function priceToSqrtPrice(
   tokenADecimal: number,
   tokenBDecimal: number
 ): BN {
-  decimalToQ64(
+  const sqrtPriceQ64 = decimalToQ64(
     initPrice.mul(Decimal.pow(10, tokenBDecimal - tokenADecimal)).sqrt()
   );
+
+  return sqrtPriceQ64;
 }

@@ -1,8 +1,12 @@
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 
-export const CP_AMM_PROGRAM_ID = new PublicKey("");
-export const CP_AMM_PROGRAM_ID_DEVNET = new PublicKey("");
+export const CP_AMM_PROGRAM_ID = new PublicKey(
+  "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
+);
+export const CP_AMM_PROGRAM_ID_DEVNET = new PublicKey(
+  "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
+);
 
 export const SCALE_OFFSET = 64;
 export const BASIS_POINT_MAX = 10_000;

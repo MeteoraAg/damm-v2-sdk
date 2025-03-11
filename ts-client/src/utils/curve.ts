@@ -73,13 +73,58 @@ export function calculateSwap(
   tradeFeeNumerator: BN,
   aToB: boolean,
   collectFeeMode: number
-): { actualAmount: BN; lpFee: BN } {
-  let nextSqrtPrice: BN;
+): { amountOutExcludedlpFee: BN; lpFee: BN } {
   let outAmount: BN;
   let lpFee: BN;
 
-  if (aToB) {
-    nextSqrtPrice = getNextSqrtPrice(inAmount, sqrtPrice, liquidity, true);
+  if (collectFeeMode === CollectFeeMode.BothToken) {
+    if (aToB) {
+      const nextSqrtPrice = getNextSqrtPrice(
+        inAmount,
+        sqrtPrice,
+        liquidity,
+        true
+      );
+      outAmount = getDeltaAmountB(
+        nextSqrtPrice,
+        sqrtPrice,
+        liquidity,
+        Rounding.Down
+      );
+      lpFee = mulDiv(
+        outAmount,
+        tradeFeeNumerator,
+        FEE_DENOMINATOR,
+        Rounding.Down
+      );
+    } else {
+      const nextSqrtPrice = getNextSqrtPrice(
+        inAmount,
+        sqrtPrice,
+        liquidity,
+        false
+      );
+
+      outAmount = getDeltaAmountA(
+        sqrtPrice,
+        nextSqrtPrice,
+        liquidity,
+        Rounding.Down
+      );
+      lpFee = mulDiv(
+        outAmount,
+        tradeFeeNumerator,
+        new BN(FEE_DENOMINATOR),
+        Rounding.Down
+      );
+    }
+  } else {
+    const nextSqrtPrice = getNextSqrtPrice(
+      inAmount,
+      sqrtPrice,
+      liquidity,
+      true
+    );
     outAmount = getDeltaAmountB(
       nextSqrtPrice,
       sqrtPrice,
@@ -92,9 +137,7 @@ export function calculateSwap(
       FEE_DENOMINATOR,
       Rounding.Down
     );
-  } else {
-    if (collectFeeMode === CollectFeeMode.BothToken) {
-      nextSqrtPrice = getNextSqrtPrice(inAmount, sqrtPrice, liquidity, false);
+    if (aToB) {
     } else {
       lpFee = mulDiv(
         inAmount,
@@ -102,24 +145,30 @@ export function calculateSwap(
         FEE_DENOMINATOR,
         Rounding.Down
       );
-      nextSqrtPrice = getNextSqrtPrice(
+      const nextSqrtPrice = getNextSqrtPrice(
         inAmount.sub(lpFee),
         sqrtPrice,
         liquidity,
         false
       );
+      outAmount = getDeltaAmountA(
+        sqrtPrice,
+        nextSqrtPrice,
+        liquidity,
+        Rounding.Down
+      );
     }
-    outAmount = getDeltaAmountA(
-      sqrtPrice,
-      nextSqrtPrice,
-      liquidity,
-      Rounding.Down
-    );
   }
 
-  return { actualAmount: outAmount.sub(lpFee), lpFee };
+  return { amountOutExcludedlpFee: outAmount.sub(lpFee), lpFee };
 }
 
+// Δa = L * (1 / √P_lower - 1 / √P_upper)
+//
+// Δa = L * (√P_upper - √P_lower) / (√P_upper * √P_lower)
+//
+// L = Δa * √P_upper * √P_lower / (√P_upper - √P_lower)
+//
 export function getLiquidityDeltaFromAmountA(
   maxAmountA: BN,
   lowerSqrtPrice: BN, // current sqrt price
@@ -127,14 +176,18 @@ export function getLiquidityDeltaFromAmountA(
 ): BN {
   const prod = maxAmountA.mul(upperSqrtPrice.mul(lowerSqrtPrice));
   const delta = upperSqrtPrice.sub(lowerSqrtPrice);
+
   return prod.div(delta);
 }
 
+// Δb = L (√P_upper - √P_lower)
+// L = Δb / (√P_upper - √P_lower)
 export function getLiquidityDeltaFromAmountB(
   maxAmountB: BN,
-  lowerSqrtPrice: BN, // mint sqrt price
+  lowerSqrtPrice: BN, // min sqrt price
   upperSqrtPrice: BN // current sqrt price
 ): BN {
   const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
-  return maxAmountB.div(denominator);
+  const result = maxAmountB.shln(SCALE_OFFSET * 2).div(denominator);
+  return result;
 }

@@ -83,6 +83,7 @@ export type PoolFeesParams = {
 export type InitializeCustomizeablePoolParams = {
   payer: PublicKey;
   creator: PublicKey;
+  positionNft: PublicKey;
   tokenX: PublicKey;
   tokenY: PublicKey;
   tokenXAmount: BN;
@@ -153,6 +154,23 @@ export type GetQuoteParams = {
   pool: PublicKey;
   inAmount: BN;
   inputTokenMint: PublicKey;
+  slippage: BN;
+};
+
+export type SwapQuotes = {
+  totalFee: BN;
+  minOutAmount: BN;
+  actualAmount: BN;
+};
+
+export type SwapParams = {
+  payer: PublicKey;
+  pool: PublicKey;
+  inputTokenMint: PublicKey;
+  outputTokenMint: PublicKey;
+  amountIn: BN;
+  minimumAmountOut: BN;
+  referralTokenAccount: PublicKey | null;
 };
 
 export type LockPositionParams = {

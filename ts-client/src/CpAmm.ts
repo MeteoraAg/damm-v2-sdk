@@ -17,6 +17,7 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 import {
+  BASIS_POINT_MAX,
   CP_AMM_PROGRAM_ID,
   MAX_FEE_NUMERATOR,
   MAX_SQRT_PRICE,
@@ -44,6 +45,8 @@ import {
   PreparePoolCreationParams,
   RefreshVestingParams,
   RemoveLiquidityParams,
+  Rounding,
+  SwapParams,
   TxBuilder,
   UpdateRewardDurationParams,
   UpdateRewardFunderParams,
@@ -71,6 +74,8 @@ import {
 } from "./utils";
 import {
   calculateSwap,
+  getDeltaAmountA,
+  getDeltaAmountB,
   getLiquidityDeltaFromAmountA,
   getLiquidityDeltaFromAmountB,
 } from "./utils/curve";
@@ -104,6 +109,7 @@ export class CpAmm {
       tokenXDecimal,
       tokenYDecimal,
     } = params;
+
     const [
       tokenAMint,
       tokenBMint,
@@ -118,7 +124,7 @@ export class CpAmm {
           tokenX,
           tokenYDecimal,
           tokenXDecimal,
-          new Decimal(tokenXAmount).div(new Decimal(tokenYAmount)), // SQRT(tokenB/TokenA) => SQRT(tokenX/tokenY),
+          tokenXAmount.div(tokenYAmount), // tokenB/TokenA => tokenX/tokenY,
           tokenYAmount,
           tokenXAmount,
         ]
@@ -127,13 +133,12 @@ export class CpAmm {
           tokenY,
           tokenXDecimal,
           tokenYDecimal,
-          new Decimal(tokenYAmount).div(new Decimal(tokenXAmount)), // SQRT(tokenB/TokenA) => SQRT(tokenY/tokenX),
+          tokenYAmount.div(tokenXAmount), // tokenB/TokenA => tokenY/tokenX,
           tokenXAmount,
           tokenYAmount,
         ];
-
     const sqrtPriceQ64 = priceToSqrtPrice(
-      initPrice,
+      new Decimal(initPrice.toString()),
       tokenADecimal,
       tokenBDecimal
     );
@@ -160,6 +165,12 @@ export class CpAmm {
       ? liquidityDeltaFromAmountB
       : liquidityDeltaFromAmountA;
 
+    console.log({
+      liquidityQ64,
+      liquidityDeltaFromAmountA,
+      liquidityDeltaFromAmountB,
+    });
+
     return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };
   }
 
@@ -179,7 +190,6 @@ export class CpAmm {
   ): TxBuilder {
     const { blockhash, lastValidBlockHeight } =
       await this._program.provider.connection.getLatestBlockhash("confirmed");
-
     return new Transaction({
       blockhash,
       lastValidBlockHeight,
@@ -216,7 +226,7 @@ export class CpAmm {
   async getQuote(
     params: GetQuoteParams
   ): Promise<{ actualAmount: BN; totalFee: BN }> {
-    const { pool, inAmount, inputTokenMint } = params;
+    const { pool, inAmount, inputTokenMint, slippage } = params;
     const poolState = await this.fetchPoolState(pool);
     const {
       sqrtPrice: sqrtPriceQ64,
@@ -234,7 +244,7 @@ export class CpAmm {
       reductionFactor,
       dynamicFee,
       periodFrequency,
-    } = poolFees;
+    } = poolFees.baseFee;
 
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
     const slot = await this._program.provider.connection.getSlot();
@@ -245,10 +255,11 @@ export class CpAmm {
     const currentPoint = activationType ? currentTime : slot;
 
     let dynamicFeeParams;
-    if (dynamicFee != 0) {
+    if (dynamicFee) {
       const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
       dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
     }
+
     const tradeFeeNumerator = getFeeNumerator(
       currentPoint,
       activationPoint,
@@ -260,7 +271,9 @@ export class CpAmm {
       dynamicFeeParams
     );
 
-    const { actualAmount, lpFee } = calculateSwap(
+    console.log(tradeFeeNumerator.toString());
+
+    const { amountOutExcludedlpFee, lpFee } = calculateSwap(
       inAmount,
       sqrtPriceQ64,
       liquidityQ64,
@@ -268,6 +281,10 @@ export class CpAmm {
       aToB,
       collectFeeMode
     );
+
+    const mintAmountOut = amountOutExcludedlpFee
+      .mul(new BN(BASIS_POINT_MAX).sub(slippage))
+      .div(new BN(BASIS_POINT_MAX));
 
     return {
       actualAmount,
@@ -418,6 +435,7 @@ export class CpAmm {
       tokenYDecimal,
       payer,
       creator,
+      positionNft,
       poolFees,
       hasAlphaVault,
       collectFeeMode,
@@ -437,10 +455,8 @@ export class CpAmm {
 
     const poolAuthority = derivePoolAuthority();
     const pool = deriveCustomizablePoolAddress(tokenAMint, tokenBMint);
-
-    const positionNft = Keypair.generate();
-    const position = derivePositionAddress(positionNft.publicKey);
-    const positionNftAccount = derivePositionNftAccount(positionNft.publicKey);
+    const position = derivePositionAddress(positionNft);
+    const positionNftAccount = derivePositionNftAccount(positionNft);
 
     const tokenAProgram = (
       await this._program.provider.connection.getParsedAccountInfo(tokenAMint)
@@ -466,7 +482,7 @@ export class CpAmm {
       tokenBProgram
     );
 
-    const instructions = await this._program.methods
+    const transaction = await this._program.methods
       .initializeCustomizablePool({
         poolFees,
         sqrtMinPrice: MIN_SQRT_PRICE,
@@ -481,7 +497,7 @@ export class CpAmm {
       .accounts({
         creator,
         positionNftAccount,
-        positionNftMint: positionNft.publicKey,
+        positionNftMint: positionNft,
         payer: payer,
         poolAuthority,
         pool,
@@ -497,13 +513,10 @@ export class CpAmm {
         tokenBProgram,
         systemProgram: SystemProgram.programId,
       })
-      .instruction();
+      .transaction();
+    transaction.feePayer = payer;
 
-    const tx = await this.buildTransaction(payer, [instructions]);
-
-    tx.partialSign(positionNft);
-
-    return tx;
+    return transaction;
   }
 
   async createPosition(params: CreatePositionParams): TxBuilder {
@@ -671,7 +684,7 @@ export class CpAmm {
     return await this.buildTransaction(owner, [instructions]);
   }
 
-  async swap(params: any): TxBuilder {
+  async swap(params: SwapParams): TxBuilder {
     const {
       payer,
       pool,

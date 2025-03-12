@@ -48,7 +48,6 @@ import { CpAmm, getTokenProgram } from "../src";
     sqrtPrice,
   });
 
-  console.log(liquidityDelta.toString());
   const transaction = await cpAmm.removeLiquidity({
     owner: wallet.publicKey,
     position,

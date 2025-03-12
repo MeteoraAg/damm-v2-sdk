@@ -56,7 +56,7 @@ The main example for SDK
         activationPoint: null,
       };
 
-     const transaction = await cpAmm.createCustomPool(params);
+     const {tx: transaction, pool} = await cpAmm.createCustomPool(params);
    ```
   Note:  We need two signers for transaction: positionNft & payer.
    
@@ -77,63 +77,125 @@ Note:  We need two signers for transaction: positionNft & payer.
 ## 5. Add liquidity
    ```ts
      // Calculate liquidity delta will add by supply max amount for tokenA & tokenB
+     const positionState = await cpAmm.fetchPositionState(position);
+     const poolState = await cpAmm.fetchPoolState(pool);
+     const {
+       sqrtPrice,
+       sqrtMaxPrice,
+       sqrtMinPrice,
+       tokenAMint,
+       tokenBMint,
+       tokenAVault,
+       tokenBVault,
+       tokenAFlag,
+       tokenBFlag,
+     } = poolState;
+   
      const liquidityDelta = await cpAmm.getLiquidityDelta({
-          maxAmountX: new BN(100_000 * 10 ** 6), // example
-          maxAmountY: new BN(100_000 * 10 ** 9), // example
-          tokenX, // tokenX mint address
-          tokenY, // tokenY mint address
-          pool,
-        });
-     // build add liquidity transaction
+       maxAmountTokenA: new BN(100_000 * 10 ** 6),
+       maxAmountTokenB: new BN(100_000 * 10 ** 9),
+       tokenAMint,
+       tokenBMint,
+       sqrtMaxPrice,
+       sqrtMinPrice,
+       sqrtPrice,
+     });
+   
      const transaction = await cpAmm.addLiquidity({
-        owner: wallet.publicKey,
-        position,
-        liquidityDeltaQ64: liquidityDelta,
-        tokenAAmountThreshold: new BN(100000000735553), // threshold
-        tokenBAmountThreshold: new BN(100000000735553), // threshol
-      });
+       owner: wallet.publicKey,
+       position,
+       pool,
+       positionNftMint: positionState.nftMint,
+       liquidityDeltaQ64: liquidityDelta,
+       tokenAAmountThreshold: new BN(100000000735553),
+       tokenBAmountThreshold: new BN(100000000735553),
+       tokenAMint,
+       tokenBMint,
+       tokenAVault,
+       tokenBVault,
+       tokenAProgram: getTokenProgram(tokenAFlag),
+       tokenBProgram: getTokenProgram(tokenBFlag),
+     });
    ```
 
 ## 6. Swap
   ```ts
-      // Get quote
-      const quotes = await cpAmm.getQuote({
-          pool,
-          inAmount: new BN(1000 * 10 ** 6),
-          inputTokenMint: tokenX,
-          slippage, // slippage in number
-        });
-
-      // Build swap transaction
-      const transaction = await cpAmm.swap({
-          payer: wallet.publicKey,
-          pool,
-          inputTokenMint: tokenX,
-          outputTokenMint: tokenY,
-          amountIn: new BN(1000 * 10 ** 6),
-          minimumAmountOut: new BN(minOutAmount),
-          referralTokenAccount: null,
-        });
+     const poolState = await cpAmm.fetchPoolState(pool);
+     const {
+       tokenAMint,
+       tokenBMint,
+       tokenAVault,
+       tokenBVault,
+       tokenAFlag,
+       tokenBFlag,
+     } = poolState;
+   
+     const slippage = 5; // 5%
+     // Get quotes
+     const quotes = await cpAmm.getQuote({
+       inAmount: new BN(1000 * 10 ** 6),
+       inputTokenMint: tokenAMint,
+       slippage,
+       poolState,
+     });
+   
+     const transaction = await cpAmm.swap({
+       payer: wallet.publicKey,
+       pool,
+       inputTokenMint: tokenAMint,
+       outputTokenMint: tokenBMint,
+       amountIn: new BN(1000 * 10 ** 6),
+       minimumAmountOut: new BN(10),
+       tokenAMint,
+       tokenBMint,
+       tokenAVault,
+       tokenBVault,
+       tokenAProgram: getTokenProgram(tokenAFlag),
+       tokenBProgram: getTokenProgram(tokenBFlag),
+       referralTokenAccount: null,
+     });
   ```
 
 ## 7. Remove liquidity
   ```ts
-      // Calculate liquidity delta will remove by supply max amount for tokenA & tokenB
-      const liquidityDelta = await cpAmm.getLiquidityDelta({
-        maxAmountX: new BN(1000 * 10 ** 6),
-        maxAmountY: new BN(1000 * 10 ** 9),
-        tokenX,
-        tokenY,
-        pool,
-      });
-  
-    // Build remove liquidity transaction
-    const transaction = await cpAmm.removeLiquidity({
-        owner: wallet.publicKey,
-        position,
-        liquidityDeltaQ64: liquidityDelta,
-        tokenAAmountThreshold: new BN(0),
-        tokenBAmountThreshold: new BN(0),
-      });
+     const positionState = await cpAmm.fetchPositionState(position);
+     const poolState = await cpAmm.fetchPoolState(pool);
+     const {
+       sqrtPrice,
+       sqrtMaxPrice,
+       sqrtMinPrice,
+       tokenAMint,
+       tokenBMint,
+       tokenAVault,
+       tokenBVault,
+       tokenAFlag,
+       tokenBFlag,
+     } = poolState;
+   
+     const liquidityDelta = await cpAmm.getLiquidityDelta({
+       maxAmountTokenA: new BN(100_000 * 10 ** 6),
+       maxAmountTokenB: new BN(100_000 * 10 ** 9),
+       tokenAMint,
+       tokenBMint,
+       sqrtMaxPrice,
+       sqrtMinPrice,
+       sqrtPrice,
+     });
+   
+     const transaction = await cpAmm.removeLiquidity({
+       owner: wallet.publicKey,
+       position,
+       pool,
+       positionNftMint: positionState.nftMint,
+       liquidityDeltaQ64: liquidityDelta,
+       tokenAAmountThreshold: new BN(0),
+       tokenBAmountThreshold: new BN(0),
+       tokenAMint,
+       tokenBMint,
+       tokenAVault,
+       tokenBVault,
+       tokenAProgram: getTokenProgram(tokenAFlag),
+       tokenBProgram: getTokenProgram(tokenBFlag),
+     });
   ```
 

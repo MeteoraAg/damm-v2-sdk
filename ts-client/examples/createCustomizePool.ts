@@ -3,7 +3,6 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  sendAndConfirmRawTransaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
@@ -67,7 +66,7 @@ import {
     activationPoint: null,
   };
 
-  const transaction = await cpAmm.createCustomPool(params);
+  const { tx: transaction } = await cpAmm.createCustomPool(params);
   const signature = await sendAndConfirmTransaction(connection, transaction, [
     wallet,
     positionNft,

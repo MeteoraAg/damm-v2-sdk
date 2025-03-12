@@ -64,8 +64,6 @@ import {
 import { priceToSqrtPrice } from "./math";
 
 import {
-  getBaseFeeNumerator,
-  getDynamicFeeNumerator,
   getFeeNumerator,
   getOrCreateATAInstruction,
   getTokenProgram,
@@ -74,8 +72,6 @@ import {
 } from "./utils";
 import {
   calculateSwap,
-  getDeltaAmountA,
-  getDeltaAmountB,
   getLiquidityDeltaFromAmountA,
   getLiquidityDeltaFromAmountB,
 } from "./utils/curve";
@@ -87,6 +83,10 @@ export class CpAmm {
     this._program = new Program<CpmmIdl>(IDL, programId ?? CP_AMM_PROGRAM_ID, {
       connection: connection,
     });
+  }
+
+  getProgram() {
+    return this._program;
   }
 
   /**
@@ -166,12 +166,6 @@ export class CpAmm {
       ? liquidityDeltaFromAmountB
       : liquidityDeltaFromAmountA;
 
-    console.log({
-      liquidityQ64,
-      liquidityDeltaFromAmountA,
-      liquidityDeltaFromAmountB,
-    });
-
     return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };
   }
 
@@ -231,8 +225,7 @@ export class CpAmm {
     totalFee: BN;
     priceImpact: number;
   }> {
-    const { pool, inAmount, inputTokenMint, slippage } = params;
-    const poolState = await this.fetchPoolState(pool);
+    const { inAmount, inputTokenMint, slippage, poolState } = params;
     const {
       sqrtPrice: sqrtPriceQ64,
       liquidity: liquidityQ64,
@@ -247,9 +240,9 @@ export class CpAmm {
       cliffFeeNumerator,
       numberOfPeriod,
       reductionFactor,
-      dynamicFee,
       periodFrequency,
     } = poolFees.baseFee;
+    const dynamicFee = poolFees.dynamicFee;
 
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
     const slot = await this._program.provider.connection.getSlot();
@@ -311,19 +304,13 @@ export class CpAmm {
    * @returns {Promise<BN>} - The computed liquidity delta in Q64 value.
    */
   async getLiquidityDelta(params: LiquidityDeltaParams): Promise<BN> {
-    const { tokenX, tokenY, maxAmountX, maxAmountY, pool } = params;
-    const poolState = await this.fetchPoolState(pool);
-
-    const { tokenAMint, tokenBMint, sqrtPrice, sqrtMaxPrice, sqrtMinPrice } =
-      poolState;
-
-    if (!tokenX.equals(tokenAMint) && !tokenX.equals(tokenBMint)) {
-      throw new Error("Token does not exist in the pool.");
-    }
-
-    const [maxAmountTokenA, maxAmountTokenB] = tokenAMint.equals(tokenX)
-      ? [maxAmountX, maxAmountY]
-      : [maxAmountY, maxAmountX];
+    const {
+      maxAmountTokenA,
+      maxAmountTokenB,
+      sqrtMaxPrice,
+      sqrtMinPrice,
+      sqrtPrice,
+    } = params;
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       maxAmountTokenA,
@@ -366,15 +353,34 @@ export class CpAmm {
         tokenYDecimal,
       });
 
-    const poolAuthority = derivePoolAuthority();
-    const pool = derivePoolAddress(config, tokenX, tokenY);
+    const poolAuthority = derivePoolAuthority(this._program.programId);
+    const pool = derivePoolAddress(
+      config,
+      tokenX,
+      tokenY,
+      this._program.programId
+    );
 
-    const tokenAVault = deriveTokenVaultAddress(tokenAMint, pool);
-    const tokenBVault = deriveTokenVaultAddress(tokenBMint, pool);
+    const tokenAVault = deriveTokenVaultAddress(
+      tokenAMint,
+      pool,
+      this._program.programId
+    );
+    const tokenBVault = deriveTokenVaultAddress(
+      tokenBMint,
+      pool,
+      this._program.programId
+    );
 
     const positionNft = Keypair.generate();
-    const position = derivePositionAddress(positionNft.publicKey);
-    const positionNftAccount = derivePositionNftAccount(positionNft.publicKey);
+    const position = derivePositionAddress(
+      positionNft.publicKey,
+      this._program.programId
+    );
+    const positionNftAccount = derivePositionNftAccount(
+      positionNft.publicKey,
+      this._program.programId
+    );
 
     const tokenAProgram = (
       await this._program.provider.connection.getParsedAccountInfo(tokenAMint)
@@ -431,7 +437,11 @@ export class CpAmm {
     return tx;
   }
 
-  async createCustomPool(params: InitializeCustomizeablePoolParams): TxBuilder {
+  async createCustomPool(params: InitializeCustomizeablePoolParams): Promise<{
+    tx: Transaction;
+    pool: PublicKey;
+    position: PublicKey;
+  }> {
     const {
       tokenX,
       tokenY,
@@ -447,6 +457,8 @@ export class CpAmm {
       collectFeeMode,
       activationPoint,
       activationType,
+      tokenXProgram,
+      tokenYProgram,
     } = params;
 
     const { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 } =
@@ -459,21 +471,41 @@ export class CpAmm {
         tokenYDecimal,
       });
 
-    const poolAuthority = derivePoolAuthority();
-    const pool = deriveCustomizablePoolAddress(tokenAMint, tokenBMint);
-    const position = derivePositionAddress(positionNft);
-    const positionNftAccount = derivePositionNftAccount(positionNft);
+    const poolAuthority = derivePoolAuthority(this._program.programId);
+    const pool = deriveCustomizablePoolAddress(
+      tokenAMint,
+      tokenBMint,
+      this._program.programId
+    );
+    const position = derivePositionAddress(
+      positionNft,
+      this._program.programId
+    );
+    const positionNftAccount = derivePositionNftAccount(
+      positionNft,
+      this._program.programId
+    );
 
-    const tokenAProgram = (
-      await this._program.provider.connection.getParsedAccountInfo(tokenAMint)
-    )?.value?.owner;
+    const tokenAProgram =
+      tokenXProgram ??
+      (await this._program.provider.connection.getParsedAccountInfo(tokenAMint))
+        ?.value?.owner;
 
-    const tokenBProgram = (
-      await this._program.provider.connection.getParsedAccountInfo(tokenBMint)
-    )?.value?.owner;
+    const tokenBProgram =
+      tokenYProgram ??
+      (await this._program.provider.connection.getParsedAccountInfo(tokenBMint))
+        ?.value?.owner;
 
-    const tokenAVault = deriveTokenVaultAddress(tokenAMint, pool);
-    const tokenBVault = deriveTokenVaultAddress(tokenBMint, pool);
+    const tokenAVault = deriveTokenVaultAddress(
+      tokenAMint,
+      pool,
+      this._program.programId
+    );
+    const tokenBVault = deriveTokenVaultAddress(
+      tokenBMint,
+      pool,
+      this._program.programId
+    );
 
     const payerTokenA = getAssociatedTokenAddressSync(
       tokenAMint,
@@ -520,17 +552,22 @@ export class CpAmm {
         systemProgram: SystemProgram.programId,
       })
       .transaction();
-    transaction.feePayer = payer;
 
-    return transaction;
+    return { tx: transaction, pool, position };
   }
 
   async createPosition(params: CreatePositionParams): TxBuilder {
     const { owner, payer, pool, positionNft } = params;
-    const poolAuthority = derivePoolAuthority();
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
-    const position = derivePositionAddress(positionNft);
-    const positionNftAccount = derivePositionNftAccount(positionNft);
+    const position = derivePositionAddress(
+      positionNft,
+      this._program.programId
+    );
+    const positionNftAccount = derivePositionNftAccount(
+      positionNft,
+      this._program.programId
+    );
 
     const instructions = await this._program.methods
       .createPosition()
@@ -554,25 +591,31 @@ export class CpAmm {
     const {
       owner,
       position,
+      pool,
+      positionNftMint,
       liquidityDeltaQ64,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
     } = params;
-    const positionState = await this.fetchPositionState(position);
-    const poolState = await this.fetchPoolState(positionState.pool);
-    const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
-
-    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
-    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
+    const positionNftAccount = derivePositionNftAccount(
+      positionNftMint,
+      this._program.programId
+    );
 
     const tokenAAccount = getAssociatedTokenAddressSync(
-      poolState.tokenAMint,
+      tokenAMint,
       owner,
       true,
       tokenAProgram
     );
     const tokenBAccount = getAssociatedTokenAddressSync(
-      poolState.tokenBMint,
+      tokenBMint,
       owner,
       true,
       tokenBProgram
@@ -587,16 +630,16 @@ export class CpAmm {
         tokenBAmountThreshold,
       })
       .accounts({
-        pool: positionState.pool,
+        pool,
         position,
         positionNftAccount,
         owner: owner,
         tokenAAccount,
         tokenBAccount,
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
+        tokenAMint: tokenAMint,
+        tokenBMint: tokenBMint,
+        tokenAVault: tokenAVault,
+        tokenBVault: tokenBVault,
         tokenAProgram,
         tokenBProgram,
       })
@@ -609,17 +652,24 @@ export class CpAmm {
     const {
       owner,
       position,
+      pool,
+      positionNftMint,
       liquidityDeltaQ64,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
     } = params;
-    const positionState = await this.fetchPositionState(position);
-    const poolState = await this.fetchPoolState(positionState.pool);
-    const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
+    const positionNftAccount = derivePositionNftAccount(
+      positionNftMint,
+      this._program.programId
+    );
 
-    const poolAuthority = derivePoolAuthority();
-    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
-    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -628,7 +678,7 @@ export class CpAmm {
     ] = await Promise.all([
       getOrCreateATAInstruction(
         this._program.provider.connection,
-        poolState.tokenAMint,
+        tokenAMint,
         owner,
         owner,
         true,
@@ -636,7 +686,7 @@ export class CpAmm {
       ),
       getOrCreateATAInstruction(
         this._program.provider.connection,
-        poolState.tokenBMint,
+        tokenBMint,
         owner,
         owner,
         true,
@@ -648,10 +698,9 @@ export class CpAmm {
 
     const postInstructions: TransactionInstruction[] = [];
     if (
-      [
-        poolState.tokenAMint.toBase58(),
-        poolState.tokenBMint.toBase58(),
-      ].includes(NATIVE_MINT.toBase58())
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
@@ -665,16 +714,16 @@ export class CpAmm {
       })
       .accounts({
         poolAuthority,
-        pool: positionState.pool,
+        pool,
         position,
         positionNftAccount,
         owner: owner,
         tokenAAccount,
         tokenBAccount,
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
+        tokenAMint: tokenAMint,
+        tokenBMint: tokenBMint,
+        tokenAVault: tokenAVault,
+        tokenBVault: tokenBVault,
         tokenAProgram,
         tokenBProgram,
       })
@@ -693,14 +742,16 @@ export class CpAmm {
       outputTokenMint,
       amountIn,
       minimumAmountOut,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
       referralTokenAccount,
     } = params;
 
-    const poolState = await this.fetchPoolState(pool);
-    const poolAuthority = derivePoolAuthority();
-
-    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
-    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -756,10 +807,10 @@ export class CpAmm {
         payer: payer,
         inputTokenAccount,
         outputTokenAccount,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
+        tokenAVault: tokenAVault,
+        tokenBVault: tokenBVault,
+        tokenAMint: tokenAMint,
+        tokenBMint: tokenBMint,
         tokenAProgram,
         tokenBProgram,
         referralTokenAccount,
@@ -771,43 +822,63 @@ export class CpAmm {
   }
 
   async lockPosition(params: LockPositionParams): TxBuilder {
-    const { owner, payer, position } = params;
-    const positionState = await this.fetchPositionState(position);
-    const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
+    const {
+      owner,
+      payer,
+      vestingAccount,
+      position,
+      positionNftMint,
+      pool,
+      cliffPoint,
+      periodFrequency,
+      cliffUnlockLiquidity,
+      liquidityPerPeriod,
+      numberOfPeriod,
+      vestings,
+    } = params;
+    const positionNftAccount = derivePositionNftAccount(
+      positionNftMint,
+      this._program.programId
+    );
 
-    const vestingAccount = Keypair.generate();
-
+    const lockPositionParams = {
+      cliffPoint,
+      periodFrequency,
+      cliffUnlockLiquidity,
+      liquidityPerPeriod,
+      numberOfPeriod,
+      index: vestings.length,
+    };
     const instructions = await this._program.methods
-      .lockPosition(params)
+      .lockPosition(lockPositionParams)
       .accounts({
         position,
         positionNftAccount,
-        vesting: vestingAccount.publicKey,
-        pool: positionState.pool,
+        vesting: vestingAccount,
+        pool: pool,
         owner: owner,
         payer: payer,
         systemProgram: SystemProgram.programId,
       })
       .instruction();
 
-    const tx = await this.buildTransaction(owner, [instructions]);
-
-    tx.partialSign(vestingAccount);
-
-    return tx;
+    return await this.buildTransaction(owner, [instructions]);
   }
 
   async permanentLockPosition(params: PermanentLockParams): TxBuilder {
-    const { owner, position } = params;
-    const positionState = await this.fetchPositionState(position);
-    const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
+    const { owner, position, positionNftMint, pool, unlockedLiquidity } =
+      params;
+    const positionNftAccount = derivePositionNftAccount(
+      positionNftMint,
+      this._program.programId
+    );
 
     const instructions = await this._program.methods
-      .permanentLockPosition(positionState.unlockedLiquidity)
+      .permanentLockPosition(unlockedLiquidity)
       .accounts({
         position,
         positionNftAccount,
-        pool: positionState.pool,
+        pool: pool,
         owner: owner,
       })
       .instruction();
@@ -816,17 +887,18 @@ export class CpAmm {
   }
 
   async refreshVesting(params: RefreshVestingParams): TxBuilder {
-    const { owner, position, vestings } = params;
-
-    const positionState = await this.fetchPositionState(position);
-    const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
+    const { owner, position, positionNftMint, pool, vestings } = params;
+    const positionNftAccount = derivePositionNftAccount(
+      positionNftMint,
+      this._program.programId
+    );
 
     const instructions = await this._program.methods
       .refreshVesting()
       .accounts({
         position,
         positionNftAccount,
-        pool: positionState.pool,
+        pool: pool,
         owner,
       })
       .remainingAccounts(
@@ -844,18 +916,25 @@ export class CpAmm {
   }
 
   async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
-    const { owner, position } = params;
+    const {
+      owner,
+      position,
+      pool,
+      nftPositionMint,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
 
-    const positionState = await this.fetchPositionState(position);
+    const positionNftAccount = derivePositionNftAccount(
+      nftPositionMint,
+      this._program.programId
+    );
 
-    const poolState = await this.fetchPoolState(positionState.pool);
-
-    const positionNftAccount = derivePositionNftAccount(positionState.nftMint);
-
-    const poolAuthority = derivePoolAuthority();
-
-    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
-    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -864,7 +943,7 @@ export class CpAmm {
     ] = await Promise.all([
       getOrCreateATAInstruction(
         this._program.provider.connection,
-        poolState.tokenAMint,
+        tokenAMint,
         owner,
         owner,
         true,
@@ -872,7 +951,7 @@ export class CpAmm {
       ),
       getOrCreateATAInstruction(
         this._program.provider.connection,
-        poolState.tokenBMint,
+        tokenBMint,
         owner,
         owner,
         true,
@@ -884,10 +963,9 @@ export class CpAmm {
 
     const postInstructions: TransactionInstruction[] = [];
     if (
-      [
-        poolState.tokenAMint.toBase58(),
-        poolState.tokenBMint.toBase58(),
-      ].includes(NATIVE_MINT.toBase58())
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
@@ -898,15 +976,15 @@ export class CpAmm {
       .accounts({
         poolAuthority,
         owner: owner,
-        pool: positionState.pool,
+        pool,
         position,
         positionNftAccount,
         tokenAAccount,
         tokenBAccount,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
         tokenAProgram,
         tokenBProgram,
       })
@@ -915,31 +993,6 @@ export class CpAmm {
       .instruction();
 
     return await this.buildTransaction(owner, [instructions]);
-  }
-
-  async initializeReward(params: InitializeRewardParams): TxBuilder {
-    const { rewardIndex, rewardDuration, pool, rewardMint, payer } = params;
-
-    const poolAuthority = derivePoolAuthority();
-    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
-
-    const tokenProgram = (
-      await this._program.provider.connection.getParsedAccountInfo(rewardMint)
-    )?.value?.owner;
-
-    const instruction = await this._program.methods
-      .initializeReward(rewardIndex, rewardDuration, payer)
-      .accounts({
-        pool,
-        poolAuthority,
-        rewardVault,
-        rewardMint,
-        admin: payer,
-        tokenProgram,
-        systemProgram: SystemProgram.programId,
-      })
-      .instruction();
-    return await this.buildTransaction(payer, [instruction]);
   }
 
   async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
@@ -1023,7 +1076,7 @@ export class CpAmm {
     const { rewardIndex, pool, funder } = params;
 
     const poolState = await this.fetchPoolState(pool);
-    const poolAuthority = derivePoolAuthority();
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const rewardInfo = poolState.rewardInfos[rewardIndex];
     const { mint, vault, rewardTokenFlag } = rewardInfo;
@@ -1069,7 +1122,7 @@ export class CpAmm {
   async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
     const { partner, pool, maxAmountA, maxAmountB } = params;
     const poolState = await this.fetchPoolState(pool);
-    const poolAuthority = derivePoolAuthority();
+    const poolAuthority = derivePoolAuthority(this._program.programId);
     const {
       tokenAMint,
       tokenBMint,
@@ -1142,12 +1195,15 @@ export class CpAmm {
 
   async claimReward(params: ClaimRewardParams): TxBuilder {
     const { user, position, rewardIndex } = params;
-    const poolAuthority = derivePoolAuthority();
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const positionState = await this.fetchPositionState(position);
     const poolState = await this.fetchPoolState(positionState.pool);
 
-    const positionNftAccount = derivePositionNftAccount(positionState!.nftMint);
+    const positionNftAccount = derivePositionNftAccount(
+      positionState.nftMint,
+      this._program.programId
+    );
 
     const rewardInfo = poolState.rewardInfos[rewardIndex];
     const tokenProgram = getTokenProgram(rewardInfo.rewardTokenFlag);

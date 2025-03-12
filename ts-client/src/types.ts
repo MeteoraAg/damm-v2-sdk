@@ -95,6 +95,8 @@ export type InitializeCustomizeablePoolParams = {
   activationType: number;
   collectFeeMode: number;
   activationPoint: BN | null;
+  tokenXProgram?: PublicKey;
+  tokenYProgram?: PublicKey;
 };
 
 export type PreparePoolCreationParams = {
@@ -123,7 +125,7 @@ export type CreatePoolParams = {
   tokenYAmount: BN;
   tokenXDecimal: number;
   tokenYDecimal: number;
-  activationPoint: ActivationPoint;
+  activationPoint: BN | null;
 };
 
 export type CreatePositionParams = {
@@ -136,26 +138,36 @@ export type CreatePositionParams = {
 export type AddLiquidityParams = {
   owner: PublicKey;
   position: PublicKey;
+  pool: PublicKey;
+  positionNftMint: PublicKey;
   liquidityDeltaQ64: BN;
   tokenAAmountThreshold: BN;
   tokenBAmountThreshold: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
 };
 
 export type LiquidityDeltaParams = {
-  maxAmountX: BN;
-  maxAmountY: BN;
-  tokenX: PublicKey;
-  tokenY: PublicKey;
-  pool: PublicKey;
+  maxAmountTokenA: BN;
+  maxAmountTokenB: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  sqrtPrice: BN;
+  sqrtMinPrice: BN;
+  sqrtMaxPrice: BN;
 };
 
 export type RemoveLiquidityParams = AddLiquidityParams;
 
 export type GetQuoteParams = {
-  pool: PublicKey;
   inAmount: BN;
   inputTokenMint: PublicKey;
   slippage: number;
+  poolState: PoolState;
 };
 
 export type SwapQuotes = {
@@ -171,18 +183,41 @@ export type SwapParams = {
   outputTokenMint: PublicKey;
   amountIn: BN;
   minimumAmountOut: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
   referralTokenAccount: PublicKey | null;
 };
 
 export type LockPositionParams = {
   owner: PublicKey;
   payer: PublicKey;
+  vestingAccount: PublicKey;
   position: PublicKey;
+  positionNftMint: PublicKey;
+  pool: PublicKey;
+  cliffPoint: BN | null;
+  periodFrequency: BN;
+  cliffUnlockLiquidity: BN;
+  liquidityPerPeriod: BN;
+  numberOfPeriod: number;
+  vestings: PublicKey[];
 };
 
 export type ClaimPositionFeeParams = {
   owner: PublicKey;
   position: PublicKey;
+  pool: PublicKey;
+  nftPositionMint: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
 };
 
 export type InitializeRewardParams = {
@@ -237,10 +272,15 @@ export type ClaimRewardParams = {
 export type RefreshVestingParams = {
   owner: PublicKey;
   position: PublicKey;
+  positionNftMint: PublicKey;
+  pool: PublicKey;
   vestings: PublicKey[];
 };
 
 export type PermanentLockParams = {
   owner: PublicKey;
   position: PublicKey;
+  positionNftMint: PublicKey;
+  pool: PublicKey;
+  unlockedLiquidity: BN;
 };

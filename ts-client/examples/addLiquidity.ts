@@ -3,17 +3,10 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  sendAndConfirmRawTransaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
-import {
-  BaseFee,
-  CpAmm,
-  InitializeCustomizeablePoolParams,
-  LiquidityDeltaParams,
-  PoolFeesParams,
-} from "../src";
+import { CpAmm, getTokenProgram } from "../src";
 (async () => {
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(
@@ -21,8 +14,6 @@ import {
     )
   );
 
-  const tokenX = new PublicKey("AxVHFc6ighQCmm2xDhQx2FAWkM9xZxDw212mcP5mY2d4");
-  const tokenY = new PublicKey("4eQ3PiW2n3bhKEopYDBe2pVxd66MjwowXzbFWYq95pZv");
   const programId = new PublicKey(
     "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
   );
@@ -32,22 +23,44 @@ import {
   );
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection, programId);
+  const positionState = await cpAmm.fetchPositionState(position);
+  const poolState = await cpAmm.fetchPoolState(pool);
+  const {
+    sqrtPrice,
+    sqrtMaxPrice,
+    sqrtMinPrice,
+    tokenAMint,
+    tokenBMint,
+    tokenAVault,
+    tokenBVault,
+    tokenAFlag,
+    tokenBFlag,
+  } = poolState;
 
   const liquidityDelta = await cpAmm.getLiquidityDelta({
-    maxAmountX: new BN(100_000 * 10 ** 6),
-    maxAmountY: new BN(100_000 * 10 ** 9),
-    tokenX,
-    tokenY,
-    pool,
+    maxAmountTokenA: new BN(100_000 * 10 ** 6),
+    maxAmountTokenB: new BN(100_000 * 10 ** 9),
+    tokenAMint,
+    tokenBMint,
+    sqrtMaxPrice,
+    sqrtMinPrice,
+    sqrtPrice,
   });
 
-  console.log(liquidityDelta.toString());
   const transaction = await cpAmm.addLiquidity({
     owner: wallet.publicKey,
     position,
+    pool,
+    positionNftMint: positionState.nftMint,
     liquidityDeltaQ64: liquidityDelta,
     tokenAAmountThreshold: new BN(100000000735553),
     tokenBAmountThreshold: new BN(100000000735553),
+    tokenAMint,
+    tokenBMint,
+    tokenAVault,
+    tokenBVault,
+    tokenAProgram: getTokenProgram(tokenAFlag),
+    tokenBProgram: getTokenProgram(tokenBFlag),
   });
   const signature = await sendAndConfirmTransaction(connection, transaction, [
     wallet,

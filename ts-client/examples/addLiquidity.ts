@@ -16,7 +16,9 @@ import {
 } from "../src";
 (async () => {
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
+    Uint8Array.from(
+      require("../../localnet/admin-bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1.json")
+    )
   );
 
   const tokenX = new PublicKey("AxVHFc6ighQCmm2xDhQx2FAWkM9xZxDw212mcP5mY2d4");

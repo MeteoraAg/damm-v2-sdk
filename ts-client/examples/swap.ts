@@ -16,7 +16,9 @@ import {
 } from "../src";
 (async () => {
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
+    Uint8Array.from(
+      require("../../localnet/admin-bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1.json")
+    )
   );
 
   const tokenX = new PublicKey("AxVHFc6ighQCmm2xDhQx2FAWkM9xZxDw212mcP5mY2d4");
@@ -30,7 +32,7 @@ import {
   );
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection, programId);
-  const slippage = new BN(0);
+  const slippage = 5; // 5%
   const quotes = await cpAmm.getQuote({
     pool,
     inAmount: new BN(1000 * 10 ** 6),
@@ -39,7 +41,10 @@ import {
   });
 
   console.log({
-    actualAmount: quotes.actualAmount.toString(),
+    swapInAmount: quotes.swapInAmount.toString(),
+    swapOutAmount: quotes.swapOutAmount.toString(),
+    minSwapOutAmount: quotes.minSwapOutAmount.toString(),
+    priceImpact: quotes.priceImpact,
     lpFee: quotes.totalFee.toString(),
   });
   const transaction = await cpAmm.swap({

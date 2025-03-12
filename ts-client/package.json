@@ -6,6 +6,7 @@
 	"module": "./dist/index.mjs",
 	"source": "./src/index.ts",
 	"types": "./dist/index.d.ts",
+	"author": "Minh Do <minh@raccoons.dev>",
 	"files": [
 		"dist/**"
 	],

@@ -52,7 +52,5 @@ jobs:
           path: ./ts-client/node_modules
           key: ${{ runner.os }}-${{ hashFiles('./package-lock.json') }}
       # Testing
-      - run: pnpm install
-        shell: bash
-      - run: pnpm test
+      - run: cd ts-client && npm install && npm run test
         shell: bash

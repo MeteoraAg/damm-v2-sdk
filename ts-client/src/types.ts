@@ -130,6 +130,7 @@ export type CreatePositionParams = {
   owner: PublicKey;
   payer: PublicKey;
   pool: PublicKey;
+  positionNft: PublicKey;
 };
 
 export type AddLiquidityParams = {

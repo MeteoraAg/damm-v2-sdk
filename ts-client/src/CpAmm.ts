@@ -526,18 +526,17 @@ export class CpAmm {
   }
 
   async createPosition(params: CreatePositionParams): TxBuilder {
-    const { owner, payer, pool } = params;
+    const { owner, payer, pool, positionNft } = params;
     const poolAuthority = derivePoolAuthority();
 
-    const positionNft = Keypair.generate();
-    const position = derivePositionAddress(positionNft.publicKey);
-    const positionNftAccount = derivePositionNftAccount(positionNft.publicKey);
+    const position = derivePositionAddress(positionNft);
+    const positionNftAccount = derivePositionNftAccount(positionNft);
 
     const instructions = await this._program.methods
       .createPosition()
       .accounts({
         owner,
-        positionNftMint: positionNft.publicKey,
+        positionNftMint: positionNft,
         poolAuthority,
         positionNftAccount,
         payer: payer,
@@ -548,11 +547,7 @@ export class CpAmm {
       })
       .instruction();
 
-    const tx = await this.buildTransaction(payer, [instructions]);
-
-    tx.partialSign(positionNft);
-
-    return tx;
+    return await this.buildTransaction(payer, [instructions]);
   }
 
   async addLiquidity(params: AddLiquidityParams): TxBuilder {

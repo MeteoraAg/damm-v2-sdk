@@ -3,9 +3,9 @@
 The main example for SDK
 
 ## 1. Create a CpAmm instance
-    ```ts
+   ```ts
       const cpAmm = new CpAmm(connection, programId)
-    ```
+   ```
     Note: Flexible setup for mainnet/devnet by connection and programId.
 ## 2. Create customize pool
    ```ts

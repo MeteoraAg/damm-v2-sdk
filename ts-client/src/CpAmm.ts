@@ -79,6 +79,7 @@ import {
   getLiquidityDeltaFromAmountA,
   getLiquidityDeltaFromAmountB,
 } from "./utils/curve";
+import { getMinAmountWithSlippage, getPriceImpact } from "./utils/utils";
 
 export class CpAmm {
   _program: AmmProgram;
@@ -223,9 +224,13 @@ export class CpAmm {
     return positionState;
   }
 
-  async getQuote(
-    params: GetQuoteParams
-  ): Promise<{ actualAmount: BN; totalFee: BN }> {
+  async getQuote(params: GetQuoteParams): Promise<{
+    swapInAmount: BN;
+    swapOutAmount: BN;
+    minSwapOutAmount: BN;
+    totalFee: BN;
+    priceImpact: number;
+  }> {
     const { pool, inAmount, inputTokenMint, slippage } = params;
     const poolState = await this.fetchPoolState(pool);
     const {
@@ -271,8 +276,6 @@ export class CpAmm {
       dynamicFeeParams
     );
 
-    console.log(tradeFeeNumerator.toString());
-
     const { amountOutExcludedlpFee, lpFee } = calculateSwap(
       inAmount,
       sqrtPriceQ64,
@@ -281,14 +284,17 @@ export class CpAmm {
       aToB,
       collectFeeMode
     );
-
-    const mintAmountOut = amountOutExcludedlpFee
-      .mul(new BN(BASIS_POINT_MAX).sub(slippage))
-      .div(new BN(BASIS_POINT_MAX));
+    const minSwapOutAmount = getMinAmountWithSlippage(
+      amountOutExcludedlpFee,
+      slippage
+    );
 
     return {
-      actualAmount,
+      swapInAmount: inAmount,
+      swapOutAmount: amountOutExcludedlpFee,
+      minSwapOutAmount,
       totalFee: lpFee,
+      priceImpact: getPriceImpact(minSwapOutAmount, amountOutExcludedlpFee),
     };
   }
 

@@ -154,7 +154,7 @@ export type GetQuoteParams = {
   pool: PublicKey;
   inAmount: BN;
   inputTokenMint: PublicKey;
-  slippage: BN;
+  slippage: number;
 };
 
 export type SwapQuotes = {

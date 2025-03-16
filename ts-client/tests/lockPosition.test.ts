@@ -29,7 +29,7 @@ describe("Lock Postion", () => {
   describe("Lock Position with SPL-Token", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -42,10 +42,11 @@ describe("Lock Postion", () => {
         false
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
+
       const connection = new Connection(clusterApiUrl("devnet"));
       ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
     });
@@ -70,7 +71,7 @@ describe("Lock Postion", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -120,7 +121,7 @@ describe("Lock Postion", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -135,7 +136,7 @@ describe("Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // lock position
       const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
@@ -153,8 +154,8 @@ describe("Lock Postion", () => {
 
       const vestingAccount = Keypair.generate();
       const lockPositionParams: LockPositionParams = {
-        owner: payer.publicKey,
-        payer: payer.publicKey,
+        owner: creator.publicKey,
+        payer: creator.publicKey,
         vestingAccount: vestingAccount.publicKey,
         position,
         positionNftMint: positionState.nftMint,
@@ -170,7 +171,7 @@ describe("Lock Postion", () => {
       const lockPositionTx = await ammInstance.lockPosition(lockPositionParams);
 
       await executeTransaction(context.banksClient, lockPositionTx, [
-        payer,
+        creator,
         vestingAccount,
       ]);
     });
@@ -179,7 +180,7 @@ describe("Lock Postion", () => {
   describe("Lock position with Token 2022", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -194,7 +195,7 @@ describe("Lock Postion", () => {
         extensions
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -223,7 +224,7 @@ describe("Lock Postion", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -273,7 +274,7 @@ describe("Lock Postion", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -288,7 +289,7 @@ describe("Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // lock position
       const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
@@ -306,8 +307,8 @@ describe("Lock Postion", () => {
 
       const vestingAccount = Keypair.generate();
       const lockPositionParams: LockPositionParams = {
-        owner: payer.publicKey,
-        payer: payer.publicKey,
+        owner: creator.publicKey,
+        payer: creator.publicKey,
         vestingAccount: vestingAccount.publicKey,
         position,
         positionNftMint: positionState.nftMint,
@@ -323,7 +324,7 @@ describe("Lock Postion", () => {
       const lockPositionTx = await ammInstance.lockPosition(lockPositionParams);
 
       await executeTransaction(context.banksClient, lockPositionTx, [
-        payer,
+        creator,
         vestingAccount,
       ]);
     });

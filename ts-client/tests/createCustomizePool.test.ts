@@ -4,7 +4,13 @@ import {
   setupTestContext,
   startTest,
 } from "./bankrun-utils/common";
-import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  clusterApiUrl,
+  ComputeBudgetProgram,
+  Connection,
+  Keypair,
+  PublicKey,
+} from "@solana/web3.js";
 import BN from "bn.js";
 import {
   ExtensionType,
@@ -24,7 +30,7 @@ describe("Initialize customizable pool", () => {
   describe("SPL-Token", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -37,7 +43,7 @@ describe("Initialize customizable pool", () => {
         false
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -65,7 +71,7 @@ describe("Initialize customizable pool", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -83,7 +89,11 @@ describe("Initialize customizable pool", () => {
       };
 
       const { tx: transaction } = await ammInstance.createCustomPool(params);
-
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 400_000,
+        })
+      );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()
       )[0];
@@ -96,7 +106,7 @@ describe("Initialize customizable pool", () => {
   describe("Token 2022", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -111,7 +121,7 @@ describe("Initialize customizable pool", () => {
         extensions
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -140,7 +150,7 @@ describe("Initialize customizable pool", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -158,7 +168,11 @@ describe("Initialize customizable pool", () => {
       };
 
       const { tx: transaction } = await ammInstance.createCustomPool(params);
-
+      transaction.add(
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 400_000,
+        })
+      );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()
       )[0];

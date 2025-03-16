@@ -25,11 +25,11 @@ import {
 } from "../src";
 import { CP_AMM_PROGRAM_ID, DECIMALS, U64_MAX } from "./bankrun-utils";
 
-describe.only("Add liquidity", () => {
+describe("Add liquidity", () => {
   describe("Add liquidity with SPL-Token", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -42,7 +42,7 @@ describe.only("Add liquidity", () => {
         false
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -70,7 +70,7 @@ describe.only("Add liquidity", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -120,7 +120,7 @@ describe.only("Add liquidity", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -135,14 +135,14 @@ describe.only("Add liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
     });
   });
 
   describe("Add liquidity with Token 2022", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -157,7 +157,7 @@ describe.only("Add liquidity", () => {
         extensions
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -186,7 +186,7 @@ describe.only("Add liquidity", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -236,7 +236,7 @@ describe.only("Add liquidity", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -251,7 +251,7 @@ describe.only("Add liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
     });
   });
 });

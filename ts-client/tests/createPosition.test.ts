@@ -25,6 +25,7 @@ describe("Create position", () => {
     let context: ProgramTestContext;
     let user: Keypair;
     let payer: Keypair;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -39,6 +40,7 @@ describe("Create position", () => {
         false
       );
       payer = prepareContext.payer;
+      creator = prepareContext.poolCreator;
       user = prepareContext.user;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -62,7 +64,7 @@ describe("Create position", () => {
 
       params = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: PublicKey.default,
         tokenX,
         tokenY,
@@ -97,7 +99,7 @@ describe("Create position", () => {
 
       const createPositionParams: CreatePositionParams = {
         owner: user.publicKey,
-        payer: payer.publicKey,
+        payer: user.publicKey,
         pool,
         positionNft: userPositionNft.publicKey,
       };
@@ -105,7 +107,7 @@ describe("Create position", () => {
         createPositionParams
       );
       await executeTransaction(context.banksClient, createPositionTx, [
-        payer,
+        user,
         userPositionNft,
       ]);
     });
@@ -115,6 +117,7 @@ describe("Create position", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let user: Keypair;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -131,6 +134,7 @@ describe("Create position", () => {
       );
       user = prepareContext.user;
       payer = prepareContext.payer;
+      creator = prepareContext.poolCreator;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
 
@@ -154,7 +158,7 @@ describe("Create position", () => {
 
       params = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: PublicKey.default,
         tokenX,
         tokenY,
@@ -188,7 +192,7 @@ describe("Create position", () => {
 
       const createPositionParams: CreatePositionParams = {
         owner: user.publicKey,
-        payer: payer.publicKey,
+        payer: user.publicKey,
         pool,
         positionNft: userPositionNft.publicKey,
       };
@@ -196,7 +200,7 @@ describe("Create position", () => {
         createPositionParams
       );
       await executeTransaction(context.banksClient, createPositionTx, [
-        payer,
+        user,
         userPositionNft,
       ]);
     });

@@ -138,6 +138,7 @@ export async function setupTestContext(
       funder.publicKey,
       operator.publicKey,
       partner.publicKey,
+      poolCreator.publicKey,
     ].map((publicKey) =>
       transferSol(banksClient, rootKeypair, publicKey, new BN(LAMPORTS_PER_SOL))
     )
@@ -160,7 +161,12 @@ export async function setupTestContext(
     console.log("create token");
     // Mint token A to payer & user
     await Promise.all(
-      [payer.publicKey, user.publicKey, partner.publicKey].map((publicKey) =>
+      [
+        payer.publicKey,
+        user.publicKey,
+        partner.publicKey,
+        poolCreator.publicKey,
+      ].map((publicKey) =>
         mintToToken2022(
           banksClient,
           rootKeypair,
@@ -174,7 +180,12 @@ export async function setupTestContext(
 
     // Mint token B to payer & user
     await Promise.all(
-      [payer.publicKey, user.publicKey, partner.publicKey].map((publicKey) =>
+      [
+        payer.publicKey,
+        user.publicKey,
+        partner.publicKey,
+        poolCreator.publicKey,
+      ].map((publicKey) =>
         mintToToken2022(
           banksClient,
           rootKeypair,
@@ -228,7 +239,12 @@ export async function setupTestContext(
 
     // Mint token A to payer & user
     await Promise.all(
-      [payer.publicKey, user.publicKey, partner.publicKey].map((publicKey) =>
+      [
+        payer.publicKey,
+        user.publicKey,
+        partner.publicKey,
+        poolCreator.publicKey,
+      ].map((publicKey) =>
         mintTo(
           banksClient,
           rootKeypair,
@@ -242,7 +258,12 @@ export async function setupTestContext(
 
     // Mint token B to payer & user
     await Promise.all(
-      [payer.publicKey, user.publicKey, partner.publicKey].map((publicKey) =>
+      [
+        payer.publicKey,
+        user.publicKey,
+        partner.publicKey,
+        poolCreator.publicKey,
+      ].map((publicKey) =>
         mintTo(
           banksClient,
           rootKeypair,

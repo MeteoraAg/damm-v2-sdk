@@ -28,7 +28,7 @@ describe("Remove liquidity", () => {
   describe("Remove liquidity with SPL-Token", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -41,7 +41,7 @@ describe("Remove liquidity", () => {
         false
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -69,7 +69,7 @@ describe("Remove liquidity", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -119,7 +119,7 @@ describe("Remove liquidity", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -134,7 +134,7 @@ describe("Remove liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
       const removeLiquidityParams = addLiquidityParams;
@@ -144,14 +144,14 @@ describe("Remove liquidity", () => {
         removeLiquidityParams
       );
 
-      executeTransaction(context.banksClient, removeLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, removeLiquidityTx, [creator]);
     });
   });
 
   describe("Remove liquidity with Token 2022", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -166,7 +166,7 @@ describe("Remove liquidity", () => {
         extensions
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -195,7 +195,7 @@ describe("Remove liquidity", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -245,7 +245,7 @@ describe("Remove liquidity", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -260,7 +260,7 @@ describe("Remove liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
       const removeLiquidityParams = addLiquidityParams;
@@ -270,7 +270,7 @@ describe("Remove liquidity", () => {
         removeLiquidityParams
       );
 
-      executeTransaction(context.banksClient, removeLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, removeLiquidityTx, [creator]);
     });
   });
 });

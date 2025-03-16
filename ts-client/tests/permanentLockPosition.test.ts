@@ -29,7 +29,7 @@ describe("Permanant Lock Postion", () => {
   describe("Permanant Lock Position with SPL-Token", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -42,7 +42,7 @@ describe("Permanant Lock Postion", () => {
         false
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -70,7 +70,7 @@ describe("Permanant Lock Postion", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -120,7 +120,7 @@ describe("Permanant Lock Postion", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -135,12 +135,12 @@ describe("Permanant Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // permanant lock position
 
       const permanantLockPositionParams: PermanentLockParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         positionNftMint: positionState.nftMint,
         pool,
@@ -151,14 +151,14 @@ describe("Permanant Lock Postion", () => {
         permanantLockPositionParams
       );
 
-      await executeTransaction(context.banksClient, lockPositionTx, [payer]);
+      await executeTransaction(context.banksClient, lockPositionTx, [creator]);
     });
   });
 
   describe("Permanant lock position with Token 2022", () => {
     let context: ProgramTestContext;
     let payer: Keypair;
-    let creator: PublicKey;
+    let creator: Keypair;
     let tokenX: PublicKey;
     let tokenY: PublicKey;
     let ammInstance: CpAmm;
@@ -173,7 +173,7 @@ describe("Permanant Lock Postion", () => {
         extensions
       );
 
-      creator = prepareContext.poolCreator.publicKey;
+      creator = prepareContext.poolCreator;
       payer = prepareContext.payer;
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
@@ -202,7 +202,7 @@ describe("Permanant Lock Postion", () => {
 
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
-        creator: payer.publicKey,
+        creator: creator.publicKey,
         positionNft: positionNft.publicKey,
         tokenX,
         tokenY,
@@ -252,7 +252,7 @@ describe("Permanant Lock Postion", () => {
       });
 
       const addLiquidityParams: AddLiquidityParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         pool,
         positionNftMint: positionState.nftMint,
@@ -267,12 +267,12 @@ describe("Permanant Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // permanant lock position
 
       const permanantLockPositionParams: PermanentLockParams = {
-        owner: payer.publicKey,
+        owner: creator.publicKey,
         position,
         positionNftMint: positionState.nftMint,
         pool,
@@ -283,7 +283,7 @@ describe("Permanant Lock Postion", () => {
         permanantLockPositionParams
       );
 
-      await executeTransaction(context.banksClient, lockPositionTx, [payer]);
+      await executeTransaction(context.banksClient, lockPositionTx, [creator]);
     });
   });
 });

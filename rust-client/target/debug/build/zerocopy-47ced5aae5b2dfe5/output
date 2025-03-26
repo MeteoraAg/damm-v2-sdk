@@ -1,0 +1,6 @@
+cargo:rerun-if-changed=build.rs
+cargo:rerun-if-changed=Cargo.toml
+cargo:rustc-cfg=zerocopy_aarch64_simd_1_59_0
+cargo:rustc-cfg=zerocopy_generic_bounds_in_const_fn_1_61_0
+cargo:rustc-cfg=zerocopy_panic_in_const_and_vec_try_reserve_1_57_0
+cargo:rustc-cfg=zerocopy_target_has_atomics_1_60_0

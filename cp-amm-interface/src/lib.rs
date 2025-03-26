@@ -1,4 +1,4 @@
-solana_program::declare_id!("TH1S1SNoTAVAL1DPUBKEYDoNoTUSE11111111111111");
+solana_program::declare_id!("LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7");
 pub mod accounts;
 pub use accounts::*;
 pub mod typedefs;

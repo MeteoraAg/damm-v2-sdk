@@ -1,16 +1,7 @@
+use crate::*;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::pubkey::Pubkey;
-use crate::*;
-pub const CLAIM_FEE_OPERATOR_ACCOUNT_DISCM: [u8; 8] = [
-    166,
-    48,
-    134,
-    86,
-    34,
-    200,
-    188,
-    150,
-];
+pub const CLAIM_FEE_OPERATOR_ACCOUNT_DISCM: [u8; 8] = [166, 48, 134, 86, 34, 200, 188, 150];
 #[derive(Clone, Debug, BorshDeserialize, BorshSerialize, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ClaimFeeOperator {
@@ -26,15 +17,13 @@ impl ClaimFeeOperatorAccount {
         let mut maybe_discm = [0u8; 8];
         reader.read_exact(&mut maybe_discm)?;
         if maybe_discm != CLAIM_FEE_OPERATOR_ACCOUNT_DISCM {
-            return Err(
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "discm does not match. Expected: {:?}. Received: {:?}",
-                        CLAIM_FEE_OPERATOR_ACCOUNT_DISCM, maybe_discm
-                    ),
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    CLAIM_FEE_OPERATOR_ACCOUNT_DISCM, maybe_discm
                 ),
-            );
+            ));
         }
         Ok(Self(ClaimFeeOperator::deserialize(&mut reader)?))
     }
@@ -72,15 +61,13 @@ impl ConfigAccount {
         let mut maybe_discm = [0u8; 8];
         reader.read_exact(&mut maybe_discm)?;
         if maybe_discm != CONFIG_ACCOUNT_DISCM {
-            return Err(
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "discm does not match. Expected: {:?}. Received: {:?}",
-                        CONFIG_ACCOUNT_DISCM, maybe_discm
-                    ),
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    CONFIG_ACCOUNT_DISCM, maybe_discm
                 ),
-            );
+            ));
         }
         Ok(Self(Config::deserialize(&mut reader)?))
     }
@@ -139,15 +126,13 @@ impl PoolAccount {
         let mut maybe_discm = [0u8; 8];
         reader.read_exact(&mut maybe_discm)?;
         if maybe_discm != POOL_ACCOUNT_DISCM {
-            return Err(
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "discm does not match. Expected: {:?}. Received: {:?}",
-                        POOL_ACCOUNT_DISCM, maybe_discm
-                    ),
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    POOL_ACCOUNT_DISCM, maybe_discm
                 ),
-            );
+            ));
         }
         Ok(Self(Pool::deserialize(&mut reader)?))
     }
@@ -188,15 +173,13 @@ impl PositionAccount {
         let mut maybe_discm = [0u8; 8];
         reader.read_exact(&mut maybe_discm)?;
         if maybe_discm != POSITION_ACCOUNT_DISCM {
-            return Err(
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "discm does not match. Expected: {:?}. Received: {:?}",
-                        POSITION_ACCOUNT_DISCM, maybe_discm
-                    ),
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    POSITION_ACCOUNT_DISCM, maybe_discm
                 ),
-            );
+            ));
         }
         Ok(Self(Position::deserialize(&mut reader)?))
     }
@@ -226,15 +209,13 @@ impl TokenBadgeAccount {
         let mut maybe_discm = [0u8; 8];
         reader.read_exact(&mut maybe_discm)?;
         if maybe_discm != TOKEN_BADGE_ACCOUNT_DISCM {
-            return Err(
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "discm does not match. Expected: {:?}. Received: {:?}",
-                        TOKEN_BADGE_ACCOUNT_DISCM, maybe_discm
-                    ),
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    TOKEN_BADGE_ACCOUNT_DISCM, maybe_discm
                 ),
-            );
+            ));
         }
         Ok(Self(TokenBadge::deserialize(&mut reader)?))
     }
@@ -271,15 +252,13 @@ impl VestingAccount {
         let mut maybe_discm = [0u8; 8];
         reader.read_exact(&mut maybe_discm)?;
         if maybe_discm != VESTING_ACCOUNT_DISCM {
-            return Err(
-                std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!(
-                        "discm does not match. Expected: {:?}. Received: {:?}",
-                        VESTING_ACCOUNT_DISCM, maybe_discm
-                    ),
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!(
+                    "discm does not match. Expected: {:?}. Received: {:?}",
+                    VESTING_ACCOUNT_DISCM, maybe_discm
                 ),
-            );
+            ));
         }
         Ok(Self(Vesting::deserialize(&mut reader)?))
     }

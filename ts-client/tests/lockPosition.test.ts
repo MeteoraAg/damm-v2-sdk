@@ -23,7 +23,7 @@ import {
   LockPositionParams,
   PoolFeesParams,
 } from "../src";
-import { CP_AMM_PROGRAM_ID, DECIMALS, U64_MAX } from "./bankrun-utils";
+import { DECIMALS, U64_MAX } from "./bankrun-utils";
 
 describe("Lock Postion", () => {
   describe("Lock Position with SPL-Token", () => {
@@ -48,7 +48,7 @@ describe("Lock Postion", () => {
       tokenY = prepareContext.tokenBMint;
 
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Lock Position", async () => {
@@ -201,7 +201,7 @@ describe("Lock Postion", () => {
       tokenY = prepareContext.tokenBMint;
 
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Lock position", async () => {

@@ -13,13 +13,9 @@ import { CpAmm, getTokenProgram } from "../src";
       require("../../localnet/admin-bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1.json")
     )
   );
-
-  const programId = new PublicKey(
-    "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
-  );
   const pool = new PublicKey("4FV22NV8p2csvRaut7Z3RWQxUmKfxPNKHxT8cE8fCexc");
   const connection = new Connection(clusterApiUrl("devnet"));
-  const cpAmm = new CpAmm(connection, programId);
+  const cpAmm = new CpAmm(connection);
   const poolState = await cpAmm.fetchPoolState(pool);
   const {
     tokenAMint,

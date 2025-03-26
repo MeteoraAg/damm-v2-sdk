@@ -47,7 +47,7 @@ describe.skip("Swap", () => {
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Swap", async () => {
@@ -182,7 +182,7 @@ describe.skip("Swap", () => {
       tokenY = prepareContext.tokenBMint;
 
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Swap", async () => {

@@ -2,10 +2,7 @@ import { BN } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 
 export const CP_AMM_PROGRAM_ID = new PublicKey(
-  "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
-);
-export const CP_AMM_PROGRAM_ID_DEVNET = new PublicKey(
-  "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
+  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
 );
 
 export const SCALE_OFFSET = 64;

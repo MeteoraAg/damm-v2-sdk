@@ -15,17 +15,14 @@ import {
 (async () => {
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(
-      require("../../localnet/admin-bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1.json")
+      Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
     )
   );
 
-  const tokenX = new PublicKey("AxVHFc6ighQCmm2xDhQx2FAWkM9xZxDw212mcP5mY2d4");
-  const tokenY = new PublicKey("4eQ3PiW2n3bhKEopYDBe2pVxd66MjwowXzbFWYq95pZv");
-  const programId = new PublicKey(
-    "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
-  );
+  const tokenY = new PublicKey("EtH7yJDPqhPak8og84MTpKwoMEssgKQC7K77DArA9UUi");
+  const tokenX = new PublicKey("4eQ3PiW2n3bhKEopYDBe2pVxd66MjwowXzbFWYq95pZv");
   const connection = new Connection(clusterApiUrl("devnet"));
-  const cpAmm = new CpAmm(connection, programId);
+  const cpAmm = new CpAmm(connection);
 
   const baseFee: BaseFee = {
     cliffFeeNumerator: new BN(1_000_000), // 1%
@@ -56,9 +53,9 @@ import {
     tokenX,
     tokenY,
     tokenXAmount: new BN(1000 * 10 ** 6),
-    tokenYAmount: new BN(1000 * 10 ** 9),
+    tokenYAmount: new BN(1000 * 10 ** 6),
     tokenXDecimal: 6,
-    tokenYDecimal: 9,
+    tokenYDecimal: 6,
     poolFees,
     hasAlphaVault: false,
     activationType: 1, // 0 slot, 1 timestamp

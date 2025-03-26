@@ -35,7 +35,8 @@ export function q64ToDecimal(num: BN, decimalPlaces?: number): Decimal {
     .toDecimalPlaces(decimalPlaces);
 }
 
-export function decimalToQ64(num: Decimal): Decimal {
+export function decimalToQ64(num: Decimal): BN {
+  console.log("num: ", num);
   return new BN(num.mul(Decimal.pow(2, 64)).floor().toFixed());
 }
 
@@ -44,6 +45,7 @@ export function priceToSqrtPrice(
   tokenADecimal: number,
   tokenBDecimal: number
 ): BN {
+  console.log("a: ", tokenBDecimal - tokenADecimal);
   const sqrtPriceQ64 = decimalToQ64(
     initPrice.mul(Decimal.pow(10, tokenBDecimal - tokenADecimal)).sqrt()
   );

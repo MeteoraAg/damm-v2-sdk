@@ -22,7 +22,7 @@ import { CpAmm, getTokenProgram } from "../src";
     "FDQS2RqhQkxvgLGRsYy3YuiBKwxkRzZskM8U9v6GcZoa"
   );
   const connection = new Connection(clusterApiUrl("devnet"));
-  const cpAmm = new CpAmm(connection, programId);
+  const cpAmm = new CpAmm(connection);
 
   const positionState = await cpAmm.fetchPositionState(position);
   const poolState = await cpAmm.fetchPoolState(pool);

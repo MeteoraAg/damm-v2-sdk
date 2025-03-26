@@ -46,7 +46,7 @@ describe("Remove liquidity", () => {
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Remove liqudity", async () => {
@@ -172,7 +172,7 @@ describe("Remove liquidity", () => {
       tokenY = prepareContext.tokenBMint;
 
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Remove liquidity", async () => {

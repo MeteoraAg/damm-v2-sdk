@@ -45,7 +45,7 @@ describe("Create position", () => {
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
 
       const baseFee: BaseFee = {
         cliffFeeNumerator: new BN(1_000_000), // 1%
@@ -139,7 +139,7 @@ describe("Create position", () => {
       tokenY = prepareContext.tokenBMint;
 
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
 
       const baseFee: BaseFee = {
         cliffFeeNumerator: new BN(1_000_000), // 1%

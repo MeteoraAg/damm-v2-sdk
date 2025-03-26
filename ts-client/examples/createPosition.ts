@@ -18,7 +18,7 @@ import { CpAmm, CreatePositionParams } from "../src";
   );
   const pool = new PublicKey("4FV22NV8p2csvRaut7Z3RWQxUmKfxPNKHxT8cE8fCexc");
   const connection = new Connection(clusterApiUrl("devnet"));
-  const cpAmm = new CpAmm(connection, programId);
+  const cpAmm = new CpAmm(connection);
   const positionNft = Keypair.generate();
   const createPositionParams: CreatePositionParams = {
     owner: wallet.publicKey,

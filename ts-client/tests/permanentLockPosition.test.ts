@@ -47,7 +47,7 @@ describe("Permanant Lock Postion", () => {
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Permanant lock Position", async () => {
@@ -179,7 +179,7 @@ describe("Permanant Lock Postion", () => {
       tokenY = prepareContext.tokenBMint;
 
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Permanant lock position", async () => {

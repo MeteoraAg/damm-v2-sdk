@@ -25,6 +25,8 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
     sqrtMinPrice,
     tokenAMint,
     tokenBMint,
+    tokenAVault,
+    tokenBVault,
     tokenAFlag,
     tokenBFlag,
   } = poolState;
@@ -46,6 +48,7 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
   const transaction = await cpAmm.addLiquidity({
     owner: wallet.publicKey,
     position,
+    pool,
     positionNftMint: positionState.nftMint,
     liquidityDeltaQ64: liquidityDelta,
     maxAmountTokenA,
@@ -54,6 +57,8 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
     tokenBAmountThreshold: new BN(100000000735553),
     tokenAMint,
     tokenBMint,
+    tokenAVault,
+    tokenBVault,
     tokenAProgram: getTokenProgram(tokenAFlag),
     tokenBProgram: getTokenProgram(tokenBFlag),
   });

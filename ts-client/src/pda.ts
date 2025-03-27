@@ -131,3 +131,10 @@ export function derivePositionNftAccount(
     programId
   )[0];
 }
+
+export function deriveEventAuthority(programId: PublicKey) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("__event_authority")],
+    programId
+  );
+}

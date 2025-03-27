@@ -1,5 +1,9 @@
 import { Program, BN } from "@coral-xyz/anchor";
-import { getAssociatedTokenAddressSync, NATIVE_MINT } from "@solana/spl-token";
+import {
+  getAssociatedTokenAddressSync,
+  NATIVE_MINT,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 import invariant from "invariant";
 import Decimal from "decimal.js";
 
@@ -10,6 +14,7 @@ import {
   Transaction,
   PublicKey,
   TransactionInstruction,
+  SystemProgram,
 } from "@solana/web3.js";
 import { MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "./constants";
 import {
@@ -41,9 +46,12 @@ import {
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
+  deriveEventAuthority,
   derivePoolAddress,
+  derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
+  deriveTokenVaultAddress,
 } from "./pda";
 import { priceToSqrtPrice } from "./math";
 
@@ -283,10 +291,21 @@ export class CpAmm {
       }
     );
 
+    const poolAuthority = derivePoolAuthority(this._program.programId);
+
     const pool = derivePoolAddress(
       config,
       tokenAMint,
       tokenBMint,
+      this._program.programId
+    );
+
+    const position = derivePositionAddress(
+      positionNft,
+      this._program.programId
+    );
+    const positionNftAccount = derivePositionNftAccount(
+      positionNft,
       this._program.programId
     );
 
@@ -311,24 +330,44 @@ export class CpAmm {
       tokenBProgram
     );
 
+    const tokenAVault = deriveTokenVaultAddress(
+      tokenAMint,
+      pool,
+      this._program.programId
+    );
+    const tokenBVault = deriveTokenVaultAddress(
+      tokenBMint,
+      pool,
+      this._program.programId
+    );
+
     const tx = await this._program.methods
       .initializePool({
         liquidity: liquidityQ64,
         sqrtPrice: sqrtPriceQ64,
         activationPoint: activationPoint,
       })
-      .accounts({
+      .accountsStrict({
         creator,
+        positionNftAccount,
         positionNftMint: positionNft,
         payer: payer,
         config,
+        poolAuthority,
         pool,
+        position,
         tokenAMint,
         tokenBMint,
+        tokenAVault,
+        tokenBVault,
         payerTokenA,
         payerTokenB,
+        token2022Program: TOKEN_2022_PROGRAM_ID,
         tokenAProgram,
         tokenBProgram,
+        systemProgram: SystemProgram.programId,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .transaction();
 
@@ -355,6 +394,8 @@ export class CpAmm {
       collectFeeMode,
       activationPoint,
       activationType,
+      tokenAProgram,
+      tokenBProgram,
     } = params;
 
     const { sqrtPriceQ64, liquidityQ64 } = await this.preparePoolCreationParams(
@@ -365,7 +406,7 @@ export class CpAmm {
         tokenBDecimal,
       }
     );
-
+    const poolAuthority = derivePoolAuthority(this._program.programId);
     const pool = deriveCustomizablePoolAddress(
       tokenAMint,
       tokenBMint,
@@ -375,13 +416,21 @@ export class CpAmm {
       positionNft,
       this._program.programId
     );
-    const tokenAProgram = (
-      await this._program.provider.connection.getAccountInfo(tokenAMint)
-    ).owner;
+    const positionNftAccount = derivePositionNftAccount(
+      positionNft,
+      this._program.programId
+    );
 
-    const tokenBProgram = (
-      await this._program.provider.connection.getAccountInfo(tokenBMint)
-    ).owner;
+    const tokenAVault = deriveTokenVaultAddress(
+      tokenAMint,
+      pool,
+      this._program.programId
+    );
+    const tokenBVault = deriveTokenVaultAddress(
+      tokenBMint,
+      pool,
+      this._program.programId
+    );
 
     const preInstructions = [];
     const [
@@ -443,17 +492,34 @@ export class CpAmm {
         collectFeeMode,
         activationPoint,
       })
-      .accounts({
+      .accountsStrict({
         creator,
+        positionNftAccount,
         positionNftMint: positionNft,
         payer: payer,
+        poolAuthority,
         pool,
+        position,
         tokenAMint,
         tokenBMint,
+        tokenAVault,
+        tokenBVault,
         payerTokenA,
         payerTokenB,
-        tokenAProgram,
-        tokenBProgram,
+        token2022Program: TOKEN_2022_PROGRAM_ID,
+        tokenAProgram:
+          tokenAProgram ??
+          (
+            await this._program.provider.connection.getAccountInfo(tokenAMint)
+          ).owner,
+        tokenBProgram:
+          tokenBProgram ??
+          (
+            await this._program.provider.connection.getAccountInfo(tokenBMint)
+          ).owner,
+        systemProgram: SystemProgram.programId,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .transaction();
@@ -463,14 +529,31 @@ export class CpAmm {
 
   async createPosition(params: CreatePositionParams): TxBuilder {
     const { owner, payer, pool, positionNft } = params;
+    const poolAuthority = derivePoolAuthority(this._program.programId);
+
+    const position = derivePositionAddress(
+      positionNft,
+      this._program.programId
+    );
+    const positionNftAccount = derivePositionNftAccount(
+      positionNft,
+      this._program.programId
+    );
 
     return await this._program.methods
       .createPosition()
-      .accounts({
+      .accountsStrict({
         owner,
         positionNftMint: positionNft,
+        poolAuthority,
+        positionNftAccount,
         payer: payer,
         pool,
+        position,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .transaction();
   }
@@ -478,6 +561,7 @@ export class CpAmm {
   async addLiquidity(params: AddLiquidityParams): TxBuilder {
     const {
       owner,
+      pool,
       position,
       positionNftMint,
       liquidityDeltaQ64,
@@ -487,6 +571,8 @@ export class CpAmm {
       tokenBAmountThreshold,
       tokenAMint,
       tokenBMint,
+      tokenAVault,
+      tokenBVault,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -558,14 +644,21 @@ export class CpAmm {
         tokenAAmountThreshold,
         tokenBAmountThreshold,
       })
-      .accounts({
+      .accountsStrict({
+        pool,
         position,
         positionNftAccount,
         owner: owner,
         tokenAAccount,
         tokenBAccount,
+        tokenAMint: tokenAMint,
+        tokenBMint: tokenBMint,
+        tokenAVault,
+        tokenBVault,
         tokenAProgram,
         tokenBProgram,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -575,6 +668,7 @@ export class CpAmm {
   async removeLiquidity(params: RemoveLiquidityParams): TxBuilder {
     const {
       owner,
+      pool,
       position,
       positionNftMint,
       liquidityDeltaQ64,
@@ -582,6 +676,8 @@ export class CpAmm {
       tokenBAmountThreshold,
       tokenAMint,
       tokenBMint,
+      tokenAVault,
+      tokenBVault,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -589,6 +685,8 @@ export class CpAmm {
       positionNftMint,
       this._program.programId
     );
+
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -631,14 +729,22 @@ export class CpAmm {
         tokenAAmountThreshold,
         tokenBAmountThreshold,
       })
-      .accounts({
+      .accountsStrict({
+        poolAuthority,
+        pool,
         position,
         positionNftAccount,
-        owner: owner,
+        owner,
         tokenAAccount,
         tokenBAccount,
+        tokenAMint,
+        tokenBMint,
+        tokenAVault,
+        tokenBVault,
         tokenAProgram,
         tokenBProgram,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -653,12 +759,16 @@ export class CpAmm {
       outputTokenMint,
       amountIn,
       minimumAmountOut,
+      tokenAVault,
+      tokenBVault,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
       tokenBProgram,
       referralTokenAccount,
     } = params;
+
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -712,16 +822,21 @@ export class CpAmm {
         amountIn,
         minimumAmountOut,
       })
-      .accounts({
+      .accountsStrict({
+        poolAuthority,
         pool,
-        payer: payer,
+        payer,
         inputTokenAccount,
         outputTokenAccount,
-        tokenAMint: tokenAMint,
-        tokenBMint: tokenBMint,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
         tokenAProgram,
         tokenBProgram,
         referralTokenAccount,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -731,6 +846,7 @@ export class CpAmm {
   async lockPosition(params: LockPositionParams): TxBuilder {
     const {
       owner,
+      pool,
       payer,
       vestingAccount,
       position,
@@ -757,12 +873,16 @@ export class CpAmm {
     };
     return await this._program.methods
       .lockPosition(lockPositionParams)
-      .accounts({
+      .accountsStrict({
         position,
         positionNftAccount,
         vesting: vestingAccount,
+        pool: pool,
         owner: owner,
         payer: payer,
+        systemProgram: SystemProgram.programId,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .transaction();
   }
@@ -777,10 +897,13 @@ export class CpAmm {
 
     return await this._program.methods
       .permanentLockPosition(unlockedLiquidity)
-      .accounts({
+      .accountsStrict({
         position,
         positionNftAccount,
-        owner,
+        pool: pool,
+        owner: owner,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .transaction();
   }
@@ -794,9 +917,10 @@ export class CpAmm {
 
     return await this._program.methods
       .refreshVesting()
-      .accounts({
+      .accountsStrict({
         position,
         positionNftAccount,
+        pool: pool,
         owner,
       })
       .remainingAccounts(
@@ -814,8 +938,11 @@ export class CpAmm {
   async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
     const {
       owner,
+      pool,
       position,
       nftPositionMint,
+      tokenAVault,
+      tokenBVault,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
@@ -826,6 +953,7 @@ export class CpAmm {
       nftPositionMint,
       this._program.programId
     );
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -864,14 +992,22 @@ export class CpAmm {
 
     return await this._program.methods
       .claimPositionFee()
-      .accounts({
+      .accountsStrict({
+        poolAuthority,
         owner: owner,
+        pool,
         position,
         positionNftAccount,
         tokenAAccount,
         tokenBAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
         tokenAProgram,
         tokenBProgram,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -882,9 +1018,11 @@ export class CpAmm {
     const { pool, admin, rewardIndex, newDuration } = params;
     return await this._program.methods
       .updateRewardDuration(rewardIndex, newDuration)
-      .accounts({
+      .accountsStrict({
         pool,
         admin: admin,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .transaction();
   }
@@ -893,9 +1031,11 @@ export class CpAmm {
     const { pool, admin, rewardIndex, newFunder } = params;
     return await this._program.methods
       .updateRewardFunder(rewardIndex, newFunder)
-      .accounts({
+      .accountsStrict({
         pool,
         admin: admin,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .transaction();
   }
@@ -936,13 +1076,15 @@ export class CpAmm {
 
     return await this._program.methods
       .fundReward(rewardIndex, amount, carryForward)
-      .accounts({
+      .accountsStrict({
         pool,
         rewardVault: vault,
         rewardMint: mint,
         funderTokenAccount,
         funder: funder,
         tokenProgram,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .transaction();
   }
@@ -951,7 +1093,7 @@ export class CpAmm {
     params: WithdrawIneligibleRewardParams
   ): TxBuilder {
     const { rewardIndex, pool, funder } = params;
-
+    const poolAuthority = derivePoolAuthority(this._program.programId);
     const poolState = await this.fetchPoolState(pool);
 
     const rewardInfo = poolState.rewardInfos[rewardIndex];
@@ -979,13 +1121,16 @@ export class CpAmm {
 
     return await this._program.methods
       .withdrawIneligibleReward(rewardIndex)
-      .accounts({
+      .accountsStrict({
         pool,
         rewardVault: vault,
         rewardMint: mint,
+        poolAuthority,
         funderTokenAccount,
         funder: funder,
         tokenProgram,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -995,7 +1140,16 @@ export class CpAmm {
   async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
     const { partner, pool, maxAmountA, maxAmountB } = params;
     const poolState = await this.fetchPoolState(pool);
-    const { tokenAFlag, tokenBFlag } = poolState;
+    const {
+      tokenAVault,
+      tokenBVault,
+      tokenAMint,
+      tokenBMint,
+      tokenAFlag,
+      tokenBFlag,
+    } = poolState;
+
+    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const tokenAProgram = getTokenProgram(tokenAFlag);
     const tokenBProgram = getTokenProgram(tokenBFlag);
@@ -1038,12 +1192,20 @@ export class CpAmm {
 
     return await this._program.methods
       .claimPartnerFee(maxAmountA, maxAmountB)
-      .accounts({
+      .accountsStrict({
+        poolAuthority,
         pool,
         tokenAAccount,
         tokenBAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
+        partner,
         tokenAProgram,
         tokenBProgram,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -1053,6 +1215,7 @@ export class CpAmm {
   async claimReward(params: ClaimRewardParams): TxBuilder {
     const { user, position, rewardIndex } = params;
 
+    const poolAuthority = derivePoolAuthority(this._program.programId);
     const positionState = await this.fetchPositionState(position);
     const poolState = await this.fetchPoolState(positionState.pool);
 
@@ -1083,14 +1246,18 @@ export class CpAmm {
     }
     return await this._program.methods
       .claimReward(rewardIndex)
-      .accounts({
+      .accountsStrict({
+        pool: positionState.pool,
         positionNftAccount,
         rewardVault: rewardInfo.vault,
         rewardMint: rewardInfo.mint,
+        poolAuthority,
         position,
         userTokenAccount,
         owner: user,
         tokenProgram,
+        eventAuthority: deriveEventAuthority(this._program.programId)[0],
+        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)

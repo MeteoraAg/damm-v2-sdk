@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { CollectFeeMode, FeeSchedulerMode, Rounding } from "../types";
+import { FeeSchedulerMode } from "../types";
 import {
   BASIS_POINT_MAX,
   FEE_DENOMINATOR,
@@ -7,7 +7,6 @@ import {
   SCALE_OFFSET,
 } from "../constants";
 import { ONE, pow } from "../math/feeMath";
-import { mulDiv } from "../math";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor

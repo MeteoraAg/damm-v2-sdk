@@ -10,7 +10,6 @@ import {
   Transaction,
   PublicKey,
   Keypair,
-  SystemProgram,
   TransactionInstruction,
 } from "@solana/web3.js";
 import { MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "./constants";
@@ -35,7 +34,6 @@ import {
   PreparePoolCreationParams,
   RefreshVestingParams,
   RemoveLiquidityParams,
-  Rounding,
   SwapParams,
   TxBuilder,
   UpdateRewardDurationParams,
@@ -45,7 +43,6 @@ import {
 import {
   deriveCustomizablePoolAddress,
   derivePoolAddress,
-  derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
 } from "./pda";
@@ -510,15 +507,12 @@ export class CpAmm {
     const {
       owner,
       position,
-      pool,
       positionNftMint,
       liquidityDeltaQ64,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
       tokenAMint,
       tokenBMint,
-      tokenAVault,
-      tokenBVault,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -566,15 +560,12 @@ export class CpAmm {
     const {
       owner,
       position,
-      pool,
       positionNftMint,
       liquidityDeltaQ64,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
       tokenAMint,
       tokenBMint,
-      tokenAVault,
-      tokenBVault,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -582,8 +573,6 @@ export class CpAmm {
       positionNftMint,
       this._program.programId
     );
-
-    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -652,8 +641,6 @@ export class CpAmm {
       minimumAmountOut,
       tokenAMint,
       tokenBMint,
-      tokenAVault,
-      tokenBVault,
       tokenAProgram,
       tokenBProgram,
       referralTokenAccount,
@@ -819,12 +806,9 @@ export class CpAmm {
     const {
       owner,
       position,
-      pool,
       nftPositionMint,
       tokenAMint,
       tokenBMint,
-      tokenAVault,
-      tokenBVault,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -833,8 +817,6 @@ export class CpAmm {
       nftPositionMint,
       this._program.programId
     );
-
-    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const preInstructions: TransactionInstruction[] = [];
     const [
@@ -920,7 +902,7 @@ export class CpAmm {
 
     const poolState = await this.fetchPoolState(pool);
     const rewardInfo = poolState.rewardInfos[rewardIndex];
-    const { vault, mint, rewardTokenFlag } = rewardInfo;
+    const { vault, mint } = rewardInfo;
     const tokenProgram = getTokenProgram(rewardIndex);
 
     const preInstructions: TransactionInstruction[] = [];
@@ -970,7 +952,6 @@ export class CpAmm {
     const { rewardIndex, pool, funder } = params;
 
     const poolState = await this.fetchPoolState(pool);
-    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const rewardInfo = poolState.rewardInfos[rewardIndex];
     const { mint, vault, rewardTokenFlag } = rewardInfo;
@@ -1015,15 +996,7 @@ export class CpAmm {
   async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
     const { partner, pool, maxAmountA, maxAmountB } = params;
     const poolState = await this.fetchPoolState(pool);
-    const poolAuthority = derivePoolAuthority(this._program.programId);
-    const {
-      tokenAMint,
-      tokenBMint,
-      tokenAVault,
-      tokenBVault,
-      tokenAFlag,
-      tokenBFlag,
-    } = poolState;
+    const { tokenAFlag, tokenBFlag } = poolState;
 
     const tokenAProgram = getTokenProgram(tokenAFlag);
     const tokenBProgram = getTokenProgram(tokenBFlag);
@@ -1082,7 +1055,6 @@ export class CpAmm {
 
   async claimReward(params: ClaimRewardParams): TxBuilder {
     const { user, position, rewardIndex } = params;
-    const poolAuthority = derivePoolAuthority(this._program.programId);
 
     const positionState = await this.fetchPositionState(position);
     const poolState = await this.fetchPoolState(positionState.pool);

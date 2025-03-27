@@ -9,11 +9,9 @@ import { BN } from "@coral-xyz/anchor";
 import { CpAmm, getTokenProgram } from "../src";
 (async () => {
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(
-      require("../../localnet/admin-bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1.json")
-    )
+    Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
   );
-  const pool = new PublicKey("4FV22NV8p2csvRaut7Z3RWQxUmKfxPNKHxT8cE8fCexc");
+  const pool = new PublicKey("8soa1QkfAXNVhB65t9tcDiHNGfw9yQo6QBXYmxGBCUnn");
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
   const poolState = await cpAmm.fetchPoolState(pool);
@@ -34,13 +32,7 @@ import { CpAmm, getTokenProgram } from "../src";
     poolState,
   });
 
-  console.log({
-    swapInAmount: quotes.swapInAmount.toString(),
-    swapOutAmount: quotes.swapOutAmount.toString(),
-    minSwapOutAmount: quotes.minSwapOutAmount.toString(),
-    priceImpact: quotes.priceImpact,
-    lpFee: quotes.totalFee.toString(),
-  });
+  console.log("quote: ", quotes);
 
   const transaction = await cpAmm.swap({
     payer: wallet.publicKey,

@@ -13,9 +13,6 @@ import { CpAmm, CreatePositionParams } from "../src";
     )
   );
 
-  const programId = new PublicKey(
-    "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
-  );
   const pool = new PublicKey("4FV22NV8p2csvRaut7Z3RWQxUmKfxPNKHxT8cE8fCexc");
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);

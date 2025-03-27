@@ -44,7 +44,6 @@ export const getOrCreateATAInstruction = async (
 
   try {
     await getAccount(connection, toAccount);
-
     return { ataPubkey: toAccount, ix: undefined };
   } catch (e) {
     if (

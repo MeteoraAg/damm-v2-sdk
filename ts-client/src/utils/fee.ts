@@ -18,12 +18,6 @@ export function getBaseFeeNumerator(
   period: BN,
   reductionFactor: BN
 ): BN {
-  console.log({
-    feeSchedulerMode: feeSchedulerMode.toString(),
-    cliffFeeNumerator: cliffFeeNumerator.toString(),
-    period: period.toString(),
-    reductionFactor: reductionFactor.toString(),
-  });
   let feeNumerator: BN;
   if (feeSchedulerMode == FeeSchedulerMode.Linear) {
     feeNumerator = cliffFeeNumerator.sub(period.mul(reductionFactor));

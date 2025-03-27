@@ -11,9 +11,9 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
   );
-  const pool = new PublicKey("4FV22NV8p2csvRaut7Z3RWQxUmKfxPNKHxT8cE8fCexc");
+  const pool = new PublicKey("8soa1QkfAXNVhB65t9tcDiHNGfw9yQo6QBXYmxGBCUnn");
   const position = new PublicKey(
-    "FDQS2RqhQkxvgLGRsYy3YuiBKwxkRzZskM8U9v6GcZoa"
+    "AV97BVWZm52jCMq16GoUTSqy1Hw4nYmb3nrPkRynhMa2"
   );
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
@@ -32,7 +32,7 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
   } = poolState;
 
   const liquidityDelta = await cpAmm.getLiquidityDelta({
-    maxAmountTokenA: new BN(100_000 * 10 ** 9),
+    maxAmountTokenA: new BN(100_000 * 10 ** 6),
     maxAmountTokenB: new BN(100_000 * 10 ** 6),
     tokenAMint,
     tokenBMint,

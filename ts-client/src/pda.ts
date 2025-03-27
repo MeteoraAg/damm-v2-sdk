@@ -1,6 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
-import { CP_AMM_PROGRAM_ID } from "./constants";
 
 // Private function: Only use to derive pool account
 export function getFirstKey(key1: PublicKey, key2: PublicKey) {

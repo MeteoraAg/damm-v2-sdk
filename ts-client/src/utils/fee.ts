@@ -28,7 +28,7 @@ export function getBaseFeeNumerator(
   if (feeSchedulerMode == FeeSchedulerMode.Linear) {
     feeNumerator = cliffFeeNumerator.sub(period.mul(reductionFactor));
   } else {
-    const bps = reductionFactor.shln(SCALE_OFFSET).div(BASIS_POINT_MAX);
+    const bps = reductionFactor.shln(SCALE_OFFSET).div(new BN(BASIS_POINT_MAX));
     const base = ONE.sub(bps);
     const result = pow(base, period);
     feeNumerator = cliffFeeNumerator.mul(result).shrn(SCALE_OFFSET);
@@ -42,9 +42,9 @@ export function getDynamicFeeNumerator(
   binStep: BN,
   variableFeeControl: BN
 ): BN {
-  const squareVfaBin = volatilityAccumulator.mul(binStep).pow(2);
+  const squareVfaBin = volatilityAccumulator.mul(binStep).pow(new BN(2));
   const vFee = squareVfaBin.mul(variableFeeControl);
-  return vFee.add(99_999_999_999).div(100_000_000_000);
+  return vFee.addn(99_999_999_999).divn(100_000_000_000);
 }
 
 export function getFeeNumerator(
@@ -65,7 +65,7 @@ export function getFeeNumerator(
     return cliffFeeNumerator;
   }
   const period = new BN(currentPoint).lt(activationPoint)
-    ? numberOfPeriod
+    ? new BN(numberOfPeriod)
     : BN.min(
         new BN(numberOfPeriod),
         new BN(currentPoint).sub(activationPoint).div(periodFrequency)

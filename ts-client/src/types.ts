@@ -1,8 +1,8 @@
 import { IdlAccounts, IdlTypes, Program, BN } from "@coral-xyz/anchor";
 import { PublicKey, Transaction } from "@solana/web3.js";
-import { CpAmm } from "./idl";
+import type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
 
-export type AmmProgram = Program<CpAmm>;
+export type AmmProgram = Program<CpAmmTypes>;
 
 export type TxBuilder = Promise<Transaction>;
 
@@ -37,11 +37,11 @@ export enum ActivationType {
 }
 
 // Account state types
-export type PoolState = IdlAccounts<CpAmm>["pool"];
-export type PositionState = IdlAccounts<CpAmm>["position"];
-export type VestingState = IdlAccounts<CpAmm>["vesting"];
-export type ConfigState = IdlAccounts<CpAmm>["config"];
-export type TokenBadgeState = IdlAccounts<CpAmm>["tokenBadge"];
+export type PoolState = IdlAccounts<CpAmmTypes>["pool"];
+export type PositionState = IdlAccounts<CpAmmTypes>["position"];
+export type VestingState = IdlAccounts<CpAmmTypes>["vesting"];
+export type ConfigState = IdlAccounts<CpAmmTypes>["config"];
+export type TokenBadgeState = IdlAccounts<CpAmmTypes>["tokenBadge"];
 
 // Program params types
 // export type LockPositionParams = IdlTypes<CpAmm>["VestingParameters"];
@@ -52,7 +52,7 @@ export type TokenBadgeState = IdlAccounts<CpAmm>["tokenBadge"];
 // export type InitPoolParams = IdlTypes<CpAmm>["InitializePoolParameters"];
 // export type InitCustomizePoolParams =
 //   IdlTypes<CpAmm>["InitializeCustomizablePoolParameters"];
-export type RewardInfo = IdlTypes<CpAmm>["RewardInfo"];
+export type RewardInfo = IdlTypes<CpAmmTypes>["rewardInfo"];
 
 export type DynamicFee = {
   binStep: number;

@@ -13,8 +13,8 @@ import { CP_AMM_PROGRAM_ID, DECIMALS } from "./constants";
 import { createToken, mintTo } from "./token";
 import { ExtensionType } from "@solana/spl-token";
 import { createToken2022, mintToToken2022 } from "./token2022";
-import { CpmmIdl, PoolState, PositionState } from "../../src";
-import { CpAmm } from "../../src/idl";
+import { PoolState, PositionState } from "../../src";
+import { CpAmm as CpAmmTypes } from "../../src/idl/cp_amm";
 
 // bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1
 export const LOCAL_ADMIN_KEYPAIR = Keypair.fromSecretKey(
@@ -336,7 +336,7 @@ export async function executeTransaction(
 
 export async function getPool(
   banksClient: BanksClient,
-  program: Program<CpAmm>,
+  program: Program<CpAmmTypes>,
   pool: PublicKey
 ): Promise<PoolState> {
   const account = await banksClient.getAccount(pool);
@@ -345,7 +345,7 @@ export async function getPool(
 
 export async function getPosition(
   banksClient: BanksClient,
-  program: Program<CpAmm>,
+  program: Program<CpAmmTypes>,
   position: PublicKey
 ): Promise<PositionState> {
   const account = await banksClient.getAccount(position);

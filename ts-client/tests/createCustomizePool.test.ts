@@ -48,7 +48,7 @@ describe("Initialize customizable pool", () => {
       tokenX = prepareContext.tokenAMint;
       tokenY = prepareContext.tokenBMint;
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Initialize customizeable pool with spl token", async () => {
@@ -127,7 +127,7 @@ describe("Initialize customizable pool", () => {
       tokenY = prepareContext.tokenBMint;
 
       const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection, CP_AMM_PROGRAM_ID);
+      ammInstance = new CpAmm(connection);
     });
 
     it("Initialize customizeable pool with spl token", async () => {

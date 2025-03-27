@@ -2,7 +2,7 @@ import { BN } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 
 export const CP_AMM_PROGRAM_ID = new PublicKey(
-  "9sh3gorJVsWgpdJo317PqnoWoTuDN2LkxiyYUUTu4sNJ"
+  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
 );
 
 export const TREASURY = new PublicKey(

@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { divCeil, mulDiv, shlDiv } from "../math";
+import { divCeil, mulDiv } from "../math";
 import { CollectFeeMode, Rounding } from "../types";
 import { FEE_DENOMINATOR, SCALE_OFFSET } from "../constants";
 
@@ -94,7 +94,7 @@ export function calculateSwap(
       lpFee = mulDiv(
         outAmount,
         tradeFeeNumerator,
-        FEE_DENOMINATOR,
+        new BN(FEE_DENOMINATOR),
         Rounding.Down
       );
     } else {
@@ -114,7 +114,7 @@ export function calculateSwap(
       lpFee = mulDiv(
         outAmount,
         tradeFeeNumerator,
-        new BN(FEE_DENOMINATOR),
+        new BN(new BN(FEE_DENOMINATOR)),
         Rounding.Down
       );
     }
@@ -134,7 +134,7 @@ export function calculateSwap(
     lpFee = mulDiv(
       outAmount,
       tradeFeeNumerator,
-      FEE_DENOMINATOR,
+      new BN(FEE_DENOMINATOR),
       Rounding.Down
     );
     if (aToB) {
@@ -142,7 +142,7 @@ export function calculateSwap(
       lpFee = mulDiv(
         inAmount,
         tradeFeeNumerator,
-        FEE_DENOMINATOR,
+        new BN(FEE_DENOMINATOR),
         Rounding.Down
       );
       const nextSqrtPrice = getNextSqrtPrice(

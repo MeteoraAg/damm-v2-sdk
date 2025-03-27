@@ -222,7 +222,6 @@ export class CpAmm {
       collectFeeMode,
       poolFees,
     } = poolState;
-
     const {
       feeSchedulerMode,
       cliffFeeNumerator,
@@ -241,7 +240,7 @@ export class CpAmm {
     const currentPoint = activationType ? currentTime : slot;
 
     let dynamicFeeParams;
-    if (dynamicFee) {
+    if (dynamicFee.initialized) {
       const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
       dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
     }
@@ -461,11 +460,6 @@ export class CpAmm {
       true,
       tokenBProgram
     );
-
-    console.log({
-      liquidityQ64,
-      sqrtPriceQ64,
-    });
 
     const transaction = await this._program.methods
       .initializeCustomizablePool({
@@ -724,6 +718,7 @@ export class CpAmm {
         tokenBProgram,
         referralTokenAccount,
       })
+      .preInstructions(preInstructions)
       .postInstructions(postInstructions)
       .instruction();
 

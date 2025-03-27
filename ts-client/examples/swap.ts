@@ -11,21 +11,24 @@ import { CpAmm, getTokenProgram } from "../src";
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
   );
-  const pool = new PublicKey("9KQiTEY9Y83389L5pzRrTXBR5AGs7CrPdSbJxXurCeKD");
+  const pool = new PublicKey("BCDEQYNFwom957PXchRdMsoavGNwoGKdUDMUwo6jLzER");
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
   const poolState = await cpAmm.fetchPoolState(pool);
   const { tokenAMint, tokenBMint, tokenAFlag, tokenBFlag } = poolState;
 
   const slippage = 5; // 5%
-  const quotes = await cpAmm.getQuote({
+  const { swapInAmount, swapOutAmount } = await cpAmm.getQuote({
     inAmount: new BN(0.001 * 10 ** 9),
     inputTokenMint: tokenAMint,
     slippage,
     poolState,
   });
 
-  console.log("quote: ", quotes);
+  console.log("quote: ", {
+    swapInAmount: swapInAmount.toString(),
+    swapOutAmount: swapOutAmount.toString(),
+  });
 
   const transaction = await cpAmm.swap({
     payer: wallet.publicKey,
@@ -40,6 +43,7 @@ import { CpAmm, getTokenProgram } from "../src";
     tokenBProgram: getTokenProgram(tokenBFlag),
     referralTokenAccount: null,
   });
+
   const signature = await sendAndConfirmTransaction(connection, transaction, [
     wallet,
   ]);

@@ -11,9 +11,9 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
   );
-  const pool = new PublicKey("9KQiTEY9Y83389L5pzRrTXBR5AGs7CrPdSbJxXurCeKD");
+  const pool = new PublicKey("BCDEQYNFwom957PXchRdMsoavGNwoGKdUDMUwo6jLzER");
   const position = new PublicKey(
-    "AaAFrPQhvaNbCPg8Wz1fkpyK6CKrC68fhCjGfEkaWHJL"
+    "Dt3hRn71LT6e3o1cMZizfwAeFdYpkFHyuUZj4VwDAT4v"
   );
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
@@ -58,14 +58,8 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
     tokenBProgram: getTokenProgram(tokenBFlag),
   });
 
-  transaction.recentBlockhash = (
-    await connection.getLatestBlockhash()
-  ).blockhash;
-  const s = await connection.simulateTransaction(transaction);
-  console.log(s);
-  console.log(s.value.err);
-  // const signature = await sendAndConfirmTransaction(connection, transaction, [
-  //   wallet,
-  // ]);
-  // console.log(signature);
+  const signature = await sendAndConfirmTransaction(connection, transaction, [
+    wallet,
+  ]);
+  console.log(signature);
 })();

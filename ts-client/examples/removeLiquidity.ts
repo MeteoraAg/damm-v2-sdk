@@ -9,17 +9,12 @@ import { BN } from "@coral-xyz/anchor";
 import { CpAmm, getTokenProgram } from "../src";
 (async () => {
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(
-      require("../../localnet/admin-bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1.json")
-    )
+    Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
   );
 
-  const programId = new PublicKey(
-    "LGtRTwBRwmJ1wD9QeJNdAZjLR94uyefRXna1W6dfQj7"
-  );
-  const pool = new PublicKey("4FV22NV8p2csvRaut7Z3RWQxUmKfxPNKHxT8cE8fCexc");
+  const pool = new PublicKey("BCDEQYNFwom957PXchRdMsoavGNwoGKdUDMUwo6jLzER");
   const position = new PublicKey(
-    "FDQS2RqhQkxvgLGRsYy3YuiBKwxkRzZskM8U9v6GcZoa"
+    "Dt3hRn71LT6e3o1cMZizfwAeFdYpkFHyuUZj4VwDAT4v"
   );
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
@@ -32,34 +27,21 @@ import { CpAmm, getTokenProgram } from "../src";
     sqrtMinPrice,
     tokenAMint,
     tokenBMint,
-    tokenAVault,
-    tokenBVault,
     tokenAFlag,
     tokenBFlag,
   } = poolState;
 
-  const liquidityDelta = await cpAmm.getLiquidityDelta({
-    maxAmountTokenA: new BN(100_000 * 10 ** 6),
-    maxAmountTokenB: new BN(100_000 * 10 ** 9),
-    tokenAMint,
-    tokenBMint,
-    sqrtMaxPrice,
-    sqrtMinPrice,
-    sqrtPrice,
-  });
-
   const transaction = await cpAmm.removeLiquidity({
     owner: wallet.publicKey,
     position,
-    pool,
     positionNftMint: positionState.nftMint,
-    liquidityDeltaQ64: liquidityDelta,
+    liquidityDeltaQ64: positionState.unlockedLiquidity,
+    maxAmountTokenA: new BN(100_000 * 10 ** 6),
+    maxAmountTokenB: new BN(100_000 * 10 ** 9),
     tokenAAmountThreshold: new BN(0),
     tokenBAmountThreshold: new BN(0),
     tokenAMint,
     tokenBMint,
-    tokenAVault,
-    tokenBVault,
     tokenAProgram: getTokenProgram(tokenAFlag),
     tokenBProgram: getTokenProgram(tokenBFlag),
   });

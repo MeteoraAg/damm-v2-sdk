@@ -20,7 +20,7 @@ import { NATIVE_MINT } from "@solana/spl-token";
     )
   );
 
-  const tokenA = new PublicKey("EtH7yJDPqhPak8og84MTpKwoMEssgKQC7K77DArA9UUi");
+  const tokenA = new PublicKey("4eQ3PiW2n3bhKEopYDBe2pVxd66MjwowXzbFWYq95pZv");
   // const tokenX = new PublicKey("4eQ3PiW2n3bhKEopYDBe2pVxd66MjwowXzbFWYq95pZv");
   const tokenB = NATIVE_MINT;
   const connection = new Connection(clusterApiUrl("devnet"));
@@ -42,8 +42,6 @@ import { NATIVE_MINT } from "@solana/spl-token";
   };
 
   const positionNft = Keypair.generate();
-
-  const slot = await connection.getSlot();
 
   const params: InitializeCustomizeablePoolParams = {
     payer: wallet.publicKey,

@@ -113,6 +113,7 @@ export type CreatePoolParams = {
   creator: PublicKey;
   payer: PublicKey;
   config: PublicKey;
+  positionNft: PublicKey;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
   tokenAAmount: BN;

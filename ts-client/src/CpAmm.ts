@@ -9,7 +9,6 @@ import {
   Connection,
   Transaction,
   PublicKey,
-  Keypair,
   TransactionInstruction,
 } from "@solana/web3.js";
 import { MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "./constants";
@@ -122,29 +121,6 @@ export class CpAmm {
       sqrtPriceQ64,
       liquidityQ64,
     };
-  }
-
-  /**
-    Builds a transaction with the provided instructions, setting the blockhash
-    and last valid block height under the hood.
-    @private
-    @async
-    @param {PublicKey} feePayer - The public key responsible for paying transaction fees.
-    @param {TransactionInstruction[]} instructions - Array of transaction instructions to include.
-    @returns {TxBuilder} A Solana Transaction object with the instructions attached. 
-  */
-
-  private async buildTransaction(
-    feePayer: PublicKey,
-    instructions: TransactionInstruction[]
-  ): TxBuilder {
-    const { blockhash, lastValidBlockHeight } =
-      await this._program.provider.connection.getLatestBlockhash("confirmed");
-    return new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer,
-    }).add(...instructions);
   }
 
   // fetcher
@@ -288,6 +264,7 @@ export class CpAmm {
       payer,
       creator,
       config,
+      positionNft,
       tokenAMint,
       tokenBMint,
       activationPoint,
@@ -312,7 +289,7 @@ export class CpAmm {
       tokenBMint,
       this._program.programId
     );
-    const positionNft = Keypair.generate();
+
     const tokenAProgram = (
       await this._program.provider.connection.getParsedAccountInfo(tokenAMint)
     )?.value?.owner;
@@ -334,7 +311,7 @@ export class CpAmm {
       tokenBProgram
     );
 
-    const instructions = await this._program.methods
+    const tx = await this._program.methods
       .initializePool({
         liquidity: liquidityQ64,
         sqrtPrice: sqrtPriceQ64,
@@ -342,7 +319,7 @@ export class CpAmm {
       })
       .accounts({
         creator,
-        positionNftMint: positionNft.publicKey,
+        positionNftMint: positionNft,
         payer: payer,
         config,
         pool,
@@ -353,10 +330,7 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
       })
-      .instruction();
-
-    const tx = await this.buildTransaction(payer, [instructions]);
-    tx.partialSign(positionNft);
+      .transaction();
 
     return tx;
   }
@@ -490,7 +464,7 @@ export class CpAmm {
   async createPosition(params: CreatePositionParams): TxBuilder {
     const { owner, payer, pool, positionNft } = params;
 
-    const instructions = await this._program.methods
+    return await this._program.methods
       .createPosition()
       .accounts({
         owner,
@@ -498,9 +472,7 @@ export class CpAmm {
         payer: payer,
         pool,
       })
-      .instruction();
-
-    return await this.buildTransaction(payer, [instructions]);
+      .transaction();
   }
 
   async addLiquidity(params: AddLiquidityParams): TxBuilder {
@@ -580,7 +552,7 @@ export class CpAmm {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
-    const instructions = await this._program.methods
+    return await this._program.methods
       .addLiquidity({
         liquidityDelta: liquidityDeltaQ64,
         tokenAAmountThreshold,
@@ -597,9 +569,7 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
-      .instruction();
-
-    return await this.buildTransaction(owner, [instructions]);
+      .transaction();
   }
 
   async removeLiquidity(params: RemoveLiquidityParams): TxBuilder {
@@ -655,7 +625,7 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
-    const instructions = await this._program.methods
+    return await this._program.methods
       .removeLiquidity({
         liquidityDelta: liquidityDeltaQ64,
         tokenAAmountThreshold,
@@ -672,9 +642,7 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
-      .instruction();
-
-    return await this.buildTransaction(owner, [instructions]);
+      .transaction();
   }
 
   async swap(params: SwapParams): TxBuilder {
@@ -730,12 +698,16 @@ export class CpAmm {
     }
 
     const postInstructions: TransactionInstruction[] = [];
-    if (outputTokenMint.equals(NATIVE_MINT)) {
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(payer);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
-    const instructions = await this._program.methods
+    return await this._program.methods
       .swap({
         amountIn,
         minimumAmountOut,
@@ -753,9 +725,7 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
-      .instruction();
-
-    return await this.buildTransaction(payer, [instructions]);
+      .transaction();
   }
 
   async lockPosition(params: LockPositionParams): TxBuilder {
@@ -765,7 +735,6 @@ export class CpAmm {
       vestingAccount,
       position,
       positionNftMint,
-      pool,
       cliffPoint,
       periodFrequency,
       cliffUnlockLiquidity,
@@ -786,7 +755,7 @@ export class CpAmm {
       numberOfPeriod,
       index: vestings.length,
     };
-    const instructions = await this._program.methods
+    return await this._program.methods
       .lockPosition(lockPositionParams)
       .accounts({
         position,
@@ -795,9 +764,7 @@ export class CpAmm {
         owner: owner,
         payer: payer,
       })
-      .instruction();
-
-    return await this.buildTransaction(owner, [instructions]);
+      .transaction();
   }
 
   async permanentLockPosition(params: PermanentLockParams): TxBuilder {
@@ -808,16 +775,14 @@ export class CpAmm {
       this._program.programId
     );
 
-    const instructions = await this._program.methods
+    return await this._program.methods
       .permanentLockPosition(unlockedLiquidity)
       .accounts({
         position,
         positionNftAccount,
         owner,
       })
-      .instruction();
-
-    return await this.buildTransaction(owner, [instructions]);
+      .transaction();
   }
 
   async refreshVesting(params: RefreshVestingParams): TxBuilder {
@@ -827,7 +792,7 @@ export class CpAmm {
       this._program.programId
     );
 
-    const instructions = await this._program.methods
+    return await this._program.methods
       .refreshVesting()
       .accounts({
         position,
@@ -843,9 +808,7 @@ export class CpAmm {
           };
         })
       )
-      .instruction();
-
-    return await this.buildTransaction(owner, [instructions]);
+      .transaction();
   }
 
   async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
@@ -899,7 +862,7 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
-    const instructions = await this._program.methods
+    return await this._program.methods
       .claimPositionFee()
       .accounts({
         owner: owner,
@@ -912,35 +875,29 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
-      .instruction();
-
-    return await this.buildTransaction(owner, [instructions]);
+      .transaction();
   }
 
   async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
     const { pool, admin, rewardIndex, newDuration } = params;
-    const instruction = await this._program.methods
+    return await this._program.methods
       .updateRewardDuration(rewardIndex, newDuration)
       .accounts({
         pool,
         admin: admin,
       })
-      .instruction();
-
-    return await this.buildTransaction(admin, [instruction]);
+      .transaction();
   }
 
   async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder {
     const { pool, admin, rewardIndex, newFunder } = params;
-    const instruction = await this._program.methods
+    return await this._program.methods
       .updateRewardFunder(rewardIndex, newFunder)
       .accounts({
         pool,
         admin: admin,
       })
-      .instruction();
-
-    return await this.buildTransaction(admin, [instruction]);
+      .transaction();
   }
 
   async fundReward(params: FundRewardParams): TxBuilder {
@@ -977,7 +934,7 @@ export class CpAmm {
       preInstructions.push(...wrapSOLIx);
     }
 
-    const instruction = await this._program.methods
+    return await this._program.methods
       .fundReward(rewardIndex, amount, carryForward)
       .accounts({
         pool,
@@ -987,9 +944,7 @@ export class CpAmm {
         funder: funder,
         tokenProgram,
       })
-      .instruction();
-
-    return await this.buildTransaction(funder, [instruction]);
+      .transaction();
   }
 
   async withdrawIneligibleReward(
@@ -1022,7 +977,7 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
-    const instruction = await this._program.methods
+    return await this._program.methods
       .withdrawIneligibleReward(rewardIndex)
       .accounts({
         pool,
@@ -1034,9 +989,7 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
-      .instruction();
-
-    return await this.buildTransaction(funder, [instruction]);
+      .transaction();
   }
 
   async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
@@ -1083,7 +1036,7 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
-    const instruction = await this._program.methods
+    return await this._program.methods
       .claimPartnerFee(maxAmountA, maxAmountB)
       .accounts({
         pool,
@@ -1094,9 +1047,7 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
-      .instruction();
-
-    return await this.buildTransaction(partner, [instruction]);
+      .transaction();
   }
 
   async claimReward(params: ClaimRewardParams): TxBuilder {
@@ -1130,7 +1081,7 @@ export class CpAmm {
       const closeWrappedSOLIx = await unwrapSOLInstruction(user);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
-    const instructions = await this._program.methods
+    return await this._program.methods
       .claimReward(rewardIndex)
       .accounts({
         positionNftAccount,
@@ -1143,8 +1094,6 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
-      .instruction();
-
-    return await this.buildTransaction(user, [instructions]);
+      .transaction();
   }
 }

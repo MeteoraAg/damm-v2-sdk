@@ -44,15 +44,12 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
   const transaction = await cpAmm.addLiquidity({
     owner: wallet.publicKey,
     position,
-    pool,
     positionNftMint: positionState.nftMint,
     liquidityDeltaQ64: liquidityDelta,
     tokenAAmountThreshold: new BN(100000000735553),
     tokenBAmountThreshold: new BN(100000000735553),
     tokenAMint,
     tokenBMint,
-    tokenAVault,
-    tokenBVault,
     tokenAProgram: getTokenProgram(tokenAFlag),
     tokenBProgram: getTokenProgram(tokenBFlag),
   });

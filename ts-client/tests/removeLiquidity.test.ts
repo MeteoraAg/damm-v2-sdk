@@ -121,15 +121,12 @@ describe("Remove liquidity", () => {
       const addLiquidityParams: AddLiquidityParams = {
         owner: creator.publicKey,
         position,
-        pool,
         positionNftMint: positionState.nftMint,
         liquidityDeltaQ64: liquidityDelta,
         tokenAAmountThreshold: new BN(U64_MAX),
         tokenBAmountThreshold: new BN(U64_MAX),
         tokenAMint: poolState.tokenAMint,
         tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
         tokenAProgram: getTokenProgram(poolState.tokenAFlag),
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
@@ -247,15 +244,12 @@ describe("Remove liquidity", () => {
       const addLiquidityParams: AddLiquidityParams = {
         owner: creator.publicKey,
         position,
-        pool,
         positionNftMint: positionState.nftMint,
         liquidityDeltaQ64: liquidityDelta,
         tokenAAmountThreshold: new BN(U64_MAX),
         tokenBAmountThreshold: new BN(U64_MAX),
         tokenAMint: poolState.tokenAMint,
         tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
         tokenAProgram: getTokenProgram(poolState.tokenAFlag),
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };

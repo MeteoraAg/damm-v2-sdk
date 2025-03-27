@@ -15,7 +15,14 @@ import { CpAmm, getTokenProgram } from "../src";
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
   const poolState = await cpAmm.fetchPoolState(pool);
-  const { tokenAMint, tokenBMint, tokenAFlag, tokenBFlag } = poolState;
+  const {
+    tokenAMint,
+    tokenBMint,
+    tokenAVault,
+    tokenBVault,
+    tokenAFlag,
+    tokenBFlag,
+  } = poolState;
 
   const slippage = 5; // 5%
   const { swapInAmount, swapOutAmount } = await cpAmm.getQuote({
@@ -39,6 +46,8 @@ import { CpAmm, getTokenProgram } from "../src";
     minimumAmountOut: new BN(10),
     tokenAMint,
     tokenBMint,
+    tokenAVault,
+    tokenBVault,
     tokenAProgram: getTokenProgram(tokenAFlag),
     tokenBProgram: getTokenProgram(tokenBFlag),
     referralTokenAccount: null,

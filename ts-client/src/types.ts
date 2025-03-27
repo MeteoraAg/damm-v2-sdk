@@ -95,6 +95,8 @@ export type InitializeCustomizeablePoolParams = {
   activationType: number;
   collectFeeMode: number;
   activationPoint: BN | null;
+  tokenAProgram?: PublicKey;
+  tokenBProgram?: PublicKey;
 };
 
 export type PreparePoolCreationParams = {
@@ -133,6 +135,7 @@ export type CreatePositionParams = {
 export type AddLiquidityParams = {
   owner: PublicKey;
   position: PublicKey;
+  pool: PublicKey;
   positionNftMint: PublicKey;
   liquidityDeltaQ64: BN;
   maxAmountTokenA: BN;
@@ -141,6 +144,8 @@ export type AddLiquidityParams = {
   tokenBAmountThreshold: BN;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
 };
@@ -179,6 +184,8 @@ export type SwapParams = {
   minimumAmountOut: BN;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
   referralTokenAccount: PublicKey | null;
@@ -202,9 +209,12 @@ export type LockPositionParams = {
 export type ClaimPositionFeeParams = {
   owner: PublicKey;
   position: PublicKey;
+  pool: PublicKey;
   nftPositionMint: PublicKey;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
 };

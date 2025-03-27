@@ -84,33 +84,27 @@ export type InitializeCustomizeablePoolParams = {
   payer: PublicKey;
   creator: PublicKey;
   positionNft: PublicKey;
-  tokenX: PublicKey;
-  tokenY: PublicKey;
-  tokenXAmount: BN;
-  tokenYAmount: BN;
-  tokenXDecimal: number;
-  tokenYDecimal: number;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  tokenADecimal: number;
+  tokenBDecimal: number;
   poolFees: PoolFeesParams;
   hasAlphaVault: boolean;
   activationType: number;
   collectFeeMode: number;
   activationPoint: BN | null;
-  tokenXProgram?: PublicKey;
-  tokenYProgram?: PublicKey;
 };
 
 export type PreparePoolCreationParams = {
-  tokenX: PublicKey;
-  tokenY: PublicKey;
-  tokenXAmount: BN;
-  tokenYAmount: BN;
-  tokenXDecimal: number;
-  tokenYDecimal: number;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  tokenADecimal: number;
+  tokenBDecimal: number;
 };
 
 export type PreparedPoolCreation = {
-  tokenAMint: PublicKey;
-  tokenBMint: PublicKey;
   sqrtPriceQ64: BN;
   liquidityQ64: BN;
 };
@@ -119,12 +113,12 @@ export type CreatePoolParams = {
   creator: PublicKey;
   payer: PublicKey;
   config: PublicKey;
-  tokenX: PublicKey;
-  tokenY: PublicKey;
-  tokenXAmount: BN;
-  tokenYAmount: BN;
-  tokenXDecimal: number;
-  tokenYDecimal: number;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  tokenADecimal: number;
+  tokenBDecimal: number;
   activationPoint: BN | null;
 };
 
@@ -140,6 +134,8 @@ export type AddLiquidityParams = {
   position: PublicKey;
   positionNftMint: PublicKey;
   liquidityDeltaQ64: BN;
+  maxAmountTokenA: BN;
+  maxAmountTokenB: BN;
   tokenAAmountThreshold: BN;
   tokenBAmountThreshold: BN;
   tokenAMint: PublicKey;

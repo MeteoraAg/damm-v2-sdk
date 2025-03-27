@@ -11,9 +11,9 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
   );
-  const pool = new PublicKey("8soa1QkfAXNVhB65t9tcDiHNGfw9yQo6QBXYmxGBCUnn");
+  const pool = new PublicKey("9KQiTEY9Y83389L5pzRrTXBR5AGs7CrPdSbJxXurCeKD");
   const position = new PublicKey(
-    "AV97BVWZm52jCMq16GoUTSqy1Hw4nYmb3nrPkRynhMa2"
+    "AaAFrPQhvaNbCPg8Wz1fkpyK6CKrC68fhCjGfEkaWHJL"
   );
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
@@ -25,15 +25,14 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
     sqrtMinPrice,
     tokenAMint,
     tokenBMint,
-    tokenAVault,
-    tokenBVault,
     tokenAFlag,
     tokenBFlag,
   } = poolState;
-
+  const maxAmountTokenA = new BN(1000 * 10 ** 6);
+  const maxAmountTokenB = new BN(0.1 * 10 ** 9);
   const liquidityDelta = await cpAmm.getLiquidityDelta({
-    maxAmountTokenA: new BN(100_000 * 10 ** 6),
-    maxAmountTokenB: new BN(100_000 * 10 ** 6),
+    maxAmountTokenA,
+    maxAmountTokenB,
     tokenAMint,
     tokenBMint,
     sqrtMaxPrice,
@@ -41,11 +40,16 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
     sqrtPrice,
   });
 
+  console.log("liquidityDelta: ", liquidityDelta.toString());
+  console.log("sqrtPrice: ", sqrtPrice.toString());
+
   const transaction = await cpAmm.addLiquidity({
     owner: wallet.publicKey,
     position,
     positionNftMint: positionState.nftMint,
     liquidityDeltaQ64: liquidityDelta,
+    maxAmountTokenA,
+    maxAmountTokenB,
     tokenAAmountThreshold: new BN(100000000735553),
     tokenBAmountThreshold: new BN(100000000735553),
     tokenAMint,
@@ -53,8 +57,15 @@ import { CpAmm, getTokenProgram, CP_AMM_PROGRAM_ID } from "../src";
     tokenAProgram: getTokenProgram(tokenAFlag),
     tokenBProgram: getTokenProgram(tokenBFlag),
   });
-  const signature = await sendAndConfirmTransaction(connection, transaction, [
-    wallet,
-  ]);
-  console.log(signature);
+
+  transaction.recentBlockhash = (
+    await connection.getLatestBlockhash()
+  ).blockhash;
+  const s = await connection.simulateTransaction(transaction);
+  console.log(s);
+  console.log(s.value.err);
+  // const signature = await sendAndConfirmTransaction(connection, transaction, [
+  //   wallet,
+  // ]);
+  // console.log(signature);
 })();

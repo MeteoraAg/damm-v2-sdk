@@ -87,42 +87,9 @@ export class CpAmm {
   private async preparePoolCreationParams(
     params: PreparePoolCreationParams
   ): Promise<PreparedPoolCreation> {
-    const {
-      tokenX,
-      tokenY,
-      tokenXAmount,
-      tokenYAmount,
-      tokenXDecimal,
-      tokenYDecimal,
-    } = params;
+    const { tokenAAmount, tokenBAmount, tokenADecimal, tokenBDecimal } = params;
 
-    const [
-      tokenAMint,
-      tokenBMint,
-      tokenADecimal,
-      tokenBDecimal,
-      initPrice,
-      tokenAAmount,
-      tokenBAmount,
-    ] = new BN(tokenX.toBuffer()).gt(new BN(tokenY.toBuffer()))
-      ? [
-          tokenY,
-          tokenX,
-          tokenYDecimal,
-          tokenXDecimal,
-          tokenXAmount.div(tokenYAmount), // tokenB/TokenA => tokenX/tokenY,
-          tokenYAmount,
-          tokenXAmount,
-        ]
-      : [
-          tokenX,
-          tokenY,
-          tokenXDecimal,
-          tokenYDecimal,
-          tokenYAmount.div(tokenXAmount), // tokenB/TokenA => tokenY/tokenX,
-          tokenXAmount,
-          tokenYAmount,
-        ];
+    const initPrice = tokenBAmount.div(tokenAAmount); // TODO optimize rounding
     const sqrtPriceQ64 = priceToSqrtPrice(
       new Decimal(initPrice.toString()),
       tokenADecimal,
@@ -151,7 +118,10 @@ export class CpAmm {
       ? liquidityDeltaFromAmountB
       : liquidityDeltaFromAmountA;
 
-    return { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 };
+    return {
+      sqrtPriceQ64,
+      liquidityQ64,
+    };
   }
 
   /**
@@ -318,29 +288,28 @@ export class CpAmm {
       payer,
       creator,
       config,
-      tokenX,
-      tokenY,
+      tokenAMint,
+      tokenBMint,
       activationPoint,
-      tokenXAmount,
-      tokenYAmount,
-      tokenXDecimal,
-      tokenYDecimal,
+      tokenAAmount,
+      tokenBAmount,
+      tokenADecimal,
+      tokenBDecimal,
     } = params;
 
-    const { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 } =
-      await this.preparePoolCreationParams({
-        tokenX,
-        tokenY,
-        tokenXAmount,
-        tokenYAmount,
-        tokenXDecimal,
-        tokenYDecimal,
-      });
+    const { sqrtPriceQ64, liquidityQ64 } = await this.preparePoolCreationParams(
+      {
+        tokenAAmount,
+        tokenBAmount,
+        tokenADecimal,
+        tokenBDecimal,
+      }
+    );
 
     const pool = derivePoolAddress(
       config,
-      tokenX,
-      tokenY,
+      tokenAMint,
+      tokenBMint,
       this._program.programId
     );
     const positionNft = Keypair.generate();
@@ -398,12 +367,12 @@ export class CpAmm {
     position: PublicKey;
   }> {
     const {
-      tokenX,
-      tokenY,
-      tokenXAmount,
-      tokenYAmount,
-      tokenXDecimal,
-      tokenYDecimal,
+      tokenAMint,
+      tokenBMint,
+      tokenAAmount,
+      tokenBAmount,
+      tokenADecimal,
+      tokenBDecimal,
       payer,
       creator,
       positionNft,
@@ -412,19 +381,16 @@ export class CpAmm {
       collectFeeMode,
       activationPoint,
       activationType,
-      tokenXProgram,
-      tokenYProgram,
     } = params;
 
-    const { tokenAMint, tokenBMint, sqrtPriceQ64, liquidityQ64 } =
-      await this.preparePoolCreationParams({
-        tokenX,
-        tokenY,
-        tokenXAmount,
-        tokenYAmount,
-        tokenXDecimal,
-        tokenYDecimal,
-      });
+    const { sqrtPriceQ64, liquidityQ64 } = await this.preparePoolCreationParams(
+      {
+        tokenAAmount,
+        tokenBAmount,
+        tokenADecimal,
+        tokenBDecimal,
+      }
+    );
 
     const pool = deriveCustomizablePoolAddress(
       tokenAMint,
@@ -435,28 +401,61 @@ export class CpAmm {
       positionNft,
       this._program.programId
     );
-    const tokenAProgram =
-      tokenXProgram ??
-      (await this._program.provider.connection.getParsedAccountInfo(tokenAMint))
-        ?.value?.owner;
+    const tokenAProgram = (
+      await this._program.provider.connection.getAccountInfo(tokenAMint)
+    ).owner;
 
-    const tokenBProgram =
-      tokenYProgram ??
-      (await this._program.provider.connection.getParsedAccountInfo(tokenBMint))
-        ?.value?.owner;
+    const tokenBProgram = (
+      await this._program.provider.connection.getAccountInfo(tokenBMint)
+    ).owner;
 
-    const payerTokenA = getAssociatedTokenAddressSync(
-      tokenAMint,
-      payer,
-      true,
-      tokenAProgram
-    );
-    const payerTokenB = getAssociatedTokenAddressSync(
-      tokenBMint,
-      payer,
-      true,
-      tokenBProgram
-    );
+    const preInstructions = [];
+    const [
+      { ataPubkey: payerTokenA, ix: createTokenATokenAccountIx },
+      { ataPubkey: payerTokenB, ix: createTokenBTokenAccountIx },
+    ] = await Promise.all([
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenAMint,
+        payer,
+        payer,
+        true,
+        tokenAProgram
+      ),
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenBMint,
+        payer,
+        payer,
+        true,
+        tokenBProgram
+      ),
+    ]);
+
+    createTokenATokenAccountIx &&
+      preInstructions.push(createTokenATokenAccountIx);
+    createTokenBTokenAccountIx &&
+      preInstructions.push(createTokenBTokenAccountIx);
+
+    if (tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        payerTokenA,
+        BigInt(tokenAAmount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    if (tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        payerTokenB,
+        BigInt(tokenBAmount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
 
     const transaction = await this._program.methods
       .initializeCustomizablePool({
@@ -482,6 +481,7 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
       })
+      .preInstructions(preInstructions)
       .transaction();
 
     return { tx: transaction, pool, position };
@@ -509,6 +509,8 @@ export class CpAmm {
       position,
       positionNftMint,
       liquidityDeltaQ64,
+      maxAmountTokenA,
+      maxAmountTokenB,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
       tokenAMint,
@@ -521,21 +523,63 @@ export class CpAmm {
       this._program.programId
     );
 
-    const tokenAAccount = getAssociatedTokenAddressSync(
-      tokenAMint,
-      owner,
-      true,
-      tokenAProgram
-    );
-    const tokenBAccount = getAssociatedTokenAddressSync(
-      tokenBMint,
-      owner,
-      true,
-      tokenBProgram
-    );
+    const preInstructions: TransactionInstruction[] = [];
+    const [
+      { ataPubkey: tokenAAccount, ix: createTokenATokenAccountIx },
+      { ataPubkey: tokenBAccount, ix: createTokenBTokenAccountIx },
+    ] = await Promise.all([
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenAMint,
+        owner,
+        owner,
+        true,
+        tokenAProgram
+      ),
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenBMint,
+        owner,
+        owner,
+        true,
+        tokenBProgram
+      ),
+    ]);
 
-    //TODO handle warp sol
+    createTokenATokenAccountIx &&
+      preInstructions.push(createTokenATokenAccountIx);
+    createTokenBTokenAccountIx &&
+      preInstructions.push(createTokenBTokenAccountIx);
 
+    if (tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        owner,
+        tokenAAccount,
+        BigInt(maxAmountTokenA.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    if (tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        owner,
+        tokenBAccount,
+        BigInt(maxAmountTokenB.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
     const instructions = await this._program.methods
       .addLiquidity({
         liquidityDelta: liquidityDeltaQ64,
@@ -551,6 +595,8 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
       })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
       .instruction();
 
     return await this.buildTransaction(owner, [instructions]);

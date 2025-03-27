@@ -11,7 +11,7 @@ import { CpAmm, getTokenProgram } from "../src";
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
   );
-  const pool = new PublicKey("8soa1QkfAXNVhB65t9tcDiHNGfw9yQo6QBXYmxGBCUnn");
+  const pool = new PublicKey("9KQiTEY9Y83389L5pzRrTXBR5AGs7CrPdSbJxXurCeKD");
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
   const poolState = await cpAmm.fetchPoolState(pool);
@@ -19,7 +19,7 @@ import { CpAmm, getTokenProgram } from "../src";
 
   const slippage = 5; // 5%
   const quotes = await cpAmm.getQuote({
-    inAmount: new BN(1000 * 10 ** 6),
+    inAmount: new BN(0.001 * 10 ** 9),
     inputTokenMint: tokenAMint,
     slippage,
     poolState,
@@ -32,7 +32,7 @@ import { CpAmm, getTokenProgram } from "../src";
     pool,
     inputTokenMint: tokenAMint,
     outputTokenMint: tokenBMint,
-    amountIn: new BN(1000 * 10 ** 6),
+    amountIn: new BN(0.001 * 10 ** 9),
     minimumAmountOut: new BN(10),
     tokenAMint,
     tokenBMint,

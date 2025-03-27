@@ -12,6 +12,7 @@ import {
   InitializeCustomizeablePoolParams,
   PoolFeesParams,
 } from "../src";
+import { NATIVE_MINT } from "@solana/spl-token";
 (async () => {
   const wallet = Keypair.fromSecretKey(
     Uint8Array.from(
@@ -19,8 +20,9 @@ import {
     )
   );
 
-  const tokenY = new PublicKey("EtH7yJDPqhPak8og84MTpKwoMEssgKQC7K77DArA9UUi");
-  const tokenX = new PublicKey("4eQ3PiW2n3bhKEopYDBe2pVxd66MjwowXzbFWYq95pZv");
+  const tokenA = new PublicKey("EtH7yJDPqhPak8og84MTpKwoMEssgKQC7K77DArA9UUi");
+  // const tokenX = new PublicKey("4eQ3PiW2n3bhKEopYDBe2pVxd66MjwowXzbFWYq95pZv");
+  const tokenB = NATIVE_MINT;
   const connection = new Connection(clusterApiUrl("devnet"));
   const cpAmm = new CpAmm(connection);
 
@@ -42,20 +44,17 @@ import {
   const positionNft = Keypair.generate();
 
   const slot = await connection.getSlot();
-  const blockInfo = await connection.getBlock(slot, {
-    maxSupportedTransactionVersion: 0,
-  });
 
   const params: InitializeCustomizeablePoolParams = {
     payer: wallet.publicKey,
     creator: wallet.publicKey,
     positionNft: positionNft.publicKey,
-    tokenX,
-    tokenY,
-    tokenXAmount: new BN(1000 * 10 ** 6),
-    tokenYAmount: new BN(1000 * 10 ** 6),
-    tokenXDecimal: 6,
-    tokenYDecimal: 6,
+    tokenAMint: tokenA,
+    tokenBMint: tokenB,
+    tokenAAmount: new BN(1 * 10 ** 6),
+    tokenBAmount: new BN(0.1 * 10 ** 9),
+    tokenADecimal: 6,
+    tokenBDecimal: 9,
     poolFees,
     hasAlphaVault: false,
     activationType: 1, // 0 slot, 1 timestamp

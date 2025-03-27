@@ -95,7 +95,12 @@ export class CpAmm {
   ): Promise<PreparedPoolCreation> {
     const { tokenAAmount, tokenBAmount } = params;
 
-    const sqrtPriceQ64 = getInitPriceQ64(tokenAAmount, tokenBAmount);
+    const initPrice = new BN(tokenBAmount).div(new BN(tokenAAmount)); // TODO optimize rounding
+    const sqrtPriceQ64 = priceToSqrtPrice(
+      new Decimal(initPrice.toString()),
+      tokenADecimal,
+      tokenBDecimal
+    );
 
     if (sqrtPriceQ64.lt(MIN_SQRT_PRICE) || sqrtPriceQ64.gt(MAX_SQRT_PRICE)) {
       throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);

@@ -39,10 +39,17 @@ export function decimalToQ64(num: Decimal): BN {
   return new BN(num.mul(Decimal.pow(2, 64)).floor().toFixed());
 }
 
-// sqrtPrice = sqrt(tokenB/tokenA) << 64
-export function getInitPriceQ64(tokenAAmount: BN, tokenBAmount: BN): BN {
-  const sqrtInitPrice = new Decimal(tokenBAmount.toString())
-    .div(new Decimal(tokenAAmount.toString()))
-    .sqrt();
-  return new BN(sqrtInitPrice.mul(Decimal.pow(2, 64)).floor().toFixed());
-}
+// Calculate init sqrt price
+// From: Δa = L * (1 / √P_lower - 1 / √P_upper) => a = L * (1/s - 1/pb)
+// From: Δb = L (√init_price - MIN_SQRT_PRICE) => b = L * (s - pa)
+///
+/// Derive
+///
+/// b/a = (1/s - 1/pb) / (s - pa)
+/// (b/a) * (s - pa) * s = 1 - s/pb
+/// (b/a) * s^2 - (b/a) * pa * s = 1 - s/pb
+/// Quadratic Formular: s^2* (b/a) - s * (b/a * pa + 1/pb) + 1 = 0
+///  => s = {[b/a * pa + 1/pb] + √[(b/a * pa + 1/pb)² - 4(b/a)(1)]} / (2(b/a))
+/// b/a = A, B = -(b/a * pa + 1/pb) => s =  [-B + √(B² - 4A)] / (2A)
+
+export function calculateSqrtPrice(tokenAAmount: BN, tokenBAmount: BN): BN {}

@@ -360,6 +360,8 @@ export class CpAmm {
       tokenBAmount,
       tokenADecimal,
       tokenBDecimal,
+      tokenAProgram,
+      tokenBProgram,
     } = params;
 
     const { sqrtPriceQ64, liquidityQ64 } = await this.preparePoolCreationParams(
@@ -389,27 +391,6 @@ export class CpAmm {
       this._program.programId
     );
 
-    const tokenAProgram = (
-      await this._program.provider.connection.getParsedAccountInfo(tokenAMint)
-    )?.value?.owner;
-
-    const tokenBProgram = (
-      await this._program.provider.connection.getParsedAccountInfo(tokenBMint)
-    )?.value?.owner;
-
-    const payerTokenA = getAssociatedTokenAddressSync(
-      tokenAMint,
-      payer,
-      true,
-      tokenAProgram
-    );
-    const payerTokenB = getAssociatedTokenAddressSync(
-      tokenBMint,
-      payer,
-      true,
-      tokenBProgram
-    );
-
     const tokenAVault = deriveTokenVaultAddress(
       tokenAMint,
       pool,
@@ -420,6 +401,54 @@ export class CpAmm {
       pool,
       this._program.programId
     );
+
+    const preInstructions = [];
+    const [
+      { ataPubkey: payerTokenA, ix: createTokenATokenAccountIx },
+      { ataPubkey: payerTokenB, ix: createTokenBTokenAccountIx },
+    ] = await Promise.all([
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenAMint,
+        payer,
+        payer,
+        true,
+        tokenAProgram
+      ),
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenBMint,
+        payer,
+        payer,
+        true,
+        tokenBProgram
+      ),
+    ]);
+
+    createTokenATokenAccountIx &&
+      preInstructions.push(createTokenATokenAccountIx);
+    createTokenBTokenAccountIx &&
+      preInstructions.push(createTokenBTokenAccountIx);
+
+    if (tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        payerTokenA,
+        BigInt(tokenAAmount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    if (tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        payerTokenB,
+        BigInt(tokenBAmount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
 
     const tx = await this._program.methods
       .initializePool({
@@ -449,6 +478,7 @@ export class CpAmm {
         eventAuthority: deriveEventAuthority(this._program.programId)[0],
         program: this._program.programId,
       })
+      .preInstructions(preInstructions)
       .transaction();
 
     return tx;
@@ -587,16 +617,8 @@ export class CpAmm {
         payerTokenA,
         payerTokenB,
         token2022Program: TOKEN_2022_PROGRAM_ID,
-        tokenAProgram:
-          tokenAProgram ??
-          (
-            await this._program.provider.connection.getAccountInfo(tokenAMint)
-          ).owner,
-        tokenBProgram:
-          tokenBProgram ??
-          (
-            await this._program.provider.connection.getAccountInfo(tokenBMint)
-          ).owner,
+        tokenAProgram,
+        tokenBProgram,
         systemProgram: SystemProgram.programId,
         eventAuthority: deriveEventAuthority(this._program.programId)[0],
         program: this._program.programId,

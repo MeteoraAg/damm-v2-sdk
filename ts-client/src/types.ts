@@ -95,8 +95,8 @@ export type InitializeCustomizeablePoolParams = {
   activationType: number;
   collectFeeMode: number;
   activationPoint: BN | null;
-  tokenAProgram?: PublicKey;
-  tokenBProgram?: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
 };
 
 export type PreparePoolCreationParams = {
@@ -123,6 +123,8 @@ export type CreatePoolParams = {
   tokenADecimal: number;
   tokenBDecimal: number;
   activationPoint: BN | null;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
 };
 
 export type CreatePositionParams = {

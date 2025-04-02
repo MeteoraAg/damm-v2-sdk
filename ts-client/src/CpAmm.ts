@@ -48,6 +48,7 @@ import {
   derivePositionNftAccount,
   deriveTokenVaultAddress,
 } from "./pda";
+import { calculateSqrtPrice } from "./math";
 
 import {
   getFeeNumerator,
@@ -63,7 +64,6 @@ import {
   getPriceImpact,
   positionByPoolFilter,
 } from "./helpers";
-import { getInitPriceQ64 } from "./math";
 
 /**
  * CpAmm SDK class to interact with the Dynamic CP-AMM
@@ -95,12 +95,7 @@ export class CpAmm {
   ): Promise<PreparedPoolCreation> {
     const { tokenAAmount, tokenBAmount } = params;
 
-    const initPrice = new BN(tokenBAmount).div(new BN(tokenAAmount)); // TODO optimize rounding
-    const sqrtPriceQ64 = priceToSqrtPrice(
-      new Decimal(initPrice.toString()),
-      tokenADecimal,
-      tokenBDecimal
-    );
+    const sqrtPriceQ64 = calculateSqrtPrice(tokenAAmount, tokenBAmount);
 
     if (sqrtPriceQ64.lt(MIN_SQRT_PRICE) || sqrtPriceQ64.gt(MAX_SQRT_PRICE)) {
       throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);

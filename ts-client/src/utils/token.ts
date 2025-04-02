@@ -113,3 +113,17 @@ export const unwrapSOLInstruction = async (
   }
   return null;
 };
+
+export async function getNftOwner(
+  connection: Connection,
+  nftMint: PublicKey
+): Promise<PublicKey> {
+  const largesTokenAccount = await connection.getTokenLargestAccounts(nftMint);
+  const accountInfo = await connection.getParsedAccountInfo(
+    largesTokenAccount.value[0].address
+  );
+  // @ts-ignore
+  const owner = new PublicKey(accountInfo.value.data.parsed.info.owner);
+
+  return new PublicKey(owner);
+}

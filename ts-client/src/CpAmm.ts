@@ -57,6 +57,7 @@ import { priceToSqrtPrice } from "./math";
 
 import {
   getFeeNumerator,
+  getNftOwner,
   getOrCreateATAInstruction,
   getTokenProgram,
   unwrapSOLInstruction,
@@ -68,10 +69,7 @@ import {
   getLiquidityDeltaFromAmountB,
 } from "./utils/curve";
 import { getMinAmountWithSlippage, getPriceImpact } from "./utils/utils";
-import {
-  positionByOwnerFilter,
-  positionByPoolFilter,
-} from "./utils/accountFilters";
+import { positionByPoolFilter } from "./utils/accountFilters";
 
 export class CpAmm {
   _program: AmmProgram;
@@ -205,16 +203,10 @@ export class CpAmm {
       account: PositionState;
     }> = [];
     for (const position of positions) {
-      const largesTokenAccount =
-        await this._program.provider.connection.getTokenLargestAccounts(
-          position.account.nftMint
-        );
-      const accountInfo =
-        await this._program.provider.connection.getParsedAccountInfo(
-          largesTokenAccount.value[0].address
-        );
-      // @ts-ignore
-      const owner = new PublicKey(accountInfo.value.data.parsed.info.owner);
+      const owner = await getNftOwner(
+        this._program.provider.connection,
+        position.account.nftMint
+      );
       if (owner.equals(user)) {
         result.push(position);
       }
@@ -229,22 +221,15 @@ export class CpAmm {
     }>
   > {
     const positions = await this._program.account.position.all();
-    const positionNftMints = positions.map((item) => item.account.nftMint);
     const result: Array<{
       publicKey: PublicKey;
       account: PositionState;
     }> = [];
     for (const position of positions) {
-      const largesTokenAccount =
-        await this._program.provider.connection.getTokenLargestAccounts(
-          positionNftMints[0]
-        );
-      const accountInfo =
-        await this._program.provider.connection.getParsedAccountInfo(
-          largesTokenAccount.value[0].address
-        );
-      // @ts-ignore
-      const owner = new PublicKey(accountInfo.value.data.parsed.info.owner);
+      const owner = await getNftOwner(
+        this._program.provider.connection,
+        position.account.nftMint
+      );
       if (owner.equals(user)) {
         result.push(position);
       }

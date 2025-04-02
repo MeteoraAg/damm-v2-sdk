@@ -68,6 +68,7 @@ import {
   getLiquidityDeltaFromAmountB,
 } from "./utils/curve";
 import { getMinAmountWithSlippage, getPriceImpact } from "./utils/utils";
+import { positionByOwnerFilter } from "./utils/accountFilters";
 
 export class CpAmm {
   _program: AmmProgram;
@@ -155,6 +156,55 @@ export class CpAmm {
     invariant(positionState, `Position account: ${position} not found`);
 
     return positionState;
+  }
+
+  async getAllConfigs(): Promise<
+    Array<{ publicKey: PublicKey; account: ConfigState }>
+  > {
+    const configAccounts = await this._program.account.config.all();
+
+    return configAccounts;
+  }
+
+  async getAllPools(): Promise<
+    Array<{ publicKey: PublicKey; account: PoolState }>
+  > {
+    const poolAccounts = await this._program.account.pool.all();
+
+    return poolAccounts;
+  }
+
+  async getAllPositions(): Promise<
+    Array<{
+      publicKey: PublicKey;
+      account: PositionState;
+    }>
+  > {
+    const poolAccounts = await this._program.account.position.all();
+
+    return poolAccounts;
+  }
+
+  async getPositionsByUser(user: PublicKey) {
+    const positions = await this._program.account.position.all();
+    const positionNftMints = positions.map((item) => item.account.nftMint);
+    const result = [];
+    for (const position of positions) {
+      const largesTokenAccount =
+        await this._program.provider.connection.getTokenLargestAccounts(
+          positionNftMints[0]
+        );
+      const accountInfo =
+        await this._program.provider.connection.getParsedAccountInfo(
+          largesTokenAccount.value[0].address
+        );
+      // @ts-ignore
+      const owner = new PublicKey(accountInfo.value.data.parsed.info.owner);
+      if (owner.equals(user)) {
+        result.push(position);
+      }
+    }
+    return result;
   }
 
   async getQuote(params: GetQuoteParams): Promise<{

@@ -17,7 +17,7 @@ export const positionByPoolFilter = (
   return {
     memcmp: {
       bytes: pool.toBase58(),
-      offset: 8 + 32,
+      offset: 8,
     },
   };
 };

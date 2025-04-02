@@ -188,7 +188,7 @@ export class CpAmm {
     return poolAccounts;
   }
 
-  async getAllUserPositionByPool(
+  async getUserPositionByPool(
     pool: PublicKey,
     user: PublicKey
   ): Promise<

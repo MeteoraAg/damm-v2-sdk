@@ -1,7 +1,12 @@
 import { BN } from "@coral-xyz/anchor";
 import { divCeil, mulDiv, shlDiv } from "../math";
 import { CollectFeeMode, Rounding } from "../types";
-import { FEE_DENOMINATOR, SCALE_OFFSET } from "../constants";
+import {
+  FEE_DENOMINATOR,
+  MAX_SQRT_PRICE,
+  MIN_SQRT_PRICE,
+  SCALE_OFFSET,
+} from "../constants";
 
 // aToB
 // √P' = √P * L / (L + Δx*√P)
@@ -194,4 +199,30 @@ export function getLiquidityDeltaFromAmountB(
   const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
   const result = maxAmountB.shln(SCALE_OFFSET * 2).div(denominator);
   return result;
+}
+
+// L = Δa * √P_upper * √P_lower / (√P_upper - √P_lower)
+// Δa = L * (√P_upper - √P_lower) / √P_upper * √P_lower
+export function getAmountAFromLiquidityDelta(
+  liquidity: BN,
+  currentSqrtPrice: BN // current sqrt price
+) {
+  const prod = liquidity.mul(MAX_SQRT_PRICE.sub(currentSqrtPrice));
+  const denominator = currentSqrtPrice.mul(MAX_SQRT_PRICE);
+  // prod: Q128.128, denominator: Q128.128
+  const result = shlDiv(prod, denominator, SCALE_OFFSET, Rounding.Down);
+
+  return result.shrn(SCALE_OFFSET);
+}
+
+// L = Δb / (√P_upper - √P_lower)
+// Δb = L * (√P_upper - √P_lower)
+export function getAmountBFromLiquidityDelta(
+  liquidity: BN,
+  currentSqrtPrice: BN // current sqrt price
+): BN {
+  const delta = currentSqrtPrice.sub(MIN_SQRT_PRICE);
+  // Q64.64 * Q64.64 => prod: Q128.128
+  const prod = liquidity.mul(delta);
+  return prod.shrn(SCALE_OFFSET * 2);
 }

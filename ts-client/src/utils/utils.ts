@@ -1,6 +1,8 @@
 import { BN } from "@coral-xyz/anchor";
-import { BASIS_POINT_MAX } from "../constants";
+import { BASIS_POINT_MAX, SCALE_OFFSET } from "../constants";
 import Decimal from "decimal.js";
+import { PositionState } from "../types";
+import { PublicKey } from "@solana/web3.js";
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
  * that slippage rate
@@ -35,4 +37,33 @@ export const getPriceImpact = (
     .div(new Decimal(amountWithoutSlippage.toString()))
     .mul(100)
     .toNumber();
+};
+
+// (sqrtPrice >> 64) ** 2 * 10 ** (base_decimal - quote_decimal)
+export const getCurrentPrice = (
+  sqrtPrice: BN,
+  tokenADecimal: number,
+  tokenBDecimal: number
+): BN => {
+  const rawSqrtPrice = sqrtPrice.shrn(SCALE_OFFSET);
+  const price = rawSqrtPrice.mul(rawSqrtPrice);
+  const expo = 10 ** (tokenADecimal - tokenBDecimal);
+  return price.muln(expo);
+};
+
+export const getClaimReward = (
+  positionState: PositionState
+): {
+  feeTokenA: BN;
+  feeTokenB: BN;
+  rewards: BN[];
+} => {
+  return {
+    feeTokenA: positionState.feeAPending,
+    feeTokenB: positionState.feeBPending,
+    rewards:
+      positionState.rewardInfos.length > 0
+        ? positionState.rewardInfos.map((item) => item.rewardPendings)
+        : [],
+  };
 };

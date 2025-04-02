@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { divCeil, mulDiv } from "../math";
+import { divCeil, mulDiv, shlDiv } from "../math";
 import { CollectFeeMode, Rounding } from "../types";
 import { FEE_DENOMINATOR, SCALE_OFFSET } from "../constants";
 
@@ -38,9 +38,13 @@ export function getDeltaAmountA(
   liquidity: BN,
   rounding: Rounding
 ): BN {
+  // deltaSqrtPrice: Q64.64, L: Q64.64 => prod: Q128.128, denominator: Q128.128
   const deltaSqrtPrice = upperSqrtPrice.sub(lowerSqrtPrice);
+  const prod = liquidity.mul(deltaSqrtPrice);
   const denominator = lowerSqrtPrice.mul(upperSqrtPrice);
-  return mulDiv(liquidity, deltaSqrtPrice, denominator, rounding);
+  const result = shlDiv(prod, denominator, SCALE_OFFSET, rounding);
+
+  return result.shrn(SCALE_OFFSET);
 }
 
 /// Gets the delta amount_b for given liquidity and price range

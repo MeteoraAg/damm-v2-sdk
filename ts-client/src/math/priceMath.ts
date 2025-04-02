@@ -12,10 +12,14 @@ import { MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "../constants";
 
 // set sqrt_init_price = x
 // Δb * MAX_SQRT_PRICE - Δb * x = Δa * MAX_SQRT_PRICE * x^2 - Δa * MAX_SQRT_PRICE * x * MIN_SQRT_PRICE
-//
-// use quadratic equation
 // Δa * MAX_SQRT_PRICE * x^2 - (Δa * MAX_SQRT_PRICE * MIN_SQRT_PRICE + Δb) * x + Δb * MAX_SQRT_PRICE = 0
 //
+// Quadratic equation: a*x^2 + b*x + c = 0
+// x = (-b ± √(b² - 4ac)) / 2a
+//
+// b = (Δa * MAX_SQRT_PRICE * MIN_SQRT_PRICE + Δb)
+// a = Δa * MAX_SQRT_PRICE
+// c = Δb * MAX_SQRT_PRICE
 // sqrt_init_price = ((Δa * MAX_SQRT_PRICE * MIN_SQRT_PRICE + Δb) + √((Δa * MAX_SQRT_PRICE * MIN_SQRT_PRICE + Δb)^2 - 4 * Δa * Δb * MAX_SQRT_PRICE^2)) / (2 * Δa * MAX_SQRT_PRICE)
 //
 export function calculateSqrtPrice(tokenAAmount: BN, tokenBAmount: BN): BN {
@@ -23,7 +27,7 @@ export function calculateSqrtPrice(tokenAAmount: BN, tokenBAmount: BN): BN {
     throw new Error("Amount cannot be zero");
   }
 
-  // Quadratic equation: a*x^2 + b*x + c = 0
+  //
   const a = tokenAAmount.mul(MAX_SQRT_PRICE);
 
   // b = -(Δa * MAX_SQRT_PRICE * MIN_SQRT_PRICE + Δb)

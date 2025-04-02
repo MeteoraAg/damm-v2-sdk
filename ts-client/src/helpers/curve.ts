@@ -54,13 +54,14 @@ export function getDeltaAmountA(
 }
 
 /// Gets the delta amount_b for given liquidity and price range
-/// * `Δb = L (√P_upper - √P_lower)`
+/// `Δb = L (√P_upper - √P_lower)`
 export function getDeltaAmountB(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
   liquidity: BN,
   rounding: Rounding
 ): BN {
+  // deltaSqrtPrice: Q64.64, L: Q64.64 => prod: Q128.128
   const deltaSqrtPrice = upperSqrtPrice.sub(lowerSqrtPrice);
   const prod = liquidity.mul(deltaSqrtPrice);
 

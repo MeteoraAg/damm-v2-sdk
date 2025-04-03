@@ -36,6 +36,11 @@ export enum ActivationType {
   Timestamp,
 }
 
+export type FeeMode = {
+  feeOnInput: boolean;
+  feesOnTokenA: boolean;
+};
+
 // Account state types
 export type PoolState = IdlAccounts<CpAmmTypes>["pool"];
 export type PositionState = IdlAccounts<CpAmmTypes>["position"];

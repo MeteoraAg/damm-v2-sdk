@@ -51,7 +51,7 @@ export const getCurrentPrice = (
   return price.muln(expo);
 };
 
-export const getClaimReward = (
+export const getUnClaimReward = (
   positionState: PositionState
 ): {
   feeTokenA: BN;

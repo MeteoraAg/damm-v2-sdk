@@ -7,12 +7,12 @@ import { PublicKey } from "@solana/web3.js";
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
  * that slippage rate
  * @param {BN} amount - The amount of tokens you want to buy.
- * @param {number} slippageRate - The maximum percentage of slippage you're willing to accept. (Max to 2 decimal place)
+ * @param {number} rate - The maximum percentage of slippage you're willing to accept. (Max to 2 decimal place)
  * @returns The maximum amount of tokens that can be bought with the given amount of ETH, given the
  * slippage rate.
  */
-export const getMaxAmountWithSlippage = (amount: BN, slippageRate: number) => {
-  const slippage = ((100 + slippageRate) / 100) * BASIS_POINT_MAX;
+export const getMaxAmountWithSlippage = (amount: BN, rate: number) => {
+  const slippage = ((100 + rate) / 100) * BASIS_POINT_MAX;
   return amount.mul(new BN(slippage)).div(new BN(BASIS_POINT_MAX));
 };
 
@@ -20,21 +20,24 @@ export const getMaxAmountWithSlippage = (amount: BN, slippageRate: number) => {
  * It takes an amount and a slippage rate, and returns the minimum amount that will be received after
  * slippage
  * @param {BN} amount - The amount of tokens you want to sell.
- * @param {number} slippageRate - The percentage of slippage you're willing to accept. (Max to 2 decimal place)
+ * @param {number} rate - The percentage of slippage you're willing to accept. (Max to 2 decimal place)
  * @returns The minimum amount that can be received after slippage is applied.
  */
-export const getMinAmountWithSlippage = (amount: BN, slippageRate: number) => {
-  const slippage = ((100 - slippageRate) / 100) * BASIS_POINT_MAX;
+export const getMinAmountWithSlippage = (amount: BN, rate: number) => {
+  const slippage = ((100 - rate) / 100) * BASIS_POINT_MAX;
   return amount.mul(new BN(slippage)).div(new BN(BASIS_POINT_MAX));
 };
 
-export const getPriceImpact = (
-  amount: BN,
-  amountWithoutSlippage: BN
-): number => {
-  const diff = amountWithoutSlippage.sub(amount);
+/**
+ * Calculate price impact as a percentage
+ * @param actualAmount Amount after slippage in token units
+ * @param idealAmount Theoretical amount without slippage in token units
+ * @returns Price impact as a percentage (e.g., 1.5 means 1.5%)
+ */
+export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
+  const diff = idealAmount.sub(actualAmount);
   return new Decimal(diff.toString())
-    .div(new Decimal(amountWithoutSlippage.toString()))
+    .div(new Decimal(idealAmount.toString()))
     .mul(100)
     .toNumber();
 };

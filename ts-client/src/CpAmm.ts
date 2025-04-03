@@ -1,9 +1,5 @@
 import { Program, BN } from "@coral-xyz/anchor";
-import {
-  getAssociatedTokenAddressSync,
-  NATIVE_MINT,
-  TOKEN_2022_PROGRAM_ID,
-} from "@solana/spl-token";
+import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import invariant from "invariant";
 import Decimal from "decimal.js";
 
@@ -62,14 +58,13 @@ import {
   getTokenProgram,
   unwrapSOLInstruction,
   wrapSOLInstruction,
-} from "./utils";
-import {
-  calculateSwap,
+  getSwapAmount,
   getLiquidityDeltaFromAmountA,
   getLiquidityDeltaFromAmountB,
-} from "./utils/curve";
-import { getMinAmountWithSlippage, getPriceImpact } from "./utils/utils";
-import { positionByPoolFilter } from "./utils/accountFilters";
+  getMinAmountWithSlippage,
+  getPriceImpact,
+  positionByPoolFilter,
+} from "./helpers";
 
 export class CpAmm {
   _program: AmmProgram;
@@ -287,7 +282,7 @@ export class CpAmm {
       dynamicFeeParams
     );
 
-    const { amountOutExcludedlpFee, lpFee } = calculateSwap(
+    const { actualOutAmount, totalFee } = getSwapAmount(
       inAmount,
       sqrtPriceQ64,
       liquidityQ64,
@@ -296,16 +291,16 @@ export class CpAmm {
       collectFeeMode
     );
     const minSwapOutAmount = getMinAmountWithSlippage(
-      amountOutExcludedlpFee,
+      actualOutAmount,
       slippage
     );
 
     return {
       swapInAmount: inAmount,
-      swapOutAmount: amountOutExcludedlpFee,
+      swapOutAmount: actualOutAmount,
       minSwapOutAmount,
-      totalFee: lpFee,
-      priceImpact: getPriceImpact(minSwapOutAmount, amountOutExcludedlpFee),
+      totalFee,
+      priceImpact: getPriceImpact(minSwapOutAmount, actualOutAmount),
     };
   }
 

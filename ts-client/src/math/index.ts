@@ -44,6 +44,5 @@ export function getInitPriceQ64(tokenAAmount: BN, tokenBAmount: BN): BN {
   const sqrtInitPrice = new Decimal(tokenBAmount.toString())
     .div(new Decimal(tokenAAmount.toString()))
     .sqrt();
-
   return new BN(sqrtInitPrice.mul(Decimal.pow(2, 64)).floor().toFixed());
 }

@@ -43,18 +43,19 @@ export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
 };
 
 // (sqrtPrice >> 64) ** 2 * 10 ** (base_decimal - quote_decimal)
-// precision: (sqrtPrice ** 2 * 10 ** (base_decimal - quote_decimal) * PRECISION).shr(128)
+// precision: (sqrtPrice^2 * 10 ** (base_decimal - quote_decimal)).shr(128)
 export const getCurrentPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
   tokenBDecimal: number
-): BN => {
-  // const rawSqrtPrice = sqrtPrice.shrn(SCALE_OFFSET);
-  const price = sqrtPrice
-    .mul(sqrtPrice)
-    .mul(new BN(10 ** (tokenADecimal - tokenBDecimal)))
-    .muln(PRECISION)
-    .shrn(128);
+): string => {
+  const decimalSqrtPrice = new Decimal(sqrtPrice.toString());
+  const price = decimalSqrtPrice
+    .mul(decimalSqrtPrice)
+    .mul(new Decimal(10 ** (tokenADecimal - tokenBDecimal)))
+    .div(Decimal.pow(2, 128))
+    .toString();
+
   return price;
 };
 

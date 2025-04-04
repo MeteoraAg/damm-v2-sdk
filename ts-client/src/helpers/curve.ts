@@ -7,6 +7,7 @@ import {
   MIN_SQRT_PRICE,
   SCALE_OFFSET,
 } from "../constants";
+import Decimal from "decimal.js";
 
 // aToB
 // √P' = √P * L / (L + Δx*√P)
@@ -85,10 +86,12 @@ export function getLiquidityDeltaFromAmountA(
   lowerSqrtPrice: BN, // current sqrt price
   upperSqrtPrice: BN // max sqrt price
 ): BN {
-  const prod = maxAmountA.mul(upperSqrtPrice.mul(lowerSqrtPrice));
-  const delta = upperSqrtPrice.sub(lowerSqrtPrice);
+  const prod = new Decimal(
+    maxAmountA.mul(upperSqrtPrice.mul(lowerSqrtPrice)).toString()
+  );
+  const delta = new Decimal(upperSqrtPrice.sub(lowerSqrtPrice).toString());
 
-  return prod.div(delta);
+  return new BN(prod.div(delta).floor().toFixed());
 }
 
 // Δb = L (√P_upper - √P_lower)
@@ -98,9 +101,13 @@ export function getLiquidityDeltaFromAmountB(
   lowerSqrtPrice: BN, // min sqrt price
   upperSqrtPrice: BN // current sqrt price
 ): BN {
-  const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
-  const result = maxAmountB.shln(SCALE_OFFSET * 2).div(denominator);
-  return result;
+  const denominator = new Decimal(
+    upperSqrtPrice.sub(lowerSqrtPrice).toString()
+  );
+  const prod = new Decimal(maxAmountB.toString()).mul(
+    Decimal.pow(2, SCALE_OFFSET * 2)
+  );
+  return new BN(prod.div(denominator).floor().toFixed());
 }
 
 // L = Δa * √P_upper * √P_lower / (√P_upper - √P_lower)
@@ -108,13 +115,17 @@ export function getLiquidityDeltaFromAmountB(
 export function getAmountAFromLiquidityDelta(
   liquidity: BN,
   currentSqrtPrice: BN // current sqrt price
-) {
-  const prod = liquidity.mul(MAX_SQRT_PRICE.sub(currentSqrtPrice));
+): string {
+  const prod = new Decimal(liquidity.toString()).mul(
+    new Decimal(MAX_SQRT_PRICE.sub(currentSqrtPrice).toString())
+  );
   const denominator = currentSqrtPrice.mul(MAX_SQRT_PRICE);
   // prod: Q128.128, denominator: Q128.128
-  const result = shlDiv(prod, denominator, SCALE_OFFSET, Rounding.Up);
+  const result = prod
+    .mul(Decimal.pow(2, 64))
+    .div(new Decimal(denominator.toString()));
 
-  return result.shrn(SCALE_OFFSET);
+  return result.div(Decimal.pow(2, 64)).floor().toFixed();
 }
 
 // L = Δb / (√P_upper - √P_lower)
@@ -122,9 +133,11 @@ export function getAmountAFromLiquidityDelta(
 export function getAmountBFromLiquidityDelta(
   liquidity: BN,
   currentSqrtPrice: BN // current sqrt price
-): BN {
+): string {
   const delta = currentSqrtPrice.sub(MIN_SQRT_PRICE);
   // Q64.64 * Q64.64 => prod: Q128.128
-  const prod = liquidity.mul(delta);
-  return prod.shrn(SCALE_OFFSET * 2);
+  const prod = new Decimal(liquidity.toString()).mul(
+    new Decimal(delta.toString())
+  );
+  return prod.div(Decimal.pow(2, 128)).floor().toFixed();
 }

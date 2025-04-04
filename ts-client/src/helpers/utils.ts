@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { BASIS_POINT_MAX, SCALE_OFFSET } from "../constants";
+import { BASIS_POINT_MAX, PRECISION, SCALE_OFFSET } from "../constants";
 import Decimal from "decimal.js";
 import { PositionState } from "../types";
 import { PublicKey } from "@solana/web3.js";
@@ -43,15 +43,19 @@ export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
 };
 
 // (sqrtPrice >> 64) ** 2 * 10 ** (base_decimal - quote_decimal)
+// precision: (sqrtPrice ** 2 * 10 ** (base_decimal - quote_decimal) * PRECISION).shr(128)
 export const getCurrentPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
   tokenBDecimal: number
 ): BN => {
-  const rawSqrtPrice = sqrtPrice.shrn(SCALE_OFFSET);
-  const price = rawSqrtPrice.mul(rawSqrtPrice);
-  const expo = 10 ** (tokenADecimal - tokenBDecimal);
-  return price.muln(expo);
+  // const rawSqrtPrice = sqrtPrice.shrn(SCALE_OFFSET);
+  const price = sqrtPrice
+    .mul(sqrtPrice)
+    .mul(new BN(10 ** (tokenADecimal - tokenBDecimal)))
+    .muln(PRECISION)
+    .shrn(128);
+  return price;
 };
 
 export const getUnClaimReward = (

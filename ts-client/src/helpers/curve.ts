@@ -112,7 +112,7 @@ export function getAmountAFromLiquidityDelta(
   const prod = liquidity.mul(MAX_SQRT_PRICE.sub(currentSqrtPrice));
   const denominator = currentSqrtPrice.mul(MAX_SQRT_PRICE);
   // prod: Q128.128, denominator: Q128.128
-  const result = shlDiv(prod, denominator, SCALE_OFFSET, Rounding.Down);
+  const result = shlDiv(prod, denominator, SCALE_OFFSET, Rounding.Up);
 
   return result.shrn(SCALE_OFFSET);
 }

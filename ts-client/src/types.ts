@@ -107,8 +107,6 @@ export type InitializeCustomizeablePoolParams = {
 export type PreparePoolCreationParams = {
   tokenAAmount: BN;
   tokenBAmount: BN;
-  tokenADecimal: number;
-  tokenBDecimal: number;
 };
 
 export type PreparedPoolCreation = {
@@ -125,8 +123,6 @@ export type CreatePoolParams = {
   tokenBMint: PublicKey;
   tokenAAmount: BN;
   tokenBAmount: BN;
-  tokenADecimal: number;
-  tokenBDecimal: number;
   activationPoint: BN | null;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;

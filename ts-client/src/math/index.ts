@@ -39,14 +39,11 @@ export function decimalToQ64(num: Decimal): BN {
   return new BN(num.mul(Decimal.pow(2, 64)).floor().toFixed());
 }
 
-export function priceToSqrtPrice(
-  initPrice: Decimal,
-  tokenADecimal: number,
-  tokenBDecimal: number
-): BN {
-  const sqrtPriceQ64 = decimalToQ64(
-    initPrice.mul(Decimal.pow(10, tokenBDecimal - tokenADecimal)).sqrt()
-  );
+// sqrtPrice = sqrt(tokenB/tokenA) << 64
+export function getInitPriceQ64(tokenAAmount: BN, tokenBAmount: BN): BN {
+  const sqrtInitPrice = new Decimal(tokenAAmount.toString())
+    .div(new Decimal(tokenBAmount.toString()))
+    .sqrt();
 
-  return sqrtPriceQ64;
+  return new BN(sqrtInitPrice.mul(Decimal.pow(2, 64)).floor().toFixed());
 }

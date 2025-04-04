@@ -1,7 +1,6 @@
 import { Program, BN } from "@coral-xyz/anchor";
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import invariant from "invariant";
-import Decimal from "decimal.js";
 
 import CpAmmIDL from "./idl/cp_amm.json";
 import type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
@@ -49,7 +48,6 @@ import {
   derivePositionNftAccount,
   deriveTokenVaultAddress,
 } from "./pda";
-import { priceToSqrtPrice } from "./math";
 
 import {
   getFeeNumerator,
@@ -65,7 +63,11 @@ import {
   getPriceImpact,
   positionByPoolFilter,
 } from "./helpers";
+import { getInitPriceQ64 } from "./math";
 
+/**
+ * CpAmm SDK class to interact with the Dynamic CP-AMM
+ */
 export class CpAmm {
   _program: AmmProgram;
   constructor(connection: Connection) {
@@ -74,31 +76,26 @@ export class CpAmm {
     });
   }
 
+  /**
+   * Returns the Anchor program instance.
+   * @returns The AmmProgram instance.
+   */
   getProgram() {
     return this._program;
   }
 
   /**
-    Prepares token ordering, calculates the initial sqrtPrice in Q64 format,
-    @private
-    @async
-    @param {PublicKey} tokenX - One token mint address in the pair.
-    @param {PublicKey} tokenY - The other token mint address in the pair.
-    @param {Decimal} initialPrice - The initial price ratio of tokenX/tokenY (will be inverted if needed).
-    @param {Decimal} liquidity - The initial liquidity value.
-    @returns {PreparedPoolCreation} Object containing the ordered token mints and their Q64 price/liquidity values. 
-  */
+   * Prepares parameters required for pool creation, including initial sqrt price and liquidity.
+   * @private
+   * @param {PreparePoolCreationParams} params - Initial token amounts for pool creation.
+   * @returns init sqrt price and liquidity in Q64 format.
+   */
   private async preparePoolCreationParams(
     params: PreparePoolCreationParams
   ): Promise<PreparedPoolCreation> {
-    const { tokenAAmount, tokenBAmount, tokenADecimal, tokenBDecimal } = params;
+    const { tokenAAmount, tokenBAmount } = params;
 
-    const initPrice = tokenBAmount.div(tokenAAmount); // TODO optimize rounding
-    const sqrtPriceQ64 = priceToSqrtPrice(
-      new Decimal(initPrice.toString()),
-      tokenADecimal,
-      tokenBDecimal
-    );
+    const sqrtPriceQ64 = getInitPriceQ64(tokenAAmount, tokenBAmount);
 
     if (sqrtPriceQ64.lt(MIN_SQRT_PRICE) || sqrtPriceQ64.gt(MAX_SQRT_PRICE)) {
       throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);
@@ -128,7 +125,11 @@ export class CpAmm {
     };
   }
 
-  // fetcher
+  /**
+   * Fetches the Config state of the program.
+   * @param config - Public key of the config account.
+   * @returns Parsed ConfigState.
+   */
   async fetchConfigState(config: PublicKey): Promise<ConfigState> {
     const configState = await this._program.account.config.fetchNullable(
       config
@@ -138,6 +139,11 @@ export class CpAmm {
     return configState;
   }
 
+  /**
+   * Fetches the Pool state.
+   * @param pool - Public key of the pool.
+   * @returns Parsed PoolState.
+   */
   async fetchPoolState(pool: PublicKey): Promise<PoolState> {
     const poolState = await this._program.account.pool.fetchNullable(pool);
     invariant(poolState, `Pool account: ${pool} not found`);
@@ -145,6 +151,11 @@ export class CpAmm {
     return poolState;
   }
 
+  /**
+   * Fetches the Position state.
+   * @param position - Public key of the position.
+   * @returns Parsed PositionState.
+   */
   async fetchPositionState(position: PublicKey): Promise<PositionState> {
     const positionState = await this._program.account.position.fetchNullable(
       position
@@ -154,6 +165,10 @@ export class CpAmm {
     return positionState;
   }
 
+  /**
+   * Retrieves all config accounts.
+   * @returns Array of config public keys and their states.
+   */
   async getAllConfigs(): Promise<
     Array<{ publicKey: PublicKey; account: ConfigState }>
   > {
@@ -162,6 +177,10 @@ export class CpAmm {
     return configAccounts;
   }
 
+  /**
+   * Retrieves all pool accounts.
+   * @returns Array of pool public keys and their states.
+   */
   async getAllPools(): Promise<
     Array<{ publicKey: PublicKey; account: PoolState }>
   > {
@@ -170,6 +189,10 @@ export class CpAmm {
     return poolAccounts;
   }
 
+  /**
+   * Retrieves all position accounts.
+   * @returns Array of position public keys and their states.
+   */
   async getAllPositions(): Promise<
     Array<{
       publicKey: PublicKey;
@@ -181,6 +204,12 @@ export class CpAmm {
     return poolAccounts;
   }
 
+  /**
+   * Gets all positions of a user for a specific pool.
+   * @param pool - Public key of the pool.
+   * @param user - Public key of the user.
+   * @returns List of user positions for the pool.
+   */
   async getUserPositionByPool(
     pool: PublicKey,
     user: PublicKey
@@ -209,6 +238,11 @@ export class CpAmm {
     return result;
   }
 
+  /**
+   * Gets all positions of a user across all pools.
+   * @param user - Public key of the user.
+   * @returns Array of user positions.
+   */
   async getPositionsByUser(user: PublicKey): Promise<
     Array<{
       publicKey: PublicKey;
@@ -232,6 +266,11 @@ export class CpAmm {
     return result;
   }
 
+  /**
+   * Calculates swap quote based on input amount and pool state.
+   * @param params - Swap parameters including input amount, pool state, slippage, etc.
+   * @returns Swap quote including expected output amount, fee, and price impact.
+   */
   async getQuote(params: GetQuoteParams): Promise<{
     swapInAmount: BN;
     swapOutAmount: BN;
@@ -307,13 +346,7 @@ export class CpAmm {
   /**
    * Computes the liquidity delta based on the provided token amounts and pool state.
    *
-   * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation, including:
-   *   - tokenX: The mint address of token X.
-   *   - tokenY: The mint address of token Y.
-   *   - maxAmountX: The maximum amount of token X available.
-   *   - maxAmountY: The maximum amount of token Y available.
-   *   - pool: The address of the liquidity pool.
-   *
+   * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation
    * @returns {Promise<BN>} - The computed liquidity delta in Q64 value.
    */
   async getLiquidityDelta(params: LiquidityDeltaParams): Promise<BN> {
@@ -342,6 +375,11 @@ export class CpAmm {
       : liquidityDeltaFromAmountA;
   }
 
+  /**
+   * Builds a transaction to create a permissionless pool.
+   * @param params - Parameters for pool creation.
+   * @returns Transaction builder.
+   */
   async createPool(params: CreatePoolParams): TxBuilder {
     const {
       payer,
@@ -353,8 +391,6 @@ export class CpAmm {
       activationPoint,
       tokenAAmount,
       tokenBAmount,
-      tokenADecimal,
-      tokenBDecimal,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -363,8 +399,6 @@ export class CpAmm {
       {
         tokenAAmount,
         tokenBAmount,
-        tokenADecimal,
-        tokenBDecimal,
       }
     );
 
@@ -479,6 +513,11 @@ export class CpAmm {
     return tx;
   }
 
+  /**
+   * Builds a transaction to create a customizable pool.
+   * @param params - Parameters for customizable pool creation.
+   * @returns Transaction and related addresses.
+   */
   async createCustomPool(params: InitializeCustomizeablePoolParams): Promise<{
     tx: Transaction;
     pool: PublicKey;
@@ -507,8 +546,6 @@ export class CpAmm {
       {
         tokenAAmount,
         tokenBAmount,
-        tokenADecimal,
-        tokenBDecimal,
       }
     );
     const poolAuthority = derivePoolAuthority(this._program.programId);
@@ -624,6 +661,11 @@ export class CpAmm {
     return { tx: transaction, pool, position };
   }
 
+  /**
+   * Builds a transaction to create a position.
+   * @param {CreatePositionParams} params - Parameters for position creation.
+   * @returns Transaction builder.
+   */
   async createPosition(params: CreatePositionParams): TxBuilder {
     const { owner, payer, pool, positionNft } = params;
     const poolAuthority = derivePoolAuthority(this._program.programId);
@@ -655,6 +697,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to add liquidity to an existing position.
+   * @param {AddLiquidityParams} params - Parameters for adding liquidity.
+   * @returns Transaction builder.
+   */
   async addLiquidity(params: AddLiquidityParams): TxBuilder {
     const {
       owner,
@@ -762,6 +809,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to remove liquidity from a position.
+   * @param {RemoveLiquidityParams} params - Parameters for removing liquidity.
+   * @returns Transaction builder.
+   */
   async removeLiquidity(params: RemoveLiquidityParams): TxBuilder {
     const {
       owner,
@@ -848,6 +900,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to perform a swap in the pool.
+   * @param {SwapParams} params - Parameters for swapping tokens.
+   * @returns Transaction builder.
+   */
   async swap(params: SwapParams): TxBuilder {
     const {
       payer,
@@ -940,6 +997,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to lock a position with vesting schedule.
+   * @param {LockPositionParams} params - Locking parameters.
+   * @returns Transaction builder.
+   */
   async lockPosition(params: LockPositionParams): TxBuilder {
     const {
       owner,
@@ -984,6 +1046,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to permanently lock a position.
+   * @param {PermanentLockParams} params - Parameters for permanent locking.
+   * @returns Transaction builder.
+   */
   async permanentLockPosition(params: PermanentLockParams): TxBuilder {
     const { owner, position, positionNftMint, pool, unlockedLiquidity } =
       params;
@@ -1005,6 +1072,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to refresh vesting status of a position.
+   * @param {RefreshVestingParams} params - Refresh vesting parameters.
+   * @returns Transaction builder.
+   */
   async refreshVesting(params: RefreshVestingParams): TxBuilder {
     const { owner, position, positionNftMint, pool, vestings } = params;
     const positionNftAccount = derivePositionNftAccount(
@@ -1032,6 +1104,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to claim position fee rewards.
+   * @param {ClaimPositionFeeParams} params - Parameters for claiming position fee.
+   * @returns Transaction builder.
+   */
   async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
     const {
       owner,
@@ -1111,6 +1188,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to update reward duration.
+   * @param {UpdateRewardDurationParams} params - Parameters including pool and new duration.
+   * @returns Transaction builder.
+   */
   async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
     const { pool, admin, rewardIndex, newDuration } = params;
     return await this._program.methods
@@ -1124,6 +1206,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to update reward funder address.
+   * @param {UpdateRewardFunderParams} params - Parameters including pool and new funder address.
+   * @returns Transaction builder.
+   */
   async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder {
     const { pool, admin, rewardIndex, newFunder } = params;
     return await this._program.methods
@@ -1137,6 +1224,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to fund rewards in a pool.
+   * @param {FundRewardParams} params - Funding parameters.
+   * @returns Transaction builder.
+   */
   async fundReward(params: FundRewardParams): TxBuilder {
     const { rewardIndex, carryForward, pool, funder, amount } = params;
 
@@ -1186,6 +1278,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to withdraw ineligible rewards from a pool.
+   * @param {WithdrawIneligibleRewardParams} params - Parameters for withdrawal.
+   * @returns Transaction builder.
+   */
   async withdrawIneligibleReward(
     params: WithdrawIneligibleRewardParams
   ): TxBuilder {
@@ -1234,6 +1331,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to claim partner fee rewards.
+   * @param {ClaimPartnerFeeParams} params - Claim parameters including amounts and partner address.
+   * @returns Transaction builder.
+   */
   async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
     const { partner, pool, maxAmountA, maxAmountB } = params;
     const poolState = await this.fetchPoolState(pool);
@@ -1309,6 +1411,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to claim reward from a position.
+   * @param {ClaimRewardParams} params - Parameters for claiming reward.
+   * @returns Transaction builder.
+   */
   async claimReward(params: ClaimRewardParams): TxBuilder {
     const { user, position, rewardIndex } = params;
 

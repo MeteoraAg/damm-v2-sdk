@@ -51,7 +51,7 @@ export function calculateSqrtPrice(tokenAAmount: BN, tokenBAmount: BN): BN {
 
   //  x = (-b + sqrt(discriminant)) / (2a)
   //  x = (negB + sqrt(discriminant)) / (2a)
-  const numerator = negB.add(new BN(sqrtDiscriminant.toString()));
+  const numerator = negB.add(new BN(sqrtDiscriminant.toFixed()));
   const denominator = new BN(2).mul(a);
 
   const result = numerator.div(denominator);

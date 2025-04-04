@@ -41,8 +41,8 @@ export function decimalToQ64(num: Decimal): BN {
 
 // sqrtPrice = sqrt(tokenB/tokenA) << 64
 export function getInitPriceQ64(tokenAAmount: BN, tokenBAmount: BN): BN {
-  const sqrtInitPrice = new Decimal(tokenAAmount.toString())
-    .div(new Decimal(tokenBAmount.toString()))
+  const sqrtInitPrice = new Decimal(tokenBAmount.toString())
+    .div(new Decimal(tokenAAmount.toString()))
     .sqrt();
 
   return new BN(sqrtInitPrice.mul(Decimal.pow(2, 64)).floor().toFixed());

@@ -93,8 +93,8 @@ export type InitializeCustomizeablePoolParams = {
   tokenBMint: PublicKey;
   tokenAAmount: BN;
   tokenBAmount: BN;
-  minPrice: BN;
-  maxPrice: BN;
+  minSqrtPrice: BN;
+  maxSqrtPrice: BN;
   tokenADecimal: number;
   tokenBDecimal: number;
   poolFees: PoolFeesParams;
@@ -109,8 +109,8 @@ export type InitializeCustomizeablePoolParams = {
 export type PreparePoolCreationParams = {
   tokenAAmount: BN;
   tokenBAmount: BN;
-  minPrice: BN;
-  maxPrice: BN;
+  minSqrtPrice: BN;
+  maxSqrtPrice: BN;
   tokenADecimal: number;
   tokenBDecimal: number;
 };
@@ -129,8 +129,8 @@ export type CreatePoolParams = {
   tokenBMint: PublicKey;
   tokenAAmount: BN;
   tokenBAmount: BN;
-  minPrice: BN;
-  maxPrice: BN;
+  minSqrtPrice: BN;
+  maxSqrtPrice: BN;
   tokenADecimal: number;
   tokenBDecimal: number;
   activationPoint: BN | null;

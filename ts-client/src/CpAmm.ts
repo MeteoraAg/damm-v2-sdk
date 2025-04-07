@@ -95,28 +95,28 @@ export class CpAmm {
   private async preparePoolCreationParams(
     params: PreparePoolCreationParams
   ): Promise<PreparedPoolCreation> {
-    const { tokenAAmount, tokenBAmount, minPrice, maxPrice } = params;
+    const { tokenAAmount, tokenBAmount, minSqrtPrice, maxSqrtPrice } = params;
 
     const sqrtPriceQ64 = calculateInitSqrtPrice(
       tokenAAmount,
       tokenBAmount,
-      minPrice,
-      maxPrice
+      minSqrtPrice,
+      maxSqrtPrice
     );
 
-    if (sqrtPriceQ64.lt(minPrice) || sqrtPriceQ64.gt(maxPrice)) {
+    if (sqrtPriceQ64.lt(minSqrtPrice) || sqrtPriceQ64.gt(maxSqrtPrice)) {
       throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);
     }
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       tokenAAmount,
       sqrtPriceQ64,
-      maxPrice
+      maxSqrtPrice
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       tokenBAmount,
-      minPrice,
+      minSqrtPrice,
       sqrtPriceQ64
     );
 
@@ -128,15 +128,20 @@ export class CpAmm {
 
     const amountAReserve = getAmountAFromLiquidityDelta(
       liquidityQ64,
-      sqrtPriceQ64
+      sqrtPriceQ64,
+      maxSqrtPrice
     );
 
     const amountBReserve = getAmountBFromLiquidityDelta(
       liquidityQ64,
-      sqrtPriceQ64
+      sqrtPriceQ64,
+      minSqrtPrice
     );
 
-    if (amountAReserve.lte(tokenAAmount) && amountBReserve.lte(tokenBAmount)) {
+    if (
+      new BN(amountAReserve).lte(tokenAAmount) &&
+      new BN(amountBReserve).lte(tokenBAmount)
+    ) {
       throw new Error(`Invalid liquidity delta: ${liquidityQ64.toString()}`);
     }
 
@@ -412,8 +417,8 @@ export class CpAmm {
       activationPoint,
       tokenAAmount,
       tokenBAmount,
-      minPrice,
-      maxPrice,
+      minSqrtPrice,
+      maxSqrtPrice,
       tokenADecimal,
       tokenBDecimal,
       tokenAProgram,
@@ -424,8 +429,8 @@ export class CpAmm {
       {
         tokenAAmount,
         tokenBAmount,
-        minPrice,
-        maxPrice,
+        minSqrtPrice,
+        maxSqrtPrice,
         tokenADecimal,
         tokenBDecimal,
       }
@@ -557,8 +562,8 @@ export class CpAmm {
       tokenBMint,
       tokenAAmount,
       tokenBAmount,
-      minPrice,
-      maxPrice,
+      minSqrtPrice,
+      maxSqrtPrice,
       tokenADecimal,
       tokenBDecimal,
       payer,
@@ -577,8 +582,8 @@ export class CpAmm {
       {
         tokenAAmount,
         tokenBAmount,
-        minPrice,
-        maxPrice,
+        minSqrtPrice,
+        maxSqrtPrice,
         tokenADecimal,
         tokenBDecimal,
       }

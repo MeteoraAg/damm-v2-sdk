@@ -214,6 +214,22 @@ export class CpAmm {
   }
 
   /**
+   * Gets all positions a specific pool.
+   * @param pool - Public key of the pool.
+   * @returns List of user positions for the pool.
+   */
+  async getAllPositionsByPool(pool: PublicKey): Promise<
+    Array<{
+      publicKey: PublicKey;
+      account: PositionState;
+    }>
+  > {
+    return await this._program.account.position.all([
+      positionByPoolFilter(pool),
+    ]);
+  }
+
+  /**
    * Gets all positions of a user for a specific pool.
    * @param pool - Public key of the pool.
    * @param user - Public key of the user.

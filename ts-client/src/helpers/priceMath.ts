@@ -42,7 +42,10 @@ export function calculateInitSqrtPrice(
   }
   // sqrt_discriminant = √discriminant
   const sqrtDiscriminant = discriminant.sqrt();
-  const result = paMinusXY.add(sqrtDiscriminant).mul(Decimal.pow(2, 64));
+  const result = paMinusXY
+    .add(sqrtDiscriminant)
+    .div(new Decimal(2))
+    .mul(Decimal.pow(2, 64));
 
   return new BN(result.floor().toFixed());
 }

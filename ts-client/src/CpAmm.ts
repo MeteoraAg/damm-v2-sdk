@@ -48,6 +48,7 @@ import {
   derivePositionNftAccount,
   deriveTokenVaultAddress,
 } from "./pda";
+import { calculateInitSqrtPrice } from "./math";
 
 import {
   getFeeNumerator,
@@ -62,8 +63,9 @@ import {
   getMinAmountWithSlippage,
   getPriceImpact,
   positionByPoolFilter,
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
 } from "./helpers";
-import { getInitPriceQ64 } from "./math";
 
 /**
  * CpAmm SDK class to interact with the Dynamic CP-AMM
@@ -93,23 +95,32 @@ export class CpAmm {
   private async preparePoolCreationParams(
     params: PreparePoolCreationParams
   ): Promise<PreparedPoolCreation> {
-    const { tokenAAmount, tokenBAmount } = params;
+    const { tokenAAmount, tokenBAmount, minSqrtPrice, maxSqrtPrice } = params;
 
-    const sqrtPriceQ64 = getInitPriceQ64(tokenAAmount, tokenBAmount);
-
-    if (sqrtPriceQ64.lt(MIN_SQRT_PRICE) || sqrtPriceQ64.gt(MAX_SQRT_PRICE)) {
-      throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);
+    if (tokenAAmount.eq(new BN(0)) && tokenBAmount.eq(new BN(0))) {
+      throw new Error("Invalid input amount");
     }
+
+    if (minSqrtPrice.gt(maxSqrtPrice)) {
+      throw new Error("Invalid sqrtPrice");
+    }
+
+    const sqrtPriceQ64 = calculateInitSqrtPrice(
+      tokenAAmount,
+      tokenBAmount,
+      minSqrtPrice,
+      maxSqrtPrice
+    );
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       tokenAAmount,
       sqrtPriceQ64,
-      MAX_SQRT_PRICE
+      maxSqrtPrice
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       tokenBAmount,
-      MIN_SQRT_PRICE,
+      minSqrtPrice,
       sqrtPriceQ64
     );
 
@@ -391,6 +402,10 @@ export class CpAmm {
       activationPoint,
       tokenAAmount,
       tokenBAmount,
+      minSqrtPrice,
+      maxSqrtPrice,
+      tokenADecimal,
+      tokenBDecimal,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -399,6 +414,10 @@ export class CpAmm {
       {
         tokenAAmount,
         tokenBAmount,
+        minSqrtPrice,
+        maxSqrtPrice,
+        tokenADecimal,
+        tokenBDecimal,
       }
     );
 
@@ -528,6 +547,8 @@ export class CpAmm {
       tokenBMint,
       tokenAAmount,
       tokenBAmount,
+      minSqrtPrice,
+      maxSqrtPrice,
       tokenADecimal,
       tokenBDecimal,
       payer,
@@ -546,6 +567,10 @@ export class CpAmm {
       {
         tokenAAmount,
         tokenBAmount,
+        minSqrtPrice,
+        maxSqrtPrice,
+        tokenADecimal,
+        tokenBDecimal,
       }
     );
     const poolAuthority = derivePoolAuthority(this._program.programId);

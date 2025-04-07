@@ -14,6 +14,8 @@ import {
   MIN_SQRT_PRICE,
   getLiquidityDeltaFromAmountA,
   getLiquidityDeltaFromAmountB,
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
 } from "../src";
 import { calculateInitSqrtPrice } from "../src/math";
 import Decimal from "decimal.js";
@@ -42,6 +44,20 @@ import Decimal from "decimal.js";
     sqrtPriceQ64
   );
 
+  const liquidityQ64 = liquidityDeltaFromAmountA.gte(liquidityDeltaFromAmountB)
+    ? liquidityDeltaFromAmountB
+    : liquidityDeltaFromAmountA;
+
+  const amountAReserve = getAmountAFromLiquidityDelta(
+    liquidityQ64,
+    sqrtPriceQ64
+  );
+
+  const amountBReserve = getAmountBFromLiquidityDelta(
+    liquidityQ64,
+    sqrtPriceQ64
+  );
+
   const sqrtPriceDecimal = new Decimal(sqrtPriceQ64.toString());
   const result = sqrtPriceDecimal
     .mul(sqrtPriceDecimal)
@@ -58,5 +74,9 @@ import Decimal from "decimal.js";
     ),
     liquidityDeltaFromAmountA: liquidityDeltaFromAmountA.toString(),
     liquidityDeltaFromAmountB: liquidityDeltaFromAmountB.toString(),
+    amountAReserve: amountAReserve.toString(),
+    maxAmountTokenA: maxAmountTokenA.toString(),
+    amountBReserve: amountBReserve.toString(),
+    maxAmountTokenB: maxAmountTokenB.toString(),
   });
 })();

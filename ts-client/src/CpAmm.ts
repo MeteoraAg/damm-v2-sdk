@@ -97,16 +97,20 @@ export class CpAmm {
   ): Promise<PreparedPoolCreation> {
     const { tokenAAmount, tokenBAmount, minSqrtPrice, maxSqrtPrice } = params;
 
+    if (tokenAAmount.eq(new BN(0)) && tokenBAmount.eq(new BN(0))) {
+      throw new Error("Invalid input amount");
+    }
+
+    if (minSqrtPrice.gt(maxSqrtPrice)) {
+      throw new Error("Invalid sqrtPrice");
+    }
+
     const sqrtPriceQ64 = calculateInitSqrtPrice(
       tokenAAmount,
       tokenBAmount,
       minSqrtPrice,
       maxSqrtPrice
     );
-
-    if (sqrtPriceQ64.lt(minSqrtPrice) || sqrtPriceQ64.gt(maxSqrtPrice)) {
-      throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);
-    }
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       tokenAAmount,
@@ -125,25 +129,6 @@ export class CpAmm {
     )
       ? liquidityDeltaFromAmountB
       : liquidityDeltaFromAmountA;
-
-    const amountAReserve = getAmountAFromLiquidityDelta(
-      liquidityQ64,
-      sqrtPriceQ64,
-      maxSqrtPrice
-    );
-
-    const amountBReserve = getAmountBFromLiquidityDelta(
-      liquidityQ64,
-      sqrtPriceQ64,
-      minSqrtPrice
-    );
-
-    if (
-      new BN(amountAReserve).lte(tokenAAmount) &&
-      new BN(amountBReserve).lte(tokenBAmount)
-    ) {
-      throw new Error(`Invalid liquidity delta: ${liquidityQ64.toString()}`);
-    }
 
     return {
       sqrtPriceQ64,

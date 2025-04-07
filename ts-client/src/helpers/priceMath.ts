@@ -18,7 +18,7 @@ export function calculateInitSqrtPrice(
   }
 
   const amountADecimal = new Decimal(tokenAAmount.toString());
-  const amountBDecimal = new Decimal(tokenAAmount.toString());
+  const amountBDecimal = new Decimal(tokenBAmount.toString());
   const minSqrtPriceDecimal = new Decimal(minSqrtPrice.toString()).div(
     Decimal.pow(2, 64)
   );

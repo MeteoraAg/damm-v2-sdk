@@ -3,7 +3,6 @@ import {
   executeTransaction,
   getPool,
   getPosition,
-  processTransactionMaybeThrow,
   setupTestContext,
   startTest,
 } from "./bankrun-utils/common";
@@ -21,9 +20,11 @@ import {
   CpAmm,
   getTokenProgram,
   InitializeCustomizeablePoolParams,
+  MAX_SQRT_PRICE,
+  MIN_SQRT_PRICE,
   PoolFeesParams,
 } from "../src";
-import { CP_AMM_PROGRAM_ID, DECIMALS, U64_MAX } from "./bankrun-utils";
+import { DECIMALS, U64_MAX } from "./bankrun-utils";
 
 describe("Add liquidity", () => {
   describe("Add liquidity with SPL-Token", () => {
@@ -76,6 +77,8 @@ describe("Add liquidity", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,
@@ -194,6 +197,8 @@ describe("Add liquidity", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,

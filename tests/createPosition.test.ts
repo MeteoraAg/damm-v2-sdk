@@ -17,6 +17,8 @@ import {
   CpAmm,
   CreatePositionParams,
   InitializeCustomizeablePoolParams,
+  MAX_SQRT_PRICE,
+  MIN_SQRT_PRICE,
   PoolFeesParams,
 } from "../src";
 
@@ -70,6 +72,8 @@ describe("Create position", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,
@@ -164,6 +168,8 @@ describe("Create position", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,

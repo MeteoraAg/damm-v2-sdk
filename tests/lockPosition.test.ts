@@ -21,6 +21,8 @@ import {
   getTokenProgram,
   InitializeCustomizeablePoolParams,
   LockPositionParams,
+  MAX_SQRT_PRICE,
+  MIN_SQRT_PRICE,
   PoolFeesParams,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
@@ -77,6 +79,8 @@ describe("Lock Postion", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,
@@ -167,7 +171,6 @@ describe("Lock Postion", () => {
         periodFrequency,
         cliffUnlockLiquidity,
         numberOfPeriod,
-        vestings: [],
       };
 
       const lockPositionTx = await ammInstance.lockPosition(lockPositionParams);
@@ -232,6 +235,8 @@ describe("Lock Postion", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,
@@ -322,7 +327,6 @@ describe("Lock Postion", () => {
         periodFrequency,
         cliffUnlockLiquidity,
         numberOfPeriod,
-        vestings: [],
       };
 
       const lockPositionTx = await ammInstance.lockPosition(lockPositionParams);

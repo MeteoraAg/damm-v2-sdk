@@ -22,9 +22,11 @@ import {
   BaseFee,
   CpAmm,
   InitializeCustomizeablePoolParams,
+  MAX_SQRT_PRICE,
+  MIN_SQRT_PRICE,
   PoolFeesParams,
 } from "../src";
-import { CP_AMM_PROGRAM_ID, DECIMALS } from "./bankrun-utils";
+import { DECIMALS } from "./bankrun-utils";
 
 describe("Initialize customizable pool", () => {
   describe("SPL-Token", () => {
@@ -77,6 +79,8 @@ describe("Initialize customizable pool", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,
@@ -156,6 +160,8 @@ describe("Initialize customizable pool", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
         tokenADecimal: DECIMALS,
         tokenBDecimal: DECIMALS,
         poolFees,

@@ -43,7 +43,6 @@ export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
 };
 
 // (sqrtPrice >> 64) ** 2 * 10 ** (base_decimal - quote_decimal)
-// precision: (sqrtPrice^2 * 10 ** (base_decimal - quote_decimal)).shr(128)
 export const getCurrentPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,

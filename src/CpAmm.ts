@@ -63,8 +63,6 @@ import {
   getMinAmountWithSlippage,
   getPriceImpact,
   positionByPoolFilter,
-  getAmountAFromLiquidityDelta,
-  getAmountBFromLiquidityDelta,
 } from "./helpers";
 
 /**
@@ -1040,7 +1038,6 @@ export class CpAmm {
       cliffUnlockLiquidity,
       liquidityPerPeriod,
       numberOfPeriod,
-      vestings,
     } = params;
     const positionNftAccount = derivePositionNftAccount(
       positionNftMint,
@@ -1053,7 +1050,6 @@ export class CpAmm {
       cliffUnlockLiquidity,
       liquidityPerPeriod,
       numberOfPeriod,
-      index: vestings.length,
     };
     return await this._program.methods
       .lockPosition(lockPositionParams)

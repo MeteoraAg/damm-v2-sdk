@@ -216,7 +216,6 @@ export type LockPositionParams = {
   cliffUnlockLiquidity: BN;
   liquidityPerPeriod: BN;
   numberOfPeriod: number;
-  vestings: PublicKey[];
 };
 
 export type ClaimPositionFeeParams = {

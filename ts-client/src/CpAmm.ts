@@ -48,7 +48,7 @@ import {
   derivePositionNftAccount,
   deriveTokenVaultAddress,
 } from "./pda";
-import { calculateSqrtPrice } from "./math";
+import { calculateInitSqrtPrice } from "./math";
 
 import {
   getFeeNumerator,
@@ -95,7 +95,12 @@ export class CpAmm {
   ): Promise<PreparedPoolCreation> {
     const { tokenAAmount, tokenBAmount } = params;
 
-    const sqrtPriceQ64 = calculateSqrtPrice(tokenAAmount, tokenBAmount);
+    const sqrtPriceQ64 = calculateInitSqrtPrice(
+      tokenAAmount,
+      tokenBAmount,
+      MIN_SQRT_PRICE,
+      MAX_SQRT_PRICE
+    );
 
     if (sqrtPriceQ64.lt(MIN_SQRT_PRICE) || sqrtPriceQ64.gt(MAX_SQRT_PRICE)) {
       throw new Error(`Invalid sqrt price: ${sqrtPriceQ64.toString()}`);

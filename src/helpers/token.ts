@@ -1,4 +1,5 @@
 import {
+  AccountLayout,
   createAssociatedTokenAccountIdempotentInstruction,
   createCloseAccountInstruction,
   getAccount,
@@ -126,4 +127,23 @@ export async function getNftOwner(
   const owner = new PublicKey(accountInfo.value.data.parsed.info.owner);
 
   return new PublicKey(owner);
+}
+
+export async function getAllNftByUser(
+  connection: Connection,
+  user: PublicKey,
+  tokenProgram = TOKEN_2022_PROGRAM_ID
+): Promise<string[]> {
+  const allUserTokenAccounts = await connection.getTokenAccountsByOwner(user, {
+    programId: tokenProgram,
+  });
+
+  const userNfts: string[] = [];
+  for (const { account } of allUserTokenAccounts.value) {
+    const tokenAccountData = AccountLayout.decode(account.data);
+    if (tokenAccountData.amount.toString() === "1") {
+      userNfts.push(tokenAccountData.mint.toString());
+    }
+  }
+  return userNfts;
 }

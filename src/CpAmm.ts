@@ -1,5 +1,6 @@
 import { Program, BN } from "@coral-xyz/anchor";
 import {
+  AccountLayout,
   getAssociatedTokenAddressSync,
   NATIVE_MINT,
   TOKEN_2022_PROGRAM_ID,
@@ -71,6 +72,7 @@ import {
   positionByPoolFilter,
   vestingByPositionFilter,
   calculateInitSqrtPrice,
+  getAllNftByUser,
 } from "./helpers";
 
 /**
@@ -246,29 +248,24 @@ export class CpAmm {
   async getUserPositionByPool(
     pool: PublicKey,
     user: PublicKey
-  ): Promise<
-    Array<{
-      publicKey: PublicKey;
-      account: PositionState;
-    }>
-  > {
+  ): Promise<{
+    publicKey: PublicKey;
+    account: PositionState;
+  }> {
     const positions = await this._program.account.position.all([
       positionByPoolFilter(pool),
     ]);
-    const result: Array<{
-      publicKey: PublicKey;
-      account: PositionState;
-    }> = [];
-    for (const position of positions) {
-      const owner = await getNftOwner(
-        this._program.provider.connection,
-        position.account.nftMint
-      );
-      if (owner.equals(user)) {
-        result.push(position);
-      }
-    }
-    return result;
+
+    const userNfts = await getAllNftByUser(
+      this._program.provider.connection,
+      user
+    );
+
+    const result = positions.filter((item) =>
+      userNfts.includes(item.account.nftMint.toString())
+    );
+
+    return result[0];
   }
 
   /**
@@ -282,20 +279,14 @@ export class CpAmm {
       account: PositionState;
     }>
   > {
+    const userNfts = await getAllNftByUser(
+      this._program.provider.connection,
+      user
+    );
     const positions = await this._program.account.position.all();
-    const result: Array<{
-      publicKey: PublicKey;
-      account: PositionState;
-    }> = [];
-    for (const position of positions) {
-      const owner = await getNftOwner(
-        this._program.provider.connection,
-        position.account.nftMint
-      );
-      if (owner.equals(user)) {
-        result.push(position);
-      }
-    }
+    const result = positions.filter((item) =>
+      userNfts.includes(item.account.nftMint.toString())
+    );
     return result;
   }
 

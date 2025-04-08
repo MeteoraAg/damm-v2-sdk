@@ -1,5 +1,9 @@
 import { Program, BN } from "@coral-xyz/anchor";
-import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import {
+  getAssociatedTokenAddressSync,
+  NATIVE_MINT,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 import invariant from "invariant";
 
 import CpAmmIDL from "./idl/cp_amm.json";
@@ -18,6 +22,7 @@ import {
   ClaimPartnerFeeParams,
   ClaimPositionFeeParams,
   ClaimRewardParams,
+  ClosePositionParams,
   ConfigState,
   CreatePoolParams,
   CreatePositionParams,
@@ -32,6 +37,7 @@ import {
   PreparedPoolCreation,
   PreparePoolCreationParams,
   RefreshVestingParams,
+  RemoveAllLiquidityParams,
   RemoveLiquidityParams,
   SwapParams,
   TxBuilder,
@@ -955,6 +961,90 @@ export class CpAmm {
   }
 
   /**
+   * Builds a transaction to remove liquidity from a position.
+   * @param {RemoveLiquidityParams} params - Parameters for removing liquidity.
+   * @returns Transaction builder.
+   */
+  async removeAllLiquidity(params: RemoveAllLiquidityParams): TxBuilder {
+    const {
+      owner,
+      pool,
+      position,
+      positionNftMint,
+      tokenAAmountThreshold,
+      tokenBAmountThreshold,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
+    const positionNftAccount = derivePositionNftAccount(
+      positionNftMint,
+      this._program.programId
+    );
+
+    const poolAuthority = derivePoolAuthority(this._program.programId);
+
+    const preInstructions: TransactionInstruction[] = [];
+    const [
+      { ataPubkey: tokenAAccount, ix: createTokenAAccountIx },
+      { ataPubkey: tokenBAccount, ix: createTokenBAccountIx },
+    ] = await Promise.all([
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenAMint,
+        owner,
+        owner,
+        true,
+        tokenAProgram
+      ),
+      getOrCreateATAInstruction(
+        this._program.provider.connection,
+        tokenBMint,
+        owner,
+        owner,
+        true,
+        tokenBProgram
+      ),
+    ]);
+    createTokenAAccountIx && preInstructions.push(createTokenAAccountIx);
+    createTokenBAccountIx && preInstructions.push(createTokenBAccountIx);
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    return await this._program.methods
+      .removeAllLiquidity(tokenAAmountThreshold, tokenBAmountThreshold)
+      .accountsPartial({
+        poolAuthority,
+        pool,
+        position,
+        positionNftAccount,
+        owner,
+        tokenAAccount,
+        tokenBAccount,
+        tokenAMint,
+        tokenBMint,
+        tokenAVault,
+        tokenBVault,
+        tokenAProgram,
+        tokenBProgram,
+      })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  /**
    * Builds a transaction to perform a swap in the pool.
    * @param {SwapParams} params - Parameters for swapping tokens.
    * @returns Transaction builder.
@@ -1237,6 +1327,30 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  async closePosition(params: ClosePositionParams): TxBuilder {
+    const { owner, pool, position, positionNftMint } = params;
+    const poolAuthority = derivePoolAuthority(this._program.programId);
+
+    const positionNftAccount = derivePositionNftAccount(
+      positionNftMint,
+      this._program.programId
+    );
+
+    return await this._program.methods
+      .closePosition()
+      .accountsPartial({
+        positionNftMint,
+        positionNftAccount,
+        pool,
+        position,
+        poolAuthority,
+        rentReceiver: owner,
+        owner,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+      })
       .transaction();
   }
 

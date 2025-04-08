@@ -175,6 +175,18 @@ export type LiquidityDeltaParams = {
 
 export type RemoveLiquidityParams = AddLiquidityParams;
 
+export type RemoveAllLiquidityParams = Omit<
+  RemoveLiquidityParams,
+  "liquidityDeltaQ64"
+>;
+
+export type ClosePositionParams = {
+  owner: PublicKey;
+  pool: PublicKey;
+  position: PublicKey;
+  positionNftMint: PublicKey;
+};
+
 export type GetQuoteParams = {
   inAmount: BN;
   inputTokenMint: PublicKey;

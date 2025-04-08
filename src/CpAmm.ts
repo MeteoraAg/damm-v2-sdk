@@ -37,6 +37,7 @@ import {
   TxBuilder,
   UpdateRewardDurationParams,
   UpdateRewardFunderParams,
+  VestingState,
   WithdrawIneligibleRewardParams,
 } from "./types";
 import {
@@ -63,6 +64,7 @@ import {
   getMinAmountWithSlippage,
   getPriceImpact,
   positionByPoolFilter,
+  vestingByPositionFilter,
 } from "./helpers";
 
 /**
@@ -289,6 +291,19 @@ export class CpAmm {
       }
     }
     return result;
+  }
+
+  async getAllVestingsByPosition(position: PublicKey): Promise<
+    Array<{
+      publicKey: PublicKey;
+      account: VestingState;
+    }>
+  > {
+    const vestings = await this._program.account.vesting.all([
+      vestingByPositionFilter(position),
+    ]);
+
+    return vestings;
   }
 
   /**

@@ -10,3 +10,14 @@ export const positionByPoolFilter = (
     },
   };
 };
+
+export const vestingByPositionFilter = (
+  position: PublicKey
+): GetProgramAccountsFilter => {
+  return {
+    memcmp: {
+      bytes: position.toBase58(),
+      offset: 8,
+    },
+  };
+};

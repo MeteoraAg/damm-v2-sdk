@@ -248,10 +248,12 @@ export class CpAmm {
   async getUserPositionByPool(
     pool: PublicKey,
     user: PublicKey
-  ): Promise<{
-    publicKey: PublicKey;
-    account: PositionState;
-  }> {
+  ): Promise<
+    Array<{
+      publicKey: PublicKey;
+      account: PositionState;
+    }>
+  > {
     const positions = await this._program.account.position.all([
       positionByPoolFilter(pool),
     ]);
@@ -265,7 +267,7 @@ export class CpAmm {
       userNfts.includes(item.account.nftMint.toString())
     );
 
-    return result[0];
+    return result;
   }
 
   /**

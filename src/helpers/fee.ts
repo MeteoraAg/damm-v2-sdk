@@ -1,6 +1,7 @@
 import { BN } from "@coral-xyz/anchor";
 import {
   CollectFeeMode,
+  DynamicFee,
   FeeMode,
   FeeSchedulerMode,
   Rounding,
@@ -15,6 +16,7 @@ import {
 import { ONE, pow } from "../math/feeMath";
 import { mulDiv } from "../math";
 import { getDeltaAmountA, getDeltaAmountB, getNextSqrtPrice } from "./curve";
+import Decimal from "decimal.js";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
@@ -43,9 +45,17 @@ export function getDynamicFeeNumerator(
   binStep: BN,
   variableFeeControl: BN
 ): BN {
-  const squareVfaBin = volatilityAccumulator.mul(binStep).pow(new BN(2));
-  const vFee = squareVfaBin.mul(variableFeeControl);
-  return vFee.addn(99_999_999_999).divn(100_000_000_000);
+  const volatilityAccumulatorDecimal = new Decimal(
+    volatilityAccumulator.toString()
+  ).div(Decimal.pow(2, 64));
+  const squareVfaBin = volatilityAccumulatorDecimal
+    .mul(new Decimal(binStep.toString()))
+    .pow(2);
+  const vFee = squareVfaBin.mul(new Decimal(variableFeeControl.toString()));
+
+  return new BN(
+    vFee.add(99_999_999_999).div(100_000_000_000).floor().toFixed()
+  );
 }
 
 export function getFeeNumerator(

@@ -49,7 +49,6 @@ import {
   derivePositionNftAccount,
   deriveTokenVaultAddress,
 } from "./pda";
-import { calculateInitSqrtPrice } from "./math";
 
 import {
   getFeeNumerator,
@@ -65,6 +64,7 @@ import {
   getPriceImpact,
   positionByPoolFilter,
   vestingByPositionFilter,
+  calculateInitSqrtPrice,
 } from "./helpers";
 
 /**

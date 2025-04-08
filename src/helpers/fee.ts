@@ -1,12 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import {
-  CollectFeeMode,
-  DynamicFee,
-  FeeMode,
-  FeeSchedulerMode,
-  Rounding,
-  TradeDirection,
-} from "../types";
+import { CollectFeeMode, FeeMode, FeeSchedulerMode, Rounding } from "../types";
 import {
   BASIS_POINT_MAX,
   FEE_DENOMINATOR,
@@ -40,6 +33,14 @@ export function getBaseFeeNumerator(
   return feeNumerator;
 }
 
+/**
+ * Calculates the dynamic fee numerator based on market volatility metrics
+ *
+ * @param volatilityAccumulator - A measure of accumulated market volatility (BN)
+ * @param binStep - The size of price bins in the liquidity distribution (BN)
+ * @param variableFeeControl - Parameter controlling the impact of volatility on fees (BN)
+ * @returns The calculated dynamic fee numerator (BN)
+ */
 export function getDynamicFeeNumerator(
   volatilityAccumulator: BN,
   binStep: BN,
@@ -58,6 +59,22 @@ export function getDynamicFeeNumerator(
   );
 }
 
+/**
+ * Calculates the fee numerator based on current market conditions and fee schedule configuration
+ *
+ * @param currentPoint - The current price point in the liquidity curve
+ * @param activationPoint - The price point at which the fee schedule is activated (BN)
+ * @param numberOfPeriod - The total number of periods in the fee schedule
+ * @param periodFrequency - The frequency at which periods change (BN)
+ * @param feeSchedulerMode - The mode determining how fees are calculated (0 = constant, 1 = linear, etc.)
+ * @param cliffFeeNumerator - The initial fee numerator at the cliff point (BN)
+ * @param reductionFactor - The factor by which fees are reduced in each period (BN)
+ * @param dynamicFeeParams - Optional parameters for dynamic fee calculation
+ * @param dynamicFeeParams.volatilityAccumulator - Measure of accumulated market volatility (BN)
+ * @param dynamicFeeParams.binStep - Size of price bins in the liquidity distribution (BN)
+ * @param dynamicFeeParams.variableFeeControl - Parameter controlling the impact of volatility (BN)
+ * @returns The calculated fee numerator (BN), capped at MAX_FEE_NUMERATOR
+ */
 export function getFeeNumerator(
   currentPoint: number,
   activationPoint: BN,
@@ -104,6 +121,13 @@ export function getFeeNumerator(
     : feeNumerator;
 }
 
+/**
+ * Determines the fee mode based on the swap direction and fee collection configuration
+ *
+ * @param collectFeeMode - The fee collection mode (e.g., OnlyB, BothToken)
+ * @param btoA - Boolean indicating if the swap is from token B to token A
+ * @returns { feeOnInput, feesOnTokenA }
+ */
 function getFeeMode(collectFeeMode: CollectFeeMode, btoA: boolean): FeeMode {
   const feeOnInput = btoA && collectFeeMode === CollectFeeMode.OnlyB;
   const feesOnTokenA = btoA && collectFeeMode === CollectFeeMode.BothToken;
@@ -114,6 +138,13 @@ function getFeeMode(collectFeeMode: CollectFeeMode, btoA: boolean): FeeMode {
   };
 }
 
+/**
+ * Calculates the total fee amount based on the transaction amount and fee numerator
+ *
+ * @param amount - The transaction amount (BN)
+ * @param tradeFeeNumerator - The fee numerator to apply (BN)
+ * @returns The calculated fee amount (BN), rounded up
+ */
 function getTotalFeeOnAmount(amount: BN, tradeFeeNumerator: BN) {
   return mulDiv(
     amount,

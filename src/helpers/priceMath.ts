@@ -37,9 +37,6 @@ export function calculateInitSqrtPrice(
 
   const discriminant = xyMinusPa.mul(xyMinusPa).add(fourY);
 
-  if (discriminant.isNeg()) {
-    throw new Error("Calculate sqrt price failed: negative discriminant");
-  }
   // sqrt_discriminant = √discriminant
   const sqrtDiscriminant = discriminant.sqrt();
   const result = paMinusXY

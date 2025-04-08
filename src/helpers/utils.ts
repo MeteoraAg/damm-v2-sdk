@@ -1,7 +1,12 @@
 import { BN } from "@coral-xyz/anchor";
-import { BASIS_POINT_MAX, PRECISION, SCALE_OFFSET } from "../constants";
+import {
+  BASIS_POINT_MAX,
+  LIQUIDITY_SCALE,
+  PRECISION,
+  SCALE_OFFSET,
+} from "../constants";
 import Decimal from "decimal.js";
-import { PositionState } from "../types";
+import { PoolState, PositionState } from "../types";
 import { PublicKey } from "@solana/web3.js";
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
@@ -58,16 +63,38 @@ export const getCurrentPrice = (
   return price;
 };
 
+// fee = totalLiquidity * feePerTokenStore
+// precision: (totalLiquidity * feePerTokenStore) >> 128
 export const getUnClaimReward = (
+  poolState: PoolState,
   positionState: PositionState
 ): {
   feeTokenA: BN;
   feeTokenB: BN;
   rewards: BN[];
 } => {
+  const totalPositionLiquidity = positionState.unlockedLiquidity
+    .add(positionState.vestedLiquidity)
+    .add(positionState.permanentLockedLiquidity);
+
+  const feeAPerTokenStored = new BN(
+    Buffer.from(poolState.feeAPerLiquidity).reverse()
+  ).sub(new BN(Buffer.from(positionState.feeAPerTokenCheckpoint).reverse()));
+
+  const feeBPerTokenStored = new BN(
+    Buffer.from(poolState.feeBPerLiquidity).reverse()
+  ).sub(new BN(Buffer.from(positionState.feeBPerTokenCheckpoint).reverse()));
+
+  const feeA = totalPositionLiquidity
+    .mul(feeAPerTokenStored)
+    .shrn(LIQUIDITY_SCALE);
+  const feeB = totalPositionLiquidity
+    .mul(feeBPerTokenStored)
+    .shrn(LIQUIDITY_SCALE);
+
   return {
-    feeTokenA: positionState.feeAPending,
-    feeTokenB: positionState.feeBPending,
+    feeTokenA: positionState.feeAPending.add(feeA),
+    feeTokenB: positionState.feeBPending.add(feeB),
     rewards:
       positionState.rewardInfos.length > 0
         ? positionState.rewardInfos.map((item) => item.rewardPendings)

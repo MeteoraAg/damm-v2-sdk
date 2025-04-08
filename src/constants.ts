@@ -5,6 +5,7 @@ export const CP_AMM_PROGRAM_ID = new PublicKey(
   "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
 );
 
+export const LIQUIDITY_SCALE = 128;
 export const SCALE_OFFSET = 64;
 export const BASIS_POINT_MAX = 10_000;
 export const MAX_FEE_NUMERATOR = 500_000_000;

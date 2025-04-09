@@ -173,7 +173,7 @@ export function getSwapAmount(
   tradeFeeNumerator: BN,
   aToB: boolean,
   collectFeeMode: number
-): { actualOutAmount: BN; totalFee: BN } {
+): { amountOut: BN; totalFee: BN } {
   let feeMode = getFeeMode(collectFeeMode, !aToB);
   let actualInAmount = inAmount;
   let totalFee = new BN(0);
@@ -199,10 +199,10 @@ export function getSwapAmount(
       );
 
   // Apply fees to output amount if fee is taken on output
-  const actualOutAmount = feeMode.feeOnInput
+  const amountOut = feeMode.feeOnInput
     ? outAmount
     : ((totalFee = getTotalFeeOnAmount(outAmount, tradeFeeNumerator)),
       outAmount.sub(totalFee));
 
-  return { actualOutAmount, totalFee };
+  return { amountOut, totalFee };
 }

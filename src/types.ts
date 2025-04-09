@@ -1,6 +1,7 @@
 import { IdlAccounts, IdlTypes, Program, BN } from "@coral-xyz/anchor";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
+import { Mint } from "@solana/spl-token";
 
 export type AmmProgram = Program<CpAmmTypes>;
 
@@ -166,11 +167,17 @@ export type AddLiquidityParams = {
 export type LiquidityDeltaParams = {
   maxAmountTokenA: BN;
   maxAmountTokenB: BN;
-  tokenAMint: PublicKey;
-  tokenBMint: PublicKey;
   sqrtPrice: BN;
   sqrtMinPrice: BN;
   sqrtMaxPrice: BN;
+  tokenAInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+  tokenBInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
 };
 
 export type RemoveLiquidityParams = AddLiquidityParams;
@@ -192,6 +199,16 @@ export type GetQuoteParams = {
   inputTokenMint: PublicKey;
   slippage: number;
   poolState: PoolState;
+  currentTime: number;
+  currentSlot: number;
+  inputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+  outputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
 };
 
 export type SwapQuotes = {

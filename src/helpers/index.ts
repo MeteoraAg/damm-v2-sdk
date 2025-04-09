@@ -5,3 +5,4 @@ export * from "./computeUnits";
 export * from "./utils";
 export * from "./accountFilters";
 export * from "./priceMath";
+export * from "./token2022";

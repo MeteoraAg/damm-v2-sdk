@@ -1,10 +1,5 @@
 import { Program, BN } from "@coral-xyz/anchor";
-import {
-  AccountLayout,
-  getAssociatedTokenAddressSync,
-  NATIVE_MINT,
-  TOKEN_2022_PROGRAM_ID,
-} from "@solana/spl-token";
+import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import invariant from "invariant";
 
 import CpAmmIDL from "./idl/cp_amm.json";
@@ -59,7 +54,6 @@ import {
 
 import {
   getFeeNumerator,
-  getNftOwner,
   getOrCreateATAInstruction,
   getTokenProgram,
   unwrapSOLInstruction,
@@ -73,7 +67,9 @@ import {
   vestingByPositionFilter,
   calculateInitSqrtPrice,
   getAllNftByUser,
+  calculateTransferFeeExcludedAmount,
 } from "./helpers";
+import { min } from "bn.js";
 
 /**
  * CpAmm SDK class to interact with the Dynamic CP-AMM
@@ -312,12 +308,22 @@ export class CpAmm {
    */
   async getQuote(params: GetQuoteParams): Promise<{
     swapInAmount: BN;
+    consumedInAmount: BN;
     swapOutAmount: BN;
     minSwapOutAmount: BN;
     totalFee: BN;
     priceImpact: number;
   }> {
-    const { inAmount, inputTokenMint, slippage, poolState } = params;
+    const {
+      inAmount,
+      inputTokenMint,
+      slippage,
+      poolState,
+      currentTime,
+      currentSlot,
+      inputTokenInfo,
+      outputTokenInfo,
+    } = params;
     const {
       sqrtPrice: sqrtPriceQ64,
       liquidity: liquidityQ64,
@@ -335,13 +341,16 @@ export class CpAmm {
     } = poolFees.baseFee;
     const dynamicFee = poolFees.dynamicFee;
 
+    let actualAmountIn = inAmount;
+    if (inputTokenInfo) {
+      actualAmountIn = calculateTransferFeeExcludedAmount(
+        inAmount,
+        inputTokenInfo.mint,
+        inputTokenInfo.currentEpoch
+      ).amount;
+    }
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
-    const slot = await this._program.provider.connection.getSlot();
-    const blockInfo = await this._program.provider.connection.getBlock(slot, {
-      maxSupportedTransactionVersion: 0,
-    });
-    const currentTime = blockInfo?.blockTime ?? Math.floor(Date.now() / 1000);
-    const currentPoint = activationType ? currentTime : slot;
+    const currentPoint = activationType ? currentTime : currentSlot;
 
     let dynamicFeeParams;
     if (dynamicFee.initialized) {
@@ -360,25 +369,33 @@ export class CpAmm {
       dynamicFeeParams
     );
 
-    const { actualOutAmount, totalFee } = getSwapAmount(
-      inAmount,
+    const { amountOut, totalFee } = getSwapAmount(
+      actualAmountIn,
       sqrtPriceQ64,
       liquidityQ64,
       tradeFeeNumerator,
       aToB,
       collectFeeMode
     );
-    const minSwapOutAmount = getMinAmountWithSlippage(
-      actualOutAmount,
-      slippage
-    );
+
+    let actualAmoutOut = amountOut;
+    if (outputTokenInfo) {
+      actualAmoutOut = calculateTransferFeeExcludedAmount(
+        amountOut,
+        outputTokenInfo.mint,
+        outputTokenInfo.currentEpoch
+      ).amount;
+    }
+
+    const minSwapOutAmount = getMinAmountWithSlippage(actualAmoutOut, slippage);
 
     return {
       swapInAmount: inAmount,
-      swapOutAmount: actualOutAmount,
+      consumedInAmount: actualAmountIn,
+      swapOutAmount: actualAmoutOut,
       minSwapOutAmount,
       totalFee,
-      priceImpact: getPriceImpact(minSwapOutAmount, actualOutAmount),
+      priceImpact: getPriceImpact(minSwapOutAmount, actualAmoutOut),
     };
   }
 
@@ -395,23 +412,43 @@ export class CpAmm {
       sqrtMaxPrice,
       sqrtMinPrice,
       sqrtPrice,
+      tokenAInfo,
+      tokenBInfo,
     } = params;
 
+    let actualMaxAmountTokenA = maxAmountTokenA;
+    let actualMaxAmountTokenB = maxAmountTokenB;
+    // token2022
+    if (tokenAInfo) {
+      actualMaxAmountTokenA = calculateTransferFeeExcludedAmount(
+        maxAmountTokenA,
+        tokenAInfo.mint,
+        tokenAInfo.currentEpoch
+      ).amount;
+    }
+
+    // token2022
+    if (tokenBInfo) {
+      actualMaxAmountTokenB = calculateTransferFeeExcludedAmount(
+        maxAmountTokenB,
+        tokenBInfo.mint,
+        tokenBInfo.currentEpoch
+      ).amount;
+    }
+
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
-      maxAmountTokenA,
+      actualMaxAmountTokenA,
       sqrtPrice,
       sqrtMaxPrice
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
-      maxAmountTokenB,
+      actualMaxAmountTokenB,
       sqrtMinPrice,
       sqrtPrice
     );
 
-    return liquidityDeltaFromAmountA.gte(liquidityDeltaFromAmountB)
-      ? liquidityDeltaFromAmountB
-      : liquidityDeltaFromAmountA;
+    return min(liquidityDeltaFromAmountA, liquidityDeltaFromAmountB);
   }
 
   /**

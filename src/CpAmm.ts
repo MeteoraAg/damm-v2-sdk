@@ -1131,6 +1131,12 @@ export class CpAmm {
 
     const poolAuthority = derivePoolAuthority(this._program.programId);
 
+    const [inputTokenProgram, outputTokenProgram] = inputTokenMint.equals(
+      tokenAMint
+    )
+      ? [tokenAProgram, tokenBProgram]
+      : [tokenBProgram, tokenAProgram];
+
     const preInstructions: TransactionInstruction[] = [];
     const [
       { ataPubkey: inputTokenAccount, ix: createInputTokenAccountIx },
@@ -1142,7 +1148,7 @@ export class CpAmm {
         payer,
         payer,
         true,
-        tokenAProgram
+        inputTokenProgram
       ),
       getOrCreateATAInstruction(
         this._program.provider.connection,
@@ -1150,7 +1156,7 @@ export class CpAmm {
         payer,
         payer,
         true,
-        tokenBProgram
+        outputTokenProgram
       ),
     ]);
     createInputTokenAccountIx &&

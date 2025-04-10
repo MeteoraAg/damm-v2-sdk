@@ -138,3 +138,10 @@ export function deriveEventAuthority(programId: PublicKey) {
     programId
   );
 }
+
+export function deriveTokenBadge(tokenMint: PublicKey, programId: PublicKey) {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("token_badge"), tokenMint.toBuffer()],
+    programId
+  )[0];
+}

@@ -10,6 +10,7 @@ import {
   PublicKey,
   TransactionInstruction,
   SystemProgram,
+  AccountMeta,
 } from "@solana/web3.js";
 import { MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "./constants";
 import {
@@ -49,6 +50,7 @@ import {
   derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
+  deriveTokenBadge,
   deriveTokenVaultAddress,
 } from "./pda";
 
@@ -138,6 +140,30 @@ export class CpAmm {
       sqrtPriceQ64,
       liquidityQ64,
     };
+  }
+
+  /**
+   * Derives token badge account metadata
+   * @param tokenAMint - Public key of token A mint
+   * @param tokenBMint - Public key of token B mint
+   * @returns Array of account metadata for token badges
+   */
+  private getTokenBadgeAccounts(
+    tokenAMint: PublicKey,
+    tokenBMint: PublicKey
+  ): AccountMeta[] {
+    return [
+      {
+        pubkey: deriveTokenBadge(tokenAMint, this._program.programId),
+        isWritable: false,
+        isSigner: false,
+      },
+      {
+        pubkey: deriveTokenBadge(tokenBMint, this._program.programId),
+        isWritable: false,
+        isSigner: false,
+      },
+    ];
   }
 
   /**
@@ -563,13 +589,18 @@ export class CpAmm {
       preInstructions.push(...wrapSOLIx);
     }
 
+    const tokenBadgeAccounts = this.getTokenBadgeAccounts(
+      tokenAMint,
+      tokenBMint
+    );
+
     const tx = await this._program.methods
       .initializePool({
         liquidity: liquidityQ64,
         sqrtPrice: sqrtPriceQ64,
         activationPoint: activationPoint,
       })
-      .accountsStrict({
+      .accountsPartial({
         creator,
         positionNftAccount,
         positionNftMint: positionNft,
@@ -588,10 +619,9 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
         systemProgram: SystemProgram.programId,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .preInstructions(preInstructions)
+      .remainingAccounts(tokenBadgeAccounts)
       .transaction();
 
     return tx;
@@ -711,6 +741,10 @@ export class CpAmm {
 
       preInstructions.push(...wrapSOLIx);
     }
+    const tokenBadgeAccounts = this.getTokenBadgeAccounts(
+      tokenAMint,
+      tokenBMint
+    );
 
     const transaction = await this._program.methods
       .initializeCustomizablePool({
@@ -724,7 +758,7 @@ export class CpAmm {
         collectFeeMode,
         activationPoint,
       })
-      .accountsStrict({
+      .accountsPartial({
         creator,
         positionNftAccount,
         positionNftMint: positionNft,
@@ -742,10 +776,9 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
         systemProgram: SystemProgram.programId,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .preInstructions(preInstructions)
+      .remainingAccounts(tokenBadgeAccounts)
       .transaction();
 
     return { tx: transaction, pool, position };

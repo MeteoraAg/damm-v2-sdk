@@ -419,3 +419,47 @@ export type PermanentLockParams = {
   pool: PublicKey;
   unlockedLiquidity: BN;
 };
+
+export type GetDepositQuoteParams = {
+  inAmount: BN;
+  isTokenA: boolean;
+  minSqrtPrice: BN;
+  maxSqrtPrice: BN;
+  sqrtPrice: BN;
+  inputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+  outputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+};
+
+export type GetWithdrawQuoteParams = {
+  liquidityDelta: BN;
+  minSqrtPrice: BN;
+  maxSqrtPrice: BN;
+  sqrtPrice: BN;
+  tokenATokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+  tokenBTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+};
+
+export type DepositQuote = {
+  actualInputAmount: BN;
+  consumedInputAmount: BN;
+  outputAmount: BN;
+  liquidityDelta: BN;
+};
+
+export type WithdrawQuote = {
+  liquidityDelta: BN;
+  outAmountA: BN;
+  outAmountB: BN;
+};

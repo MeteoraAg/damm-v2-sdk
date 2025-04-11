@@ -106,56 +106,6 @@ export class CpAmm {
   }
 
   /**
-   * Prepares parameters required for pool creation, including initial sqrt price and liquidity.
-   * @private
-   * @param {PreparePoolCreationParams} params - Initial token amounts for pool creation.
-   * @returns init sqrt price and liquidity in Q64 format.
-   */
-  private async preparePoolCreationParams(
-    params: PreparePoolCreationParams
-  ): Promise<PreparedPoolCreation> {
-    const { tokenAAmount, tokenBAmount, minSqrtPrice, maxSqrtPrice } = params;
-
-    if (tokenAAmount.eq(new BN(0)) && tokenBAmount.eq(new BN(0))) {
-      throw new Error("Invalid input amount");
-    }
-
-    if (minSqrtPrice.gt(maxSqrtPrice)) {
-      throw new Error("Invalid sqrtPrice");
-    }
-
-    const sqrtPriceQ64 = calculateInitSqrtPrice(
-      tokenAAmount,
-      tokenBAmount,
-      minSqrtPrice,
-      maxSqrtPrice
-    );
-
-    const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
-      tokenAAmount,
-      sqrtPriceQ64,
-      maxSqrtPrice
-    );
-
-    const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
-      tokenBAmount,
-      minSqrtPrice,
-      sqrtPriceQ64
-    );
-
-    const liquidityQ64 = liquidityDeltaFromAmountA.gte(
-      liquidityDeltaFromAmountB
-    )
-      ? liquidityDeltaFromAmountB
-      : liquidityDeltaFromAmountA;
-
-    return {
-      sqrtPriceQ64,
-      liquidityQ64,
-    };
-  }
-
-  /**
    * Prepares token accounts for a transaction by retrieving or creating associated token accounts.
    * @private
    * @param {PublicKey} owner - The owner of the token accounts
@@ -806,56 +756,77 @@ export class CpAmm {
         : new BN(amountB),
     };
   }
+
   /**
-   * Computes the liquidity delta based on the provided token amounts and pool state.
-   *
-   * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation
-   * @returns {Promise<BN>} - The computed liquidity delta in Q64 value.
+   * Prepares parameters required for pool creation, including initial sqrt price and liquidity.
+   * @private
+   * @param {PreparePoolCreationParams} params - Initial token amounts for pool creation.
+   * @returns init sqrt price and liquidity in Q64 format.
    */
-  async getLiquidityDelta(params: LiquidityDeltaParams): Promise<BN> {
+  async preparePoolCreationParams(
+    params: PreparePoolCreationParams
+  ): Promise<PreparedPoolCreation> {
     const {
-      maxAmountTokenA,
-      maxAmountTokenB,
-      sqrtMaxPrice,
-      sqrtMinPrice,
-      sqrtPrice,
+      tokenAAmount,
+      tokenBAmount,
+      minSqrtPrice,
+      maxSqrtPrice,
       tokenAInfo,
       tokenBInfo,
     } = params;
 
-    let actualMaxAmountTokenA = maxAmountTokenA;
-    let actualMaxAmountTokenB = maxAmountTokenB;
-    // token2022
-    if (tokenAInfo) {
-      actualMaxAmountTokenA = calculateTransferFeeExcludedAmount(
-        maxAmountTokenA,
-        tokenAInfo.mint,
-        tokenAInfo.currentEpoch
-      ).amount;
+    if (tokenAAmount.eq(new BN(0)) && tokenBAmount.eq(new BN(0))) {
+      throw new Error("Invalid input amount");
     }
 
-    // token2022
-    if (tokenBInfo) {
-      actualMaxAmountTokenB = calculateTransferFeeExcludedAmount(
-        maxAmountTokenB,
-        tokenBInfo.mint,
-        tokenBInfo.currentEpoch
-      ).amount;
-    }
+    const actualAmountAIn = tokenAInfo
+      ? tokenAAmount.sub(
+          calculateTransferFeeIncludedAmount(
+            tokenAAmount,
+            tokenAInfo.mint,
+            tokenAInfo.currentEpoch
+          ).transferFee
+        )
+      : tokenAAmount;
+
+    const actualAmountBIn = tokenBInfo
+      ? tokenAAmount.sub(
+          calculateTransferFeeIncludedAmount(
+            tokenBAmount,
+            tokenBInfo.mint,
+            tokenBInfo.currentEpoch
+          ).transferFee
+        )
+      : tokenAAmount;
+
+    const initSqrtPrice = calculateInitSqrtPrice(
+      tokenAAmount,
+      tokenBAmount,
+      minSqrtPrice,
+      maxSqrtPrice
+    );
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
-      actualMaxAmountTokenA,
-      sqrtPrice,
-      sqrtMaxPrice
+      actualAmountAIn,
+      initSqrtPrice,
+      maxSqrtPrice
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
-      actualMaxAmountTokenB,
-      sqrtMinPrice,
-      sqrtPrice
+      actualAmountBIn,
+      minSqrtPrice,
+      initSqrtPrice
     );
 
-    return min(liquidityDeltaFromAmountA, liquidityDeltaFromAmountB);
+    const liquidityDelta = min(
+      liquidityDeltaFromAmountA,
+      liquidityDeltaFromAmountB
+    );
+
+    return {
+      initSqrtPrice,
+      liquidityDelta,
+    };
   }
 
   /**
@@ -871,27 +842,14 @@ export class CpAmm {
       positionNft,
       tokenAMint,
       tokenBMint,
+      initSqrtPrice,
+      liquidityDelta,
       activationPoint,
       tokenAAmount,
       tokenBAmount,
-      minSqrtPrice,
-      maxSqrtPrice,
-      tokenADecimal,
-      tokenBDecimal,
       tokenAProgram,
       tokenBProgram,
     } = params;
-
-    const { sqrtPriceQ64, liquidityQ64 } = await this.preparePoolCreationParams(
-      {
-        tokenAAmount,
-        tokenBAmount,
-        minSqrtPrice,
-        maxSqrtPrice,
-        tokenADecimal,
-        tokenBDecimal,
-      }
-    );
 
     const poolAuthority = derivePoolAuthority(this._program.programId);
 
@@ -961,8 +919,8 @@ export class CpAmm {
 
     const tx = await this._program.methods
       .initializePool({
-        liquidity: liquidityQ64,
-        sqrtPrice: sqrtPriceQ64,
+        liquidity: liquidityDelta,
+        sqrtPrice: initSqrtPrice,
         activationPoint: activationPoint,
       })
       .accountsPartial({
@@ -1007,10 +965,10 @@ export class CpAmm {
       tokenBMint,
       tokenAAmount,
       tokenBAmount,
-      minSqrtPrice,
-      maxSqrtPrice,
-      tokenADecimal,
-      tokenBDecimal,
+      sqrtMinPrice,
+      sqrtMaxPrice,
+      liquidityDelta,
+      initSqrtPrice,
       payer,
       creator,
       positionNft,
@@ -1023,16 +981,6 @@ export class CpAmm {
       tokenBProgram,
     } = params;
 
-    const { sqrtPriceQ64, liquidityQ64 } = await this.preparePoolCreationParams(
-      {
-        tokenAAmount,
-        tokenBAmount,
-        minSqrtPrice,
-        maxSqrtPrice,
-        tokenADecimal,
-        tokenBDecimal,
-      }
-    );
     const poolAuthority = derivePoolAuthority(this._program.programId);
     const pool = deriveCustomizablePoolAddress(
       tokenAMint,
@@ -1098,11 +1046,11 @@ export class CpAmm {
     const transaction = await this._program.methods
       .initializeCustomizablePool({
         poolFees,
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
+        sqrtMinPrice,
+        sqrtMaxPrice,
         hasAlphaVault,
-        liquidity: liquidityQ64,
-        sqrtPrice: sqrtPriceQ64,
+        liquidity: liquidityDelta,
+        sqrtPrice: initSqrtPrice,
         activationType,
         collectFeeMode,
         activationPoint,

@@ -94,10 +94,10 @@ export type InitializeCustomizeablePoolParams = {
   tokenBMint: PublicKey;
   tokenAAmount: BN;
   tokenBAmount: BN;
-  minSqrtPrice: BN;
-  maxSqrtPrice: BN;
-  tokenADecimal: number;
-  tokenBDecimal: number;
+  sqrtMinPrice: BN;
+  sqrtMaxPrice: BN;
+  liquidityDelta: BN;
+  initSqrtPrice: BN;
   poolFees: PoolFeesParams;
   hasAlphaVault: boolean;
   activationType: number;
@@ -110,15 +110,24 @@ export type InitializeCustomizeablePoolParams = {
 export type PreparePoolCreationParams = {
   tokenAAmount: BN;
   tokenBAmount: BN;
+
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
   tokenADecimal: number;
   tokenBDecimal: number;
+  tokenAInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+  tokenBInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
 };
 
 export type PreparedPoolCreation = {
-  sqrtPriceQ64: BN;
-  liquidityQ64: BN;
+  initSqrtPrice: BN;
+  liquidityDelta: BN;
 };
 
 export type CreatePoolParams = {
@@ -128,12 +137,10 @@ export type CreatePoolParams = {
   positionNft: PublicKey;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
+  initSqrtPrice: BN;
+  liquidityDelta: BN;
   tokenAAmount: BN;
   tokenBAmount: BN;
-  minSqrtPrice: BN;
-  maxSqrtPrice: BN;
-  tokenADecimal: number;
-  tokenBDecimal: number;
   activationPoint: BN | null;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;

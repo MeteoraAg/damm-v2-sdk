@@ -180,18 +180,70 @@ export type LiquidityDeltaParams = {
   };
 };
 
-export type RemoveLiquidityParams = AddLiquidityParams;
+export type RemoveLiquidityParams = {
+  owner: PublicKey;
+  position: PublicKey;
+  pool: PublicKey;
+  positionNftMint: PublicKey;
+  liquidityDeltaQ64: BN;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+};
 
 export type RemoveAllLiquidityParams = Omit<
   RemoveLiquidityParams,
   "liquidityDeltaQ64"
 >;
 
+export type BuildRemoveAllLiquidityInstructionParams = {
+  poolAuthority: PublicKey;
+  owner: PublicKey;
+  position: PublicKey;
+  pool: PublicKey;
+  positionNftAccount: PublicKey;
+  tokenAAccount: PublicKey;
+  tokenBAccount: PublicKey;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+};
+
 export type ClosePositionParams = {
   owner: PublicKey;
   pool: PublicKey;
   position: PublicKey;
   positionNftMint: PublicKey;
+};
+
+export type RemoveAllLiquidityAndClosePositionParams = {
+  owner: PublicKey;
+  position: PublicKey;
+  poolState: PoolState;
+  positionState: PositionState;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
+};
+
+export type MergePositionParams = {
+  owner: PublicKey;
+  positionA: PublicKey;
+  positionB: PublicKey;
+  poolState: PoolState;
+  positionAState: PositionState;
+  positionBState: PositionState;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
 };
 
 export type GetQuoteParams = {
@@ -247,6 +299,22 @@ export type LockPositionParams = {
   numberOfPeriod: number;
 };
 
+export type ClaimPositionFeeInstructionParams = {
+  owner: PublicKey;
+  poolAuthority: PublicKey;
+  pool: PublicKey;
+  position: PublicKey;
+  positionNftAccount: PublicKey;
+  tokenAAccount: PublicKey;
+  tokenBAccount: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+};
+
 export type ClaimPositionFeeParams = {
   owner: PublicKey;
   position: PublicKey;
@@ -258,6 +326,15 @@ export type ClaimPositionFeeParams = {
   tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
+};
+
+export type ClosePositionInstructionParams = {
+  owner: PublicKey;
+  poolAuthority: PublicKey;
+  pool: PublicKey;
+  position: PublicKey;
+  positionNftMint: PublicKey;
+  positionNftAccount: PublicKey;
 };
 
 export type InitializeRewardParams = {

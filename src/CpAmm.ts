@@ -779,13 +779,13 @@ export class CpAmm {
       liquidityDelta,
       sqrtPrice,
       maxSqrtPrice,
-      Rounding.Up
+      Rounding.Down
     );
     const amountB = getAmountBFromLiquidityDelta(
       liquidityDelta,
       sqrtPrice,
       minSqrtPrice,
-      Rounding.Up
+      Rounding.Down
     );
 
     return {

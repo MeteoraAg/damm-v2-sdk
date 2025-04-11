@@ -27,8 +27,11 @@ import {
   ConfigState,
   CreatePoolParams,
   CreatePositionParams,
+  DepositQuote,
   FundRewardParams,
+  GetDepositQuoteParams,
   GetQuoteParams,
+  GetWithdrawQuoteParams,
   InitializeCustomizeablePoolParams,
   LiquidityDeltaParams,
   LockPositionParams,
@@ -42,12 +45,14 @@ import {
   RemoveAllLiquidityAndClosePositionParams,
   RemoveAllLiquidityParams,
   RemoveLiquidityParams,
+  Rounding,
   SwapParams,
   TxBuilder,
   UpdateRewardDurationParams,
   UpdateRewardFunderParams,
   VestingState,
   WithdrawIneligibleRewardParams,
+  WithdrawQuote,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -76,6 +81,8 @@ import {
   getAllNftByUser,
   calculateTransferFeeExcludedAmount,
   calculateTransferFeeIncludedAmount,
+  getAmountBFromLiquidityDelta,
+  getAmountAFromLiquidityDelta,
 } from "./helpers";
 import { min } from "bn.js";
 
@@ -667,6 +674,139 @@ export class CpAmm {
   }
 
   /**
+   * Calculates the deposit quote for liquidity pool.
+   *
+   * @param {GetDepositQuoteParams} params - The parameters for calculating the deposit quote.
+   *
+   * @returns {Promise<Object>} Deposit quote results
+   * @returns {BN} returns.actualInputAmount - The actual amount used as input (after deducting transfer fees).
+   * @returns {BN} returns.outputAmount - The calculated corresponding amount of the other token.
+   * @returns {BN} returns.liquidityDelta - The amount of liquidity that will be added to the pool.
+   */
+  async getDepositQuote(params: GetDepositQuoteParams): Promise<DepositQuote> {
+    const {
+      inAmount,
+      isTokenA,
+      inputTokenInfo,
+      outputTokenInfo,
+      minSqrtPrice,
+      maxSqrtPrice,
+      sqrtPrice,
+    } = params;
+
+    const actualAmountIn = inputTokenInfo
+      ? inAmount.sub(
+          calculateTransferFeeIncludedAmount(
+            inAmount,
+            inputTokenInfo.mint,
+            inputTokenInfo.currentEpoch
+          ).transferFee
+        )
+      : inAmount;
+
+    const { liquidityDelta, rawAmount } = isTokenA
+      ? {
+          liquidityDelta: getLiquidityDeltaFromAmountA(
+            actualAmountIn,
+            sqrtPrice,
+            maxSqrtPrice
+          ),
+          rawAmount: (delta: BN) =>
+            getAmountBFromLiquidityDelta(
+              delta,
+              sqrtPrice,
+              minSqrtPrice,
+              Rounding.Up
+            ),
+        }
+      : {
+          liquidityDelta: getLiquidityDeltaFromAmountB(
+            actualAmountIn,
+            minSqrtPrice,
+            sqrtPrice
+          ),
+          rawAmount: (delta: BN) =>
+            getAmountAFromLiquidityDelta(
+              delta,
+              sqrtPrice,
+              maxSqrtPrice,
+              Rounding.Up
+            ),
+        };
+
+    const rawOutputAmount = new BN(rawAmount(liquidityDelta));
+    const outputAmount = outputTokenInfo
+      ? calculateTransferFeeIncludedAmount(
+          rawOutputAmount,
+          outputTokenInfo.mint,
+          outputTokenInfo.currentEpoch
+        ).amount
+      : rawOutputAmount;
+
+    return {
+      actualInputAmount: actualAmountIn,
+      consumedInputAmount: inAmount,
+      liquidityDelta,
+      outputAmount,
+    };
+  }
+
+  /**
+   * Calculates the withdrawal quote for removing liquidity from a concentrated liquidity pool.
+   *
+   * @param {GetWithdrawQuoteParams} params - The parameters for calculating the withdraw quote
+   *
+   * @param {Object|null} params.tokenATokenInfo - must provide if token a is token2022
+   * @param {Object|null} params.tokenBTokenInfo - must provide if token b is token2022
+   *
+   * @returns {Promise<Object>} Withdrawal quote results
+   * @returns {BN} returns.liquidityDelta - The amount of liquidity that will be removed from the pool
+   * @returns {BN} returns.outAmountA - The calculated amount of token A to be received (after deducting transfer fees)
+   * @returns {BN} returns.outAmountB - The calculated amount of token B to be received (after deducting transfer fees)
+   */
+  async getWithdrawQuote(
+    params: GetWithdrawQuoteParams
+  ): Promise<WithdrawQuote> {
+    const {
+      liquidityDelta,
+      sqrtPrice,
+      maxSqrtPrice,
+      minSqrtPrice,
+      tokenATokenInfo,
+      tokenBTokenInfo,
+    } = params;
+    const amountA = getAmountAFromLiquidityDelta(
+      liquidityDelta,
+      sqrtPrice,
+      maxSqrtPrice,
+      Rounding.Up
+    );
+    const amountB = getAmountBFromLiquidityDelta(
+      liquidityDelta,
+      sqrtPrice,
+      minSqrtPrice,
+      Rounding.Up
+    );
+
+    return {
+      liquidityDelta,
+      outAmountA: tokenATokenInfo
+        ? calculateTransferFeeExcludedAmount(
+            new BN(amountA),
+            tokenATokenInfo.mint,
+            tokenATokenInfo.currentEpoch
+          ).amount
+        : new BN(amountA),
+      outAmountB: tokenBTokenInfo
+        ? calculateTransferFeeExcludedAmount(
+            new BN(amountB),
+            tokenBTokenInfo.mint,
+            tokenBTokenInfo.currentEpoch
+          ).amount
+        : new BN(amountB),
+    };
+  }
+  /**
    * Computes the liquidity delta based on the provided token amounts and pool state.
    *
    * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation
@@ -1116,9 +1256,11 @@ export class CpAmm {
     });
 
     const transaction = new Transaction();
-    transaction.add(...preInstructions);
-    transaction.add(addLiquidityInstruction);
-    transaction.add(...postInstructions);
+    transaction.add(
+      ...(preInstructions.length > 0 ? preInstructions : []),
+      addLiquidityInstruction,
+      ...(postInstructions.length > 0 ? postInstructions : [])
+    );
 
     return transaction;
   }
@@ -1268,9 +1410,11 @@ export class CpAmm {
       });
 
     const transaction = new Transaction();
-    transaction.add(...preInstructions);
-    transaction.add(removeAllLiquidityInstruction);
-    transaction.add(...postInstructions);
+    transaction.add(
+      ...(preInstructions.length > 0 ? preInstructions : []),
+      removeAllLiquidityInstruction,
+      ...(postInstructions.length > 0 ? postInstructions : [])
+    );
 
     return transaction;
   }
@@ -1527,9 +1671,11 @@ export class CpAmm {
       });
 
     const transaction = new Transaction();
-    transaction.add(...preInstructions);
-    transaction.add(claimPositionFeeInstruction);
-    transaction.add(...postInstructions);
+    transaction.add(
+      ...(preInstructions.length > 0 ? preInstructions : []),
+      claimPositionFeeInstruction,
+      ...(postInstructions.length > 0 ? postInstructions : [])
+    );
 
     return transaction;
   }
@@ -1618,7 +1764,9 @@ export class CpAmm {
     }
 
     const transaction = new Transaction();
-    transaction.add(...preInstructions);
+    if (preInstructions.length > 0) {
+      transaction.add(...preInstructions);
+    }
 
     // 1. claim position fee
     const claimPositionFeeInstruction =
@@ -1671,6 +1819,10 @@ export class CpAmm {
       positionNftAccount,
     });
     transaction.add(closePositionInstruction);
+
+    if (postInstructions.length > 0) {
+      transaction.add(...postInstructions);
+    }
 
     return transaction;
   }
@@ -1745,7 +1897,9 @@ export class CpAmm {
     }
 
     const transaction = new Transaction();
-    transaction.add(...preInstructions);
+    if (preInstructions.length > 0) {
+      transaction.add(...preInstructions);
+    }
 
     // 1. claim position fee in position B
     const claimPositionFeeInstruction =
@@ -1820,6 +1974,10 @@ export class CpAmm {
       positionNftAccount: positionBNftAccount,
     });
     transaction.add(closePositionInstruction);
+
+    if (postInstructions.length > 0) {
+      transaction.add(...postInstructions);
+    }
 
     return transaction;
   }

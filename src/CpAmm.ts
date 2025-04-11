@@ -361,6 +361,12 @@ export class CpAmm {
       .instruction();
   }
 
+  /**
+   * Builds an instruction to close a position.
+   * @private
+   * @param {ClosePositionInstructionParams} params - Parameters for closing a position
+   * @returns {Promise<TransactionInstruction>} Instruction to close the position
+   */
   private async buildClosePositionInstruction(
     params: ClosePositionInstructionParams
   ): Promise<TransactionInstruction> {
@@ -1549,6 +1555,17 @@ export class CpAmm {
     return new Transaction().add(instruction);
   }
 
+  /**
+   * Builds a transaction to remove all liquidity from a position and close it.
+   * This combines several operations in a single transaction:
+   * 1. Claims any accumulated fees
+   * 2. Removes all liquidity
+   * 3. Closes the position
+   *
+   * @param {RemoveAllLiquidityAndClosePositionParams} params - Combined parameters
+   * @returns {TxBuilder} Transaction builder with all required instructions
+   * @throws {Error} If the position is locked or cannot be closed
+   */
   async removeAllLiquidityAndClosePosition(
     params: RemoveAllLiquidityAndClosePositionParams
   ): TxBuilder {
@@ -1565,7 +1582,9 @@ export class CpAmm {
     const { tokenAMint, tokenBMint, tokenAVault, tokenBVault } = poolState;
 
     const isLockedPosition = this.isLockedPosition(positionState);
-    invariant(!isLockedPosition, "position must be unlocked");
+    if (isLockedPosition) {
+      throw Error("position must be unlocked");
+    }
 
     const positionNftAccount = derivePositionNftAccount(
       positionNftMint,
@@ -1656,6 +1675,18 @@ export class CpAmm {
     return transaction;
   }
 
+  /**
+   * Builds a transaction to merge liquidity from one position into another.
+   * This process:
+   * 1. Claims fees from the source position
+   * 2. Removes all liquidity from the source position
+   * 3. Adds that liquidity to the target position
+   * 4. Closes the source position
+   *
+   * @param {MergePositionParams} params - Parameters for merging positions
+   * @returns {TxBuilder} Transaction builder with all required instructions
+   * @throws {Error} If either position is locked or incompatible
+   */
   async mergePosition(params: MergePositionParams): TxBuilder {
     const {
       owner,
@@ -1667,6 +1698,11 @@ export class CpAmm {
       tokenAAmountThreshold,
       tokenBAmountThreshold,
     } = params;
+
+    const isLockedPosition = this.isLockedPosition(positionBState);
+    if (isLockedPosition) {
+      throw Error("position must be unlocked");
+    }
 
     const postionBLiquidityDelta = positionBState.unlockedLiquidity;
     const pool = positionBState.pool;

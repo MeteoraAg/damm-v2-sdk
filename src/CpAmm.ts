@@ -1,4 +1,4 @@
-import { Program, BN, Instruction } from "@coral-xyz/anchor";
+import { Program, BN } from "@coral-xyz/anchor";
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import invariant from "invariant";
 
@@ -16,6 +16,7 @@ import { MAX_SQRT_PRICE, MIN_SQRT_PRICE } from "./constants";
 import {
   AddLiquidityParams,
   AmmProgram,
+  BuildAddLiquidityParams,
   BuildRemoveAllLiquidityInstructionParams,
   ClaimPartnerFeeParams,
   ClaimPositionFeeInstructionParams,
@@ -50,7 +51,6 @@ import {
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
-  deriveEventAuthority,
   derivePoolAddress,
   derivePoolAuthority,
   derivePositionAddress,
@@ -148,6 +148,17 @@ export class CpAmm {
     };
   }
 
+  /**
+   * Prepares token accounts for a transaction by retrieving or creating associated token accounts.
+   * @private
+   * @param {PublicKey} owner - The owner of the token accounts
+   * @param {PublicKey} tokenAMint - Mint address of token A
+   * @param {PublicKey} tokenBMint - Mint address of token B
+   * @param {PublicKey} tokenAProgram - Program ID for token A (Token or Token2022)
+   * @param {PublicKey} tokenBProgram - Program ID for token B (Token or Token2022)
+   * @returns {Promise<{tokenAAta: PublicKey, tokenBAta: PublicKey, instructions: TransactionInstruction[]}>}
+   *          The token account addresses and any instructions needed to create them
+   */
   private async prepareTokenAccounts(
     owner: PublicKey,
     tokenAMint: PublicKey,
@@ -211,8 +222,14 @@ export class CpAmm {
     ];
   }
 
+  /**
+   * Builds an instruction to add liquidity to a position.
+   * @private
+   * @param {BuildAddLiquidityParams} params - Parameters for adding liquidity
+   * @returns {Promise<TransactionInstruction>} Instruction to add liquidity
+   */
   private async buildAddLiquidityInstruction(
-    params: any
+    params: BuildAddLiquidityParams
   ): Promise<TransactionInstruction> {
     const {
       pool,
@@ -254,6 +271,12 @@ export class CpAmm {
       .instruction();
   }
 
+  /**
+   * Builds an instruction to remove all liquidity from a position.
+   * @private
+   * @param {BuildRemoveAllLiquidityInstructionParams} params - Parameters for removing all liquidity
+   * @returns {Promise<TransactionInstruction>} Instruction to remove all liquidity
+   */
   private async buildRemoveAllLiquidityInstruction(
     params: BuildRemoveAllLiquidityInstructionParams
   ): Promise<TransactionInstruction> {
@@ -294,6 +317,12 @@ export class CpAmm {
       .instruction();
   }
 
+  /**
+   * Builds an instruction to claim fees accumulated by a position.
+   * @private
+   * @param {ClaimPositionFeeInstructionParams} params - Parameters for claiming position fees
+   * @returns {Promise<TransactionInstruction>} Instruction to claim position fees
+   */
   private async buildClaimPositionFeeInstruction(
     params: ClaimPositionFeeInstructionParams
   ): Promise<TransactionInstruction> {
@@ -526,6 +555,11 @@ export class CpAmm {
     );
 
     return totalLockedLiquidity.gtn(0);
+  }
+
+  async isPoolExist(pool: PublicKey): Promise<boolean> {
+    const poolState = await this._program.account.pool.fetchNullable(pool);
+    return poolState !== null;
   }
 
   /**
@@ -973,7 +1007,7 @@ export class CpAmm {
 
     return await this._program.methods
       .createPosition()
-      .accountsStrict({
+      .accountsPartial({
         owner,
         positionNftMint: positionNft,
         poolAuthority,
@@ -983,8 +1017,6 @@ export class CpAmm {
         position,
         tokenProgram: TOKEN_2022_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .transaction();
   }
@@ -1141,7 +1173,7 @@ export class CpAmm {
         tokenAAmountThreshold,
         tokenBAmountThreshold,
       })
-      .accountsStrict({
+      .accountsPartial({
         poolAuthority,
         pool,
         position,
@@ -1155,8 +1187,6 @@ export class CpAmm {
         tokenBVault,
         tokenAProgram,
         tokenBProgram,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -1306,7 +1336,7 @@ export class CpAmm {
         amountIn,
         minimumAmountOut,
       })
-      .accountsStrict({
+      .accountsPartial({
         poolAuthority,
         pool,
         payer,
@@ -1319,8 +1349,6 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
         referralTokenAccount,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -1360,7 +1388,7 @@ export class CpAmm {
     };
     return await this._program.methods
       .lockPosition(lockPositionParams)
-      .accountsStrict({
+      .accountsPartial({
         position,
         positionNftAccount,
         vesting: vestingAccount,
@@ -1368,8 +1396,6 @@ export class CpAmm {
         owner: owner,
         payer: payer,
         systemProgram: SystemProgram.programId,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .transaction();
   }
@@ -1389,13 +1415,11 @@ export class CpAmm {
 
     return await this._program.methods
       .permanentLockPosition(unlockedLiquidity)
-      .accountsStrict({
+      .accountsPartial({
         position,
         positionNftAccount,
         pool: pool,
         owner: owner,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .transaction();
   }
@@ -1414,7 +1438,7 @@ export class CpAmm {
 
     return await this._program.methods
       .refreshVesting()
-      .accountsStrict({
+      .accountsPartial({
         position,
         positionNftAccount,
         pool: pool,
@@ -1632,7 +1656,6 @@ export class CpAmm {
     return transaction;
   }
 
-  // 1.
   async mergePosition(params: MergePositionParams): TxBuilder {
     const {
       owner,
@@ -1774,11 +1797,9 @@ export class CpAmm {
     const { pool, admin, rewardIndex, newDuration } = params;
     return await this._program.methods
       .updateRewardDuration(rewardIndex, newDuration)
-      .accountsStrict({
+      .accountsPartial({
         pool,
         admin: admin,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .transaction();
   }
@@ -1792,11 +1813,9 @@ export class CpAmm {
     const { pool, admin, rewardIndex, newFunder } = params;
     return await this._program.methods
       .updateRewardFunder(rewardIndex, newFunder)
-      .accountsStrict({
+      .accountsPartial({
         pool,
         admin: admin,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .transaction();
   }
@@ -1842,15 +1861,13 @@ export class CpAmm {
 
     return await this._program.methods
       .fundReward(rewardIndex, amount, carryForward)
-      .accountsStrict({
+      .accountsPartial({
         pool,
         rewardVault: vault,
         rewardMint: mint,
         funderTokenAccount,
         funder: funder,
         tokenProgram,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .transaction();
   }
@@ -1892,7 +1909,7 @@ export class CpAmm {
 
     return await this._program.methods
       .withdrawIneligibleReward(rewardIndex)
-      .accountsStrict({
+      .accountsPartial({
         pool,
         rewardVault: vault,
         rewardMint: mint,
@@ -1900,8 +1917,6 @@ export class CpAmm {
         funderTokenAccount,
         funder: funder,
         tokenProgram,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -1955,7 +1970,7 @@ export class CpAmm {
 
     return await this._program.methods
       .claimPartnerFee(maxAmountA, maxAmountB)
-      .accountsStrict({
+      .accountsPartial({
         poolAuthority,
         pool,
         tokenAAccount,
@@ -1967,8 +1982,6 @@ export class CpAmm {
         partner,
         tokenAProgram,
         tokenBProgram,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
@@ -2014,7 +2027,7 @@ export class CpAmm {
     }
     return await this._program.methods
       .claimReward(rewardIndex)
-      .accountsStrict({
+      .accountsPartial({
         pool: positionState.pool,
         positionNftAccount,
         rewardVault: rewardInfo.vault,
@@ -2024,8 +2037,6 @@ export class CpAmm {
         userTokenAccount,
         owner: user,
         tokenProgram,
-        eventAuthority: deriveEventAuthority(this._program.programId)[0],
-        program: this._program.programId,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)

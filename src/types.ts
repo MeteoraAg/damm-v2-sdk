@@ -201,6 +201,24 @@ export type RemoveAllLiquidityParams = Omit<
   "liquidityDeltaQ64"
 >;
 
+export type BuildAddLiquidityParams = {
+  owner: PublicKey;
+  position: PublicKey;
+  pool: PublicKey;
+  positionNftAccount: PublicKey;
+  liquidityDelta: BN;
+  tokenAAccount: PublicKey;
+  tokenBAccount: PublicKey;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+};
+
 export type BuildRemoveAllLiquidityInstructionParams = {
   poolAuthority: PublicKey;
   owner: PublicKey;

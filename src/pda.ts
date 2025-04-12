@@ -1,5 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
+import { CP_AMM_PROGRAM_ID } from "./constants";
 
 // Private function: Only use to derive pool account
 export function getFirstKey(key1: PublicKey, key2: PublicKey) {
@@ -22,27 +23,23 @@ export function getSecondKey(key1: PublicKey, key2: PublicKey) {
   return buf1;
 }
 
-export function derivePoolAuthority(programId: PublicKey): PublicKey {
+export function derivePoolAuthority(): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("pool_authority")],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
-export function deriveConfigAddress(
-  index: BN,
-  programId: PublicKey
-): PublicKey {
+export function deriveConfigAddress(index: BN): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("config"), index.toArrayLike(Buffer, "le", 8)],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
 export function derivePoolAddress(
   config: PublicKey,
   tokenAMint: PublicKey,
-  tokenBMint: PublicKey,
-  programId: PublicKey
+  tokenBMint: PublicKey
 ): PublicKey {
   return PublicKey.findProgramAddressSync(
     [
@@ -51,46 +48,40 @@ export function derivePoolAddress(
       getFirstKey(tokenAMint, tokenBMint),
       getSecondKey(tokenAMint, tokenBMint),
     ],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
-export function derivePositionAddress(
-  positionNft: PublicKey,
-  programId: PublicKey
-): PublicKey {
+export function derivePositionAddress(positionNft: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("position"), positionNft.toBuffer()],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
 export function deriveTokenVaultAddress(
   tokenMint: PublicKey,
-  pool: PublicKey,
-  programId: PublicKey
+  pool: PublicKey
 ): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("token_vault"), tokenMint.toBuffer(), pool.toBuffer()],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
 export function deriveRewardVaultAddress(
   pool: PublicKey,
-  rewardIndex: number,
-  programId: PublicKey
+  rewardIndex: number
 ): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("reward_vault"), pool.toBuffer(), Buffer.from([rewardIndex])],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
 export function deriveCustomizablePoolAddress(
   tokenAMint: PublicKey,
-  tokenBMint: PublicKey,
-  programId: PublicKey
+  tokenBMint: PublicKey
 ): PublicKey {
   return PublicKey.findProgramAddressSync(
     [
@@ -98,50 +89,36 @@ export function deriveCustomizablePoolAddress(
       getFirstKey(tokenAMint, tokenBMint),
       getSecondKey(tokenAMint, tokenBMint),
     ],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
-export function deriveTokenBadgeAddress(
-  tokenMint: PublicKey,
-  programId: PublicKey
-): PublicKey {
+export function deriveTokenBadgeAddress(tokenMint: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("token_badge"), tokenMint.toBuffer()],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
-export function deriveClaimFeeOperatorAddress(
-  operator: PublicKey,
-  programId: PublicKey
-): PublicKey {
+export function deriveClaimFeeOperatorAddress(operator: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("cf_operator"), operator.toBuffer()],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
 export function derivePositionNftAccount(
-  positionNftMint: PublicKey,
-  programId: PublicKey
+  positionNftMint: PublicKey
 ): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("position_nft_account"), positionNftMint.toBuffer()],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }
 
-export function deriveEventAuthority(programId: PublicKey) {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("__event_authority")],
-    programId
-  );
-}
-
-export function deriveTokenBadge(tokenMint: PublicKey, programId: PublicKey) {
+export function deriveTokenBadge(tokenMint: PublicKey) {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("token_badge"), tokenMint.toBuffer()],
-    programId
+    CP_AMM_PROGRAM_ID
   )[0];
 }

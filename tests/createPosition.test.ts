@@ -11,7 +11,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { CP_AMM_PROGRAM_ID, DECIMALS } from "./bankrun-utils";
+import { DECIMALS } from "./bankrun-utils";
 import {
   BaseFee,
   CpAmm,
@@ -64,18 +64,31 @@ describe("Create position", () => {
         dynamicFee: null,
       };
 
+      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+        ammInstance.preparePoolCreationParams({
+          tokenAAmount,
+          tokenBAmount,
+
+          minSqrtPrice: MIN_SQRT_PRICE,
+          maxSqrtPrice: MAX_SQRT_PRICE,
+          tokenADecimal: DECIMALS,
+          tokenBDecimal: DECIMALS,
+        });
+      const positionNft = Keypair.generate();
       params = {
         payer: payer.publicKey,
         creator: creator.publicKey,
-        positionNft: PublicKey.default,
+        positionNft: positionNft.publicKey,
         tokenAMint: tokenX,
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        minSqrtPrice: MIN_SQRT_PRICE,
-        maxSqrtPrice: MAX_SQRT_PRICE,
-        tokenADecimal: DECIMALS,
-        tokenBDecimal: DECIMALS,
+        sqrtMinPrice: MIN_SQRT_PRICE,
+        sqrtMaxPrice: MAX_SQRT_PRICE,
+        liquidityDelta: initPoolLiquidityDelta,
+        initSqrtPrice,
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
@@ -160,18 +173,31 @@ describe("Create position", () => {
         dynamicFee: null,
       };
 
+      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+        ammInstance.preparePoolCreationParams({
+          tokenAAmount,
+          tokenBAmount,
+
+          minSqrtPrice: MIN_SQRT_PRICE,
+          maxSqrtPrice: MAX_SQRT_PRICE,
+          tokenADecimal: DECIMALS,
+          tokenBDecimal: DECIMALS,
+        });
+      const positionNft = Keypair.generate();
       params = {
         payer: payer.publicKey,
         creator: creator.publicKey,
-        positionNft: PublicKey.default,
+        positionNft: positionNft.publicKey,
         tokenAMint: tokenX,
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        minSqrtPrice: MIN_SQRT_PRICE,
-        maxSqrtPrice: MAX_SQRT_PRICE,
-        tokenADecimal: DECIMALS,
-        tokenBDecimal: DECIMALS,
+        sqrtMinPrice: MIN_SQRT_PRICE,
+        sqrtMaxPrice: MAX_SQRT_PRICE,
+        liquidityDelta: initPoolLiquidityDelta,
+        initSqrtPrice,
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp

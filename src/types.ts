@@ -158,7 +158,7 @@ export type AddLiquidityParams = {
   position: PublicKey;
   pool: PublicKey;
   positionNftAccount: PublicKey;
-  liquidityDeltaQ64: BN;
+  liquidityDelta: BN;
   maxAmountTokenA: BN;
   maxAmountTokenB: BN;
   tokenAAmountThreshold: BN;
@@ -192,7 +192,7 @@ export type RemoveLiquidityParams = {
   position: PublicKey;
   pool: PublicKey;
   positionNftAccount: PublicKey;
-  liquidityDeltaQ64: BN;
+  liquidityDelta: BN;
   tokenAAmountThreshold: BN;
   tokenBAmountThreshold: BN;
   tokenAMint: PublicKey;
@@ -205,7 +205,7 @@ export type RemoveLiquidityParams = {
 
 export type RemoveAllLiquidityParams = Omit<
   RemoveLiquidityParams,
-  "liquidityDeltaQ64"
+  "liquidityDelta"
 >;
 
 export type BuildAddLiquidityParams = {
@@ -270,8 +270,10 @@ export type MergePositionParams = {
   positionBNftAccount: PublicKey;
   positionANftAccount: PublicKey;
   positionBState: PositionState;
-  tokenAAmountThreshold: BN;
-  tokenBAmountThreshold: BN;
+  tokenAAmountAddLiquidityThreshold: BN;
+  tokenBAmountAddLiquidityThreshold: BN;
+  tokenAAmountRemoveLiquidityThreshold: BN;
+  tokenBAmountRemoveLiquidityThreshold: BN;
 };
 
 export type GetQuoteParams = {

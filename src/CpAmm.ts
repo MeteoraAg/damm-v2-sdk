@@ -473,7 +473,10 @@ export class CpAmm {
    * @param user - Public key of the user.
    * @returns Array of user positions.
    */
-  async getPositionsByUser(user: PublicKey): Promise<
+  async getPositionsByUser(
+    user: PublicKey,
+    sort?: boolean
+  ): Promise<
     Array<{
       positionNftAccount: PublicKey;
       position: PublicKey;
@@ -495,11 +498,35 @@ export class CpAmm {
     const positionStates = await this._program.account.position.fetchMultiple(
       positionAddresses
     );
-    return userPositionAccounts.map((account, index) => ({
-      positionNftAccount: account.positionNftAccount,
-      position: positionAddresses[index],
-      positionState: positionStates[index],
-    }));
+    const positionResult = userPositionAccounts
+      .map((account, index) => {
+        const positionState = positionStates[index];
+        if (!positionState) return null;
+
+        return {
+          positionNftAccount: account.positionNftAccount,
+          position: positionAddresses[index],
+          positionState,
+        };
+      })
+      .filter(Boolean);
+
+    // in-place sort
+    if (sort) {
+      positionResult.sort((a, b) => {
+        const totalLiquidityA = a.positionState.vestedLiquidity
+          .add(a.positionState.permanentLockedLiquidity)
+          .add(a.positionState.unlockedLiquidity);
+
+        const totalLiquidityB = b.positionState.vestedLiquidity
+          .add(b.positionState.permanentLockedLiquidity)
+          .add(b.positionState.unlockedLiquidity);
+
+        return totalLiquidityB.cmp(totalLiquidityA);
+      });
+    }
+
+    return positionResult;
   }
 
   async getAllVestingsByPosition(position: PublicKey): Promise<

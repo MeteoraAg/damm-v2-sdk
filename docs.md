@@ -6,16 +6,21 @@
   - [createCustomPool](#createcustompool)
   - [createPosition](#createposition)
   - [getQuote](#getquote)
-  - [getLiquidityDelta](#getliquiditydelta)
+  - [getDepositQuote](#getdepositquote)
+  - [getWithdrawQuote](#getwithdrawquote)
   - [swap](#swap)
   - [addLiquidity](#addliquidity)
   - [removeLiquidity](#removeliquidity)
+  - [removeAllLiquidity](#removeallliquidity)
+  - [removeAllLiquidityAndClosePosition](#removeallliquidityandcloseposition)
+  - [mergePosition](#mergeposition)
   - [lockPosition](#lockposition)
   - [permanentLockPosition](#permanentlockposition)
   - [refreshVesting](#refreshvesting)
   - [claimPositionFee](#claimpositionfee)
   - [claimPartnerFee](#claimpartnerfee)
   - [claimReward](#claimreward)
+  - [closePosition](#closeposition)
 - [State Functions](#state-functions)
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
@@ -23,13 +28,20 @@
   - [getAllConfigs](#getallconfigs)
   - [getAllPools](#getallpools)
   - [getAllPositions](#getallpositions)
+  - [getAllPositionsByPool](#getallpositionsbypool)
   - [getUserPositionByPool](#getuserpositionbypool)
   - [getPositionsByUser](#getpositionsbyuser)
+  - [getAllVestingsByPosition](#getallvestingsbyposition)
+  - [isLockedPosition](#islockedposition)
+  - [isPoolExist](#ispoolexist)
 - [Reward Management Functions](#reward-management-functions)
   - [updateRewardDuration](#updaterewardduration)
   - [updateRewardFunder](#updaterewardfunder)
   - [fundReward](#fundreward)
   - [withdrawIneligibleReward](#withdrawineligiblereward)
+- [Helper Functions](#helper-functions)
+  - [preparePoolCreationParams](#preparepoolcreationparams)
+  - [getProgram](#getprogram)
 
 ---
 
@@ -53,13 +65,11 @@ interface CreatePoolParams {
   positionNft: PublicKey;        // The mint for the initial position NFT
   tokenAMint: PublicKey;         // The mint address for token A
   tokenBMint: PublicKey;         // The mint address for token B
-  activationPoint: BN;           // 0: slot, 1: timestamp
+  activationPoint: BN;           // The slot or timestamp for activation 
   tokenAAmount: BN;              // Initial amount of token A to deposit
   tokenBAmount: BN;              // Initial amount of token B to deposit
-  minSqrtPrice: BN;              // Minimum sqrt price (typically MIN_SQRT_PRICE)
-  maxSqrtPrice: BN;              // Maximum sqrt price (typically MAX_SQRT_PRICE)
-  tokenADecimal: number;         // Decimal places for token A
-  tokenBDecimal: number;         // Decimal places for token B
+  initSqrtPrice: BN;             // Initial sqrt price in Q64 format
+  liquidityDelta: BN;            // Initial liquidity delta in Q64 format
   tokenAProgram: PublicKey;      // Token program for token A
   tokenBProgram: PublicKey;      // Token program for token B
 }
@@ -70,6 +80,14 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 
 #### Example
 ```typescript
+// First, prepare the pool creation parameters
+const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
+  tokenAAmount: new BN(1_000_000_000), // 1,000 USDC with 6 decimals
+  tokenBAmount: new BN(5_000_000_000), // 5 SOL with 9 decimals
+  minSqrtPrice: MIN_SQRT_PRICE,
+  maxSqrtPrice: MAX_SQRT_PRICE
+});
+
 const createPoolTx = await cpAmm.createPool({
   payer: wallet.publicKey,
   creator: wallet.publicKey,
@@ -78,18 +96,16 @@ const createPoolTx = await cpAmm.createPool({
   tokenAMint: usdcMint,
   tokenBMint: solMint,
   activationPoint: new BN(Date.now()),
-  tokenAAmount: new BN(1_000_000_000), // 1,000 USDC with 6 decimals
-  tokenBAmount: new BN(5_000_000_000), // 5 SOL with 9 decimals
-  minSqrtPrice: MIN_SQRT_PRICE,
-  maxSqrtPrice: MAX_SQRT_PRICE,
-  tokenADecimal: 6,
-  tokenBDecimal: 9,
+  tokenAAmount: new BN(1_000_000_000),
+  tokenBAmount: new BN(5_000_000_000),
+  initSqrtPrice: initSqrtPrice,
+  liquidityDelta: liquidityDelta,
   tokenAProgram: TOKEN_PROGRAM_ID,
   tokenBProgram: TOKEN_PROGRAM_ID
 });
 
 const tx = await createPoolTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
+const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -97,6 +113,7 @@ const Function = await wallet.sendTransaction(tx, connection);
 - If using native SOL, it will be automatically wrapped to wSOL
 - The `config` parameter should be a valid configuration account
 - Pool creation automatically creates an initial position
+- Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
 
 ---
 
@@ -123,40 +140,40 @@ interface InitializeCustomizeablePoolParams {
   tokenBMint: PublicKey;         // The mint address for token B
   tokenAAmount: BN;              // Initial amount of token A to deposit
   tokenBAmount: BN;              // Initial amount of token B to deposit
-  minSqrtPrice: BN;              // Minimum sqrt price
-  maxSqrtPrice: BN;              // Maximum sqrt price
-  tokenADecimal: number;         // Decimal places for token A
-  tokenBDecimal: number;         // Decimal places for token B
+  sqrtMinPrice: BN;              // Minimum sqrt price
+  sqrtMaxPrice: BN;              // Maximum sqrt price
+  initSqrtPrice: BN;             // Initial sqrt price in Q64 format
+  liquidityDelta: BN;            // Initial liquidity in Q64 format
+  tokenAProgram: PublicKey;      // Token program for token A
+  tokenBProgram: PublicKey;      // Token program for token B
   poolFees: PoolFees;            // Fee configuration
   hasAlphaVault: boolean;        // Whether the pool has an alpha vault
   collectFeeMode: number;        // How fees are collected (0: normal, 1: alpha)
   activationPoint: BN;           // The slot or timestamp for activation
   activationType: number;        // 0: slot, 1: timestamp
-  tokenAProgram: PublicKey;      // Token program for token A
-  tokenBProgram: PublicKey;      // Token program for token B
 }
 
 interface PoolFees {
   baseFee: {
-    feeSchedulerMode: number;  // 0: Linear, 1: Exponential
-    cliffFeeNumerator: number; 
-    numberOfPeriod: number;   
-    reductionFactor: number; 
-    periodFrequency: number;  
+    feeSchedulerMode: number;    // 0: Linear, 1: Exponential
+    cliffFeeNumerator: number;   // Initial fee numerator
+    numberOfPeriod: number;      // Number of fee reduction periods
+    reductionFactor: number;     // How much fee reduces each period
+    periodFrequency: number;     // How often fees change
   };
-  partnerFee?: {                
-    partnerAddress: PublicKey;  
-    partnerFeeNumerator: number;
+  partnerFee?: {                 // Optional partner fee configuration
+    partnerAddress: PublicKey;   // Address to receive partner fees
+    partnerFeeNumerator: number; // Share of fees for partner
   };
-  dynamicFee?: {              
-    initialized: boolean;     
-    volatilityAccumulator?: number; 
-    binStep?: number;        
-    variableFeeControl?: {    
-      maxFeeNumerator: number;
-      minFeeNumerator: number;
-      volatilityThreshold: number;
-      feeDamper: number;   
+  dynamicFee?: {                 // Optional dynamic fee configuration
+    initialized: boolean;        // Whether dynamic fees are enabled
+    volatilityAccumulator?: number; // Current volatility measure
+    binStep?: number;           // Bin step for dynamic fee calculation
+    variableFeeControl?: {       // Controls for variable fees
+      maxFeeNumerator: number;   // Maximum fee rate 
+      minFeeNumerator: number;   // Minimum fee rate
+      volatilityThreshold: number; // Threshold to trigger fee changes
+      feeDamper: number;         // Controls fee response to volatility
     };
   };
 }
@@ -170,6 +187,14 @@ An object containing:
 
 #### Example
 ```typescript
+// First, prepare the pool creation parameters
+const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
+  tokenAAmount: new BN(5_000_000_000),
+  tokenBAmount: new BN(20_000_000),
+  minSqrtPrice: MIN_SQRT_PRICE,
+  maxSqrtPrice: MAX_SQRT_PRICE
+});
+
 const poolFees = {
   baseFee: {
     feeSchedulerMode: 0, // 0: Linear, 1: Exponential
@@ -195,10 +220,10 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
   tokenBMint: btcMint,
   tokenAAmount: new BN(5_000_000_000),
   tokenBAmount: new BN(20_000_000),
-  minSqrtPrice: MIN_SQRT_PRICE,
-  maxSqrtPrice: MAX_SQRT_PRICE,
-  tokenADecimal: 6,
-  tokenBDecimal: 8,
+  sqrtMinPrice: MIN_SQRT_PRICE,
+  sqrtMaxPrice: MAX_SQRT_PRICE,
+  initSqrtPrice: initSqrtPrice,
+  liquidityDelta: liquidityDelta,
   poolFees,
   hasAlphaVault: false,
   collectFeeMode: 0, // 0: BothToken, 1: onlyB
@@ -208,7 +233,7 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
   tokenBProgram: TOKEN_PROGRAM_ID
 });
 
-const Function = await wallet.sendTransaction(tx, connection);
+const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -216,6 +241,7 @@ const Function = await wallet.sendTransaction(tx, connection);
 - Dynamic fees can adjust based on market volatility
 - Partner fees allow a portion of trading fees to be directed to a specific account
 - Alpha vault is an advanced feature for protocol-owned liquidity
+- Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
 
 ---
 
@@ -251,7 +277,7 @@ const createPositionTx = await cpAmm.createPosition({
 });
 
 const tx = await createPositionTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
+const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -269,6 +295,7 @@ Calculates the expected output amount for a swap, including fees and slippage pr
 ```typescript
 async getQuote(params: GetQuoteParams): Promise<{
   swapInAmount: BN;
+  consumedInAmount: BN;
   swapOutAmount: BN;
   minSwapOutAmount: BN;
   totalFee: BN;
@@ -283,12 +310,17 @@ interface GetQuoteParams {
   inputTokenMint: PublicKey;   // The mint of the input token
   slippage: number;            // Slippage tolerance in percentage (e.g., 0.5 for 0.5%)
   poolState: PoolState;        // The state of the pool
+  currentTime?: number;        // Current timestamp (for time-based fees)
+  currentSlot?: number;        // Current slot (for slot-based fees)
+  inputTokenInfo?: any;        // Token info for Token2022 transfer fee calculations
+  outputTokenInfo?: any;       // Token info for Token2022 transfer fee calculations
 }
 ```
 
 #### Returns
 An object containing:
-- `swapInAmount`: The input amount
+- `swapInAmount`: The original input amount
+- `consumedInAmount`: The actual input amount used (after transfer fees)
 - `swapOutAmount`: The expected output amount
 - `minSwapOutAmount`: The minimum output amount accounting for slippage
 - `totalFee`: The total fee to be paid
@@ -302,7 +334,8 @@ const quote = await cpAmm.getQuote({
   inAmount: new BN(100_000_000), // 100 USDC
   inputTokenMint: usdcMint,
   slippage: 0.5, // 0.5% slippage
-  poolState
+  poolState,
+  currentTime: Date.now()
 });
 
 console.log(`Expected output: ${quote.swapOutAmount.toString()}`);
@@ -316,51 +349,112 @@ console.log(`Price impact: ${quote.priceImpact.toFixed(2)}%`);
 - The `slippage` parameter protects users from price movements
 - This function doesn't execute a swap, only provides a quote
 - Use the `minSwapOutAmount` as the `minimumAmountOut` parameter for `swap`
+- For Token2022 tokens with transfer fees, provide the token info parameters
 
 ---
 
-### getLiquidityDelta
+### getDepositQuote
 
-Calculates the liquidity delta based on the provided token amounts and price ranges.
+Calculates the deposit quote for adding liquidity to a pool based on a single token input.
 
 #### Function
 ```typescript
-async getLiquidityDelta(params: LiquidityDeltaParams): Promise<BN>
+async getDepositQuote(params: GetDepositQuoteParams): Promise<DepositQuote>
 ```
 
 #### Parameters
 ```typescript
-interface LiquidityDeltaParams {
-  maxAmountTokenA: BN;          // Maximum amount of token A to use
-  maxAmountTokenB: BN;          // Maximum amount of token B to use
-  sqrtMaxPrice: BN;             // Maximum sqrt price for the range
-  sqrtMinPrice: BN;             // Minimum sqrt price for the range
+interface GetDepositQuoteParams {
+  inAmount: BN;                 // The amount of input token
+  isTokenA: boolean;            // Whether the input token is token A
+  inputTokenInfo?: any;         // Token info for Token2022 transfer fee calculations  
+  outputTokenInfo?: any;        // Token info for Token2022 transfer fee calculations
+  minSqrtPrice: BN;             // Minimum sqrt price
+  maxSqrtPrice: BN;             // Maximum sqrt price
   sqrtPrice: BN;                // Current sqrt price
 }
 ```
 
 #### Returns
-A BN representing the liquidity delta in Q64 format.
+An object containing:
+- `actualInputAmount`: The actual input amount (after transfer fees)
+- `consumedInputAmount`: The full input amount including transfer fees
+- `liquidityDelta`: The amount of liquidity that will be added
+- `outputAmount`: The calculated amount of the other token to be paired
 
 #### Example
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
 
-const liquidityDelta = await cpAmm.getLiquidityDelta({
-  maxAmountTokenA: new BN(1_000_000_000), // 1,000 USDC
-  maxAmountTokenB: new BN(5_000_000_000), // 5 SOL
-  sqrtPrice: poolState.sqrtPrice,
-  sqrtMinPrice: MIN_SQRT_PRICE,
-  sqrtMaxPrice: MAX_SQRT_PRICE
+const depositQuote = await cpAmm.getDepositQuote({
+  inAmount: new BN(1_000_000_000), // 1,000 USDC
+  isTokenA: true, // USDC is token A
+  minSqrtPrice: MIN_SQRT_PRICE,
+  maxSqrtPrice: MAX_SQRT_PRICE,
+  sqrtPrice: poolState.sqrtPrice
 });
 
-console.log(`Liquidity delta: ${liquidityDelta.toString()}`);
+console.log(`Liquidity delta: ${depositQuote.liquidityDelta.toString()}`);
+console.log(`Required token B: ${depositQuote.outputAmount.toString()}`);
 ```
 
 #### Notes
-- This function is used before adding liquidity to calculate the appropriate liquidity delta
-- The function returns the minimum liquidity that can be added based on both token amounts
-- The result is in Q64 fixed-point notation
+- Use this to calculate how much of token B is needed when adding token A (or vice versa)
+- Particularly useful for single-sided liquidity provision
+- The function handles Token2022 transfer fees if token info is provided
+
+---
+
+### getWithdrawQuote
+
+Calculates the withdrawal quote for removing liquidity from a pool.
+
+#### Function
+```typescript
+async getWithdrawQuote(params: GetWithdrawQuoteParams): Promise<WithdrawQuote>
+```
+
+#### Parameters
+```typescript
+interface GetWithdrawQuoteParams {
+  liquidityDelta: BN;         // The amount of liquidity to withdraw
+  sqrtPrice: BN;              // Current sqrt price
+  maxSqrtPrice: BN;           // Maximum sqrt price
+  minSqrtPrice: BN;           // Minimum sqrt price
+  tokenATokenInfo?: any;      // Token info for Token2022 transfer fee calculations
+  tokenBTokenInfo?: any;      // Token info for Token2022 transfer fee calculations
+}
+```
+
+#### Returns
+An object containing:
+- `liquidityDelta`: The amount of liquidity being removed
+- `outAmountA`: The calculated amount of token A to receive
+- `outAmountB`: The calculated amount of token B to receive
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Calculate quote for removing half the liquidity
+const liquidityToRemove = positionState.liquidity.div(new BN(2));
+
+const withdrawQuote = await cpAmm.getWithdrawQuote({
+  liquidityDelta: liquidityToRemove,
+  sqrtPrice: poolState.sqrtPrice,
+  maxSqrtPrice: MAX_SQRT_PRICE,
+  minSqrtPrice: MIN_SQRT_PRICE
+});
+
+console.log(`Expected token A: ${withdrawQuote.outAmountA.toString()}`);
+console.log(`Expected token B: ${withdrawQuote.outAmountB.toString()}`);
+```
+
+#### Notes
+- Use this to estimate the tokens you'll receive when removing liquidity
+- The function handles Token2022 transfer fees if token info is provided
+- The calculation accounts for the current price relative to the position's price range
 
 ---
 
@@ -404,7 +498,8 @@ const quote = await cpAmm.getQuote({
   inAmount: new BN(100_000_000), // 100 USDC
   inputTokenMint: poolState.tokenAMint,
   slippage: 0.5,
-  poolState
+  poolState,
+  currentTime: Date.now()
 });
 
 // Execute swap
@@ -424,7 +519,7 @@ const swapTx = await cpAmm.swap({
 });
 
 const tx = await swapTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
+const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -451,8 +546,8 @@ interface AddLiquidityParams {
   owner: PublicKey;              // The owner of the position
   pool: PublicKey;               // The pool address
   position: PublicKey;           // The position address
-  positionNftMint: PublicKey;    // The position NFT mint
-  liquidityDeltaQ64: BN;         // The amount of liquidity to add in Q64 format
+  positionNftAccount?: PublicKey; // The position NFT account
+  liquidityDelta: BN;            // The amount of liquidity to add in Q64 format
   maxAmountTokenA: BN;           // Maximum amount of token A to use
   maxAmountTokenB: BN;           // Maximum amount of token B to use
   tokenAAmountThreshold: BN;     // Minimum acceptable token A amount (slippage protection)
@@ -471,13 +566,16 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 
 #### Example
 ```typescript
-// Calculate liquidity delta first
-const liquidityDelta = await cpAmm.getLiquidityDelta({
-  maxAmountTokenA: new BN(1_000_000_000), // 1,000 USDC
-  maxAmountTokenB: new BN(5_000_000_000), // 5 SOL
-  sqrtPrice: poolState.sqrtPrice,
-  sqrtMinPrice: MIN_SQRT_PRICE,
-  sqrtMaxPrice: MAX_SQRT_PRICE
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Get deposit quote
+const depositQuote = await cpAmm.getDepositQuote({
+  inAmount: new BN(1_000_000_000), // 1,000 USDC
+  isTokenA: true,
+  minSqrtPrice: MIN_SQRT_PRICE,
+  maxSqrtPrice: MAX_SQRT_PRICE,
+  sqrtPrice: poolState.sqrtPrice
 });
 
 // Add liquidity
@@ -485,10 +583,10 @@ const addLiquidityTx = await cpAmm.addLiquidity({
   owner: wallet.publicKey,
   pool: poolAddress,
   position: positionAddress,
-  positionNftMint: positionNftMint,
-  liquidityDeltaQ64: liquidityDelta,
+  positionNftAccount: positionNftAccount,
+  liquidityDelta: depositQuote.liquidityDelta,
   maxAmountTokenA: new BN(1_000_000_000),
-  maxAmountTokenB: new BN(5_000_000_000),
+  maxAmountTokenB: depositQuote.outputAmount,
   tokenAAmountThreshold: new BN(0),
   tokenBAmountThreshold: new BN(0),
   tokenAMint: poolState.tokenAMint,
@@ -500,11 +598,11 @@ const addLiquidityTx = await cpAmm.addLiquidity({
 });
 
 const tx = await addLiquidityTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
+const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
-- Calculate the liquidity delta first using `getLiquidityDelta`
+- Calculate the liquidity delta first using `getDepositQuote`
 - The SDK handles wrapping/unwrapping of SOL automatically
 - Token accounts are created automatically if they don't exist
 - Set appropriate thresholds to protect against slippage
@@ -513,7 +611,7 @@ const Function = await wallet.sendTransaction(tx, connection);
 
 ### removeLiquidity
 
-Removes liquidity from an existing position.
+Removes a specific amount of liquidity from an existing position.
 
 #### Function
 ```typescript
@@ -526,8 +624,8 @@ interface RemoveLiquidityParams {
   owner: PublicKey;              // The owner of the position
   pool: PublicKey;               // The pool address
   position: PublicKey;           // The position address
-  positionNftMint: PublicKey;    // The position NFT mint
-  liquidityDeltaQ64: BN;         // The amount of liquidity to remove in Q64 format
+  positionNftAccount?: PublicKey; // The position NFT account
+  liquidityDelta: BN;           // The amount of liquidity to remove in Q64 format
   tokenAAmountThreshold: BN;     // Minimum acceptable token A amount (slippage protection)
   tokenBAmountThreshold: BN;     // Minimum acceptable token B amount (slippage protection)
   tokenAMint: PublicKey;         // The mint of token A
@@ -544,20 +642,26 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 
 #### Example
 ```typescript
-// Get position state to determine available liquidity
+const poolState = await cpAmm.fetchPoolState(poolAddress);
 const positionState = await cpAmm.fetchPositionState(positionAddress);
 
-// Remove half of the available liquidity
-const liquidityToRemove = positionState.liquidity.div(new BN(2));
+// Get withdraw quote for half of the liquidity
+const liquidityToRemove = positionState.unlockedLiquidity.div(new BN(2));
+const withdrawQuote = await cpAmm.getWithdrawQuote({
+  liquidityDelta: liquidityToRemove,
+  sqrtPrice: poolState.sqrtPrice,
+  maxSqrtPrice: MAX_SQRT_PRICE,
+  minSqrtPrice: MIN_SQRT_PRICE
+});
 
 const removeLiquidityTx = await cpAmm.removeLiquidity({
   owner: wallet.publicKey,
   pool: poolAddress,
   position: positionAddress,
-  positionNftMint: positionNftMint,
-  liquidityDeltaQ64: liquidityToRemove,
-  tokenAAmountThreshold: new BN(0), // Set appropriate thresholds for slippage protection
-  tokenBAmountThreshold: new BN(0),
+  positionNftAccount: positionNftAccount,
+  liquidityDelta: liquidityToRemove,
+  tokenAAmountThreshold: withdrawQuote.outAmountA.mul(new BN(95)).div(new BN(100)), // 5% slippage
+  tokenBAmountThreshold: withdrawQuote.outAmountB.mul(new BN(95)).div(new BN(100)), // 5% slippage
   tokenAMint: poolState.tokenAMint,
   tokenBMint: poolState.tokenBMint,
   tokenAVault: poolState.tokenAVault,
@@ -567,7 +671,7 @@ const removeLiquidityTx = await cpAmm.removeLiquidity({
 });
 
 const tx = await removeLiquidityTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
+const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -579,177 +683,28 @@ const Function = await wallet.sendTransaction(tx, connection);
 
 ---
 
-### lockPosition
+### removeAllLiquidity
 
-Locks a position with a vesting schedule for gradual unlocking over time.
+Removes all available liquidity from a position.
 
 #### Function
 ```typescript
-async lockPosition(params: LockPositionParams): TxBuilder
+async removeAllLiquidity(params: RemoveAllLiquidityParams): TxBuilder
 ```
 
 #### Parameters
 ```typescript
-interface LockPositionParams {
-  owner: PublicKey;              // The owner of the position
-  pool: PublicKey;               // The pool address
-  payer: PublicKey;              // The payer for the transaction
-  vestingAccount: PublicKey;     // The vesting account to create
-  position: PublicKey;           // The position address
-  positionNftMint: PublicKey;    // The position NFT mint
-  cliffPoint: BN;                // The slot or timestamp for the cliff
-  periodFrequency: BN;           // Frequency of unlock periods
-  cliffUnlockLiquidity: BN;      // Liquidity to unlock at cliff
-  liquidityPerPeriod: BN;        // Liquidity to unlock per period
-  numberOfPeriod: number;        // Number of unlock periods
-}
-```
-
-#### Returns
-A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
-
-#### Example
-```typescript
-const lockPositionTx = await cpAmm.lockPosition({
-  owner: wallet.publicKey,
-  pool: poolAddress,
-  payer: wallet.publicKey,
-  vestingAccount: vestingAccountAddress, // Generated keypair
-  position: positionAddress,
-  positionNftMint: positionNftMint,
-  cliffPoint: new BN(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days cliff
-  periodFrequency: new BN(7 * 24 * 60 * 60), // 7 days per period
-  cliffUnlockLiquidity: new BN(0), // No liquidity at cliff
-  liquidityPerPeriod: new BN("1000000000000000"), // Amount in Q64 format
-  numberOfPeriod: 52 // 52 periods (1 year with weekly unlocks)
-});
-
-const tx = await lockPositionTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
-```
-
-#### Notes
-- The vesting schedule is enforced on-chain
-- Locked liquidity cannot be removed until it's unlocked according to the schedule
-- The `vestingAccount` should be a new keypair
-- The `cliffPoint` and `periodFrequency` are in the same units as the pool's activation type
-
----
-
-### permanentLockPosition
-
-Permanently locks a portion of a position's liquidity (cannot be unlocked).
-
-#### Function
-```typescript
-async permanentLockPosition(params: PermanentLockParams): TxBuilder
-```
-
-#### Parameters
-```typescript
-interface PermanentLockParams {
-  owner: PublicKey;              // The owner of the position
-  position: PublicKey;           // The position address
-  positionNftMint: PublicKey;    // The position NFT mint
-  pool: PublicKey;               // The pool address
-  unlockedLiquidity: BN;         // Amount of liquidity to permanently lock
-}
-```
-
-#### Returns
-A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
-
-#### Example
-```typescript
-const positionState = await cpAmm.fetchPositionState(positionAddress);
-
-// Lock 20% of the position's liquidity permanently
-const liquidityToLock = positionState.liquidity.mul(new BN(20)).div(new BN(100));
-
-const permLockTx = await cpAmm.permanentLockPosition({
-  owner: wallet.publicKey,
-  position: positionAddress,
-  positionNftMint: positionNftMint,
-  pool: poolAddress,
-  unlockedLiquidity: liquidityToLock
-});
-
-const tx = await permLockTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
-```
-
-#### Notes
-- Permanently locked liquidity can never be withdrawn
-- You can only permanently lock liquidity that is currently unlocked
-- This is useful for governance or long-term incentive mechanisms
-
----
-
-### refreshVesting
-
-Updates the vesting status of a position to reflect elapsed time and unlock available liquidity.
-
-#### Function
-```typescript
-async refreshVesting(params: RefreshVestingParams): TxBuilder
-```
-
-#### Parameters
-```typescript
-interface RefreshVestingParams {
-  owner: PublicKey;              // The owner of the position
-  position: PublicKey;           // The position address
-  positionNftMint: PublicKey;    // The position NFT mint
-  pool: PublicKey;               // The pool address
-  vestings: PublicKey[];         // Array of vesting accounts to refresh
-}
-```
-
-#### Returns
-A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
-
-#### Example
-```typescript
-const refreshVestingTx = await cpAmm.refreshVesting({
-  owner: wallet.publicKey,
-  position: positionAddress,
-  positionNftMint: positionNftMint,
-  pool: poolAddress,
-  vestings: [vestingAccountAddress1, vestingAccountAddress2]
-});
-
-const tx = await refreshVestingTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
-```
-
-#### Notes
-- This function should be called periodically to update the unlocked liquidity amount
-- It doesn't automatically withdraw the unlocked liquidity
-- After refreshing, you can use `removeLiquidity` to withdraw the newly unlocked liquidity
-- You can refresh multiple vesting schedules in a single transaction
-
----
-
-### claimPositionFee
-
-Claims accumulated swap fees for a liquidity position.
-
-#### Function
-```typescript
-async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder
-```
-
-#### Parameters
-```typescript
-interface ClaimPositionFeeParams {
+interface RemoveAllLiquidityParams {
   owner: PublicKey;              // The owner of the position
   pool: PublicKey;               // The pool address
   position: PublicKey;           // The position address
-  nftPositionMint: PublicKey;    // The position NFT mint
-  tokenAVault: PublicKey;        // The pool's token A vault
-  tokenBVault: PublicKey;        // The pool's token B vault
+  positionNftAccount: PublicKey; // The position NFT account
+  tokenAAmountThreshold: BN;     // Minimum acceptable token A amount (slippage protection)
+  tokenBAmountThreshold: BN;     // Minimum acceptable token B amount (slippage protection)
   tokenAMint: PublicKey;         // The mint of token A
   tokenBMint: PublicKey;         // The mint of token B
+  tokenAVault: PublicKey;        // The pool's token A vault
+  tokenBVault: PublicKey;        // The pool's token B vault
   tokenAProgram: PublicKey;      // Token program for token A
   tokenBProgram: PublicKey;      // Token program for token B
 }
@@ -760,47 +715,63 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 
 #### Example
 ```typescript
-const claimFeeTx = await cpAmm.claimPositionFee({
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Get withdraw quote for all unlocked liquidity
+const withdrawQuote = await cpAmm.getWithdrawQuote({
+  liquidityDelta: positionState.unlockedLiquidity,
+  sqrtPrice: poolState.sqrtPrice,
+  maxSqrtPrice: MAX_SQRT_PRICE,
+  minSqrtPrice: MIN_SQRT_PRICE
+});
+
+const removeAllLiquidityTx = await cpAmm.removeAllLiquidity({
   owner: wallet.publicKey,
   pool: poolAddress,
   position: positionAddress,
-  nftPositionMint: positionNftMint,
-  tokenAVault: poolState.tokenAVault,
-  tokenBVault: poolState.tokenBVault,
+  positionNftAccount: positionNftAccount,
+  tokenAAmountThreshold: withdrawQuote.outAmountA.mul(new BN(95)).div(new BN(100)), // 5% slippage
+  tokenBAmountThreshold: withdrawQuote.outAmountB.mul(new BN(95)).div(new BN(100)), // 5% slippage
   tokenAMint: poolState.tokenAMint,
   tokenBMint: poolState.tokenBMint,
+  tokenAVault: poolState.tokenAVault,
+  tokenBVault: poolState.tokenBVault,
   tokenAProgram: TOKEN_PROGRAM_ID,
   tokenBProgram: TOKEN_PROGRAM_ID
 });
 
-const tx = await claimFeeTx.transaction();
-const Function = await wallet.sendTransaction(tx, connection);
+const tx = await removeAllLiquidityTx.transaction();
+const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
-- Fees are accumulated in both token A and token B
+- This removes all unlocked liquidity in one transaction
+- The position remains open after removing all liquidity
+- You can't remove locked liquidity (use `refreshVesting` first if needed)
 - The SDK handles wrapping/unwrapping of SOL automatically
-- Token accounts are created automatically if they don't exist
-- Fees can be claimed regardless of whether liquidity is locked
 
 ---
 
-### claimPartnerFee
+### removeAllLiquidityAndClosePosition
 
-Claims partner fees from a pool (if the pool has partner fees configured).
+Removes all liquidity from a position and closes it in a single transaction.
 
 #### Function
 ```typescript
-async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder
+async removeAllLiquidityAndClosePosition(params: RemoveAllLiquidityAndClosePositionParams): TxBuilder
 ```
 
 #### Parameters
 ```typescript
-interface ClaimPartnerFeeParams {
-  partner: PublicKey;            // The partner address
-  pool: PublicKey;               // The pool address
-  maxAmountA: BN;                // Maximum amount of token A to claim
-  maxAmountB: BN;                // Maximum amount of token B to claim
+interface RemoveAllLiquidityAndClosePositionParams {
+  owner: PublicKey;                // The owner of the position
+  position: PublicKey;             // The position address
+  positionNftAccount: PublicKey;   // The position NFT account
+  positionState: PositionState;    // The current position state
+  poolState: PoolState;            // The current pool state
+  tokenAAmountThreshold: BN;       // Minimum acceptable token A amount (slippage protection)
+  tokenBAmountThreshold: BN;       // Minimum acceptable token B amount (slippage protection)
 }
 ```
 
@@ -809,7 +780,103 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 
 #### Example
 ```typescript
-const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
-  partner: partnerWallet.publicKey,
-  pool: poolAddress,
-  maxAmountA: new B
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Check if position is locked
+if (cpAmm.isLockedPosition(positionState)) {
+  console.error("Cannot close a locked position");
+  return;
+}
+
+// Get withdraw quote
+const withdrawQuote = await cpAmm.getWithdrawQuote({
+  liquidityDelta: positionState.unlockedLiquidity,
+  sqrtPrice: poolState.sqrtPrice,
+  maxSqrtPrice: MAX_SQRT_PRICE,
+  minSqrtPrice: MIN_SQRT_PRICE
+});
+
+// Build transaction to remove all liquidity and close position
+const tx = await cpAmm.removeAllLiquidityAndClosePosition({
+  owner: wallet.publicKey,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  positionState: positionState,
+  poolState: poolState,
+  tokenAAmountThreshold: withdrawQuote.outAmountA.mul(new BN(95)).div(new BN(100)), // 5% slippage
+  tokenBAmountThreshold: withdrawQuote.outAmountB.mul(new BN(95)).div(new BN(100))  // 5% slippage
+});
+
+const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- This combines multiple operations in a single transaction:
+  1. Claims any accumulated fees
+  2. Removes all liquidity
+  3. Closes the position and returns the rent
+- The position must be completely unlocked
+- The function will throw an error if the position has any locked liquidity
+- This is more gas-efficient than doing these operations separately
+
+---
+
+### mergePosition
+
+Merges liquidity from one position into another in a single transaction.
+
+#### Function
+```typescript
+async mergePosition(params: MergePositionParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface MergePositionParams {
+  owner: PublicKey;                       // The owner of both positions
+  positionA: PublicKey;                   // Target position to merge into
+  positionB: PublicKey;                   // Source position to merge from
+  positionBState: PositionState;          // State of the source position
+  poolState: PoolState;                   // State of the pool
+  positionANftAccount: PublicKey;         // NFT account of target position
+  positionBNftAccount: PublicKey;         // NFT account of source position
+  tokenAAmountAddLiquidityThreshold: BN;  // Minimum token A amount for add liquidity
+  tokenBAmountAddLiquidityThreshold: BN;  // Minimum token B amount for add liquidity
+  tokenAAmountRemoveLiquidityThreshold: BN; // Minimum token A amount for remove liquidity
+  tokenBAmountRemoveLiquidityThreshold: BN; // Minimum token B amount for remove liquidity
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionAState = await cpAmm.fetchPositionState(positionAAddress); // Target position
+const positionBState = await cpAmm.fetchPositionState(positionBAddress); // Source position to merge from
+
+// Check if position is locked
+if (cpAmm.isLockedPosition(positionBState)) {
+  console.error("Cannot merge a locked position");
+  return;
+}
+
+// Build transaction to merge positions
+const tx = await cpAmm.mergePosition({
+  owner: wallet.publicKey,
+  positionA: positionAAddress,
+  positionB: positionBAddress,
+  positionBState: positionBState,
+  poolState: poolState,
+  positionANftAccount: positionANftAccount,
+  positionBNftAccount: positionBNftAccount,
+  tokenAAmountAddLiquidityThreshold: new BN(0),
+  tokenBAmountAddLiquidityThreshold: new BN(0),
+  tokenAAmountRemoveLiquidityThreshold: new BN(0),
+  tokenBAmountRemoveLiquidityThreshold: new BN(0)
+});
+
+const result = await wallet.sendTransaction(tx, connection);
+```

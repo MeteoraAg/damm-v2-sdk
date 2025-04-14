@@ -63,6 +63,26 @@ export const getCurrentPrice = (
   return price;
 };
 
+// Original formula: price = (sqrtPrice >> 64)^2 * 10^(tokenADecimal - tokenBDecimal)
+// Reverse formula: sqrtPrice = sqrt(price / 10^(tokenADecimal - tokenBDecimal)) << 64
+export const getSqrtPriceFromPrice = (
+  price: string,
+  tokenADecimal: number,
+  tokenBDecimal: number
+): BN => {
+  const decimalPrice = new Decimal(price);
+
+  const adjustedByDecimals = decimalPrice.div(
+    new Decimal(10 ** (tokenADecimal - tokenBDecimal))
+  );
+
+  const sqrtValue = Decimal.sqrt(adjustedByDecimals);
+
+  const sqrtValueQ64 = sqrtValue.mul(Decimal.pow(2, 64));
+
+  return new BN(sqrtValueQ64.floor().toFixed());
+};
+
 // fee = totalLiquidity * feePerTokenStore
 // precision: (totalLiquidity * feePerTokenStore) >> 128
 export const getUnClaimReward = (

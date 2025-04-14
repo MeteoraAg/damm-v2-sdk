@@ -198,8 +198,8 @@ export function getSwapAmount(
   // Apply fees to output amount if fee is taken on output
   const amountOut = feeMode.feeOnInput
     ? outAmount
-    : ((totalFee = getTotalFeeOnAmount(new BN(outAmount), tradeFeeNumerator)),
-      new BN(outAmount).sub(totalFee));
+    : ((totalFee = getTotalFeeOnAmount(outAmount, tradeFeeNumerator)),
+      outAmount.sub(totalFee));
 
-  return { amountOut: new BN(amountOut), totalFee };
+  return { amountOut, totalFee };
 }

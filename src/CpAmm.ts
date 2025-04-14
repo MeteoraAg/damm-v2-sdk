@@ -768,18 +768,18 @@ export class CpAmm {
       liquidityDelta,
       outAmountA: tokenATokenInfo
         ? calculateTransferFeeExcludedAmount(
-            new BN(amountA),
+            amountA,
             tokenATokenInfo.mint,
             tokenATokenInfo.currentEpoch
           ).amount
-        : new BN(amountA),
+        : amountA,
       outAmountB: tokenBTokenInfo
         ? calculateTransferFeeExcludedAmount(
-            new BN(amountB),
+            amountB,
             tokenBTokenInfo.mint,
             tokenBTokenInfo.currentEpoch
           ).amount
-        : new BN(amountB),
+        : amountB,
     };
   }
 

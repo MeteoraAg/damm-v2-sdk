@@ -2,16 +2,6 @@ import { BN } from "@coral-xyz/anchor";
 import Decimal from "decimal.js";
 import { Rounding } from "../types";
 
-export function mulShr(x: BN, y: BN, offset: number, rounding: Rounding): BN {
-  const denominator = new BN(1).shln(offset);
-  return mulDiv(x, y, denominator, rounding);
-}
-
-export function shlDiv(x: BN, y: BN, offset: number, rounding: Rounding): BN {
-  const scale = new BN(1).shln(offset);
-  return mulDiv(x, scale, y, rounding);
-}
-
 export function mulDiv(x: BN, y: BN, denominator: BN, rounding: Rounding): BN {
   const { div, mod } = x.mul(y).divmod(denominator);
 

@@ -8,8 +8,7 @@ import {
 } from "../constants";
 import { ONE, pow } from "../math/feeMath";
 import { mulDiv } from "../math";
-import { getDeltaAmountA, getDeltaAmountB, getNextSqrtPrice } from "./curve";
-import Decimal from "decimal.js";
+import { getAmountBFromLiquidityDelta, getNextSqrtPrice } from "./curve";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
@@ -46,17 +45,15 @@ export function getDynamicFeeNumerator(
   binStep: BN,
   variableFeeControl: BN
 ): BN {
-  const volatilityAccumulatorDecimal = new Decimal(
-    volatilityAccumulator.toString()
-  ).div(Decimal.pow(2, 64));
-  const squareVfaBin = volatilityAccumulatorDecimal
-    .mul(new Decimal(binStep.toString()))
-    .pow(2);
-  const vFee = squareVfaBin.mul(new Decimal(variableFeeControl.toString()));
+  if (variableFeeControl.isZero()) {
+    return new BN(0);
+  }
+  const squareVfaBin = volatilityAccumulator
+    .mul(new BN(binStep))
+    .pow(new BN(2));
+  const vFee = variableFeeControl.mul(squareVfaBin);
 
-  return new BN(
-    vFee.add(99_999_999_999).div(100_000_000_000).floor().toFixed()
-  );
+  return vFee.add(new BN(99_999_999_999)).div(new BN(100_000_000_000));
 }
 
 /**
@@ -185,13 +182,13 @@ export function getSwapAmount(
 
   // Calculate the output amount based on swap direction
   const outAmount = aToB
-    ? getDeltaAmountB(
+    ? getAmountBFromLiquidityDelta(
         getNextSqrtPrice(actualInAmount, sqrtPrice, liquidity, true),
         sqrtPrice,
         liquidity,
         Rounding.Down
       )
-    : getDeltaAmountA(
+    : getAmountBFromLiquidityDelta(
         sqrtPrice,
         getNextSqrtPrice(actualInAmount, sqrtPrice, liquidity, false),
         liquidity,

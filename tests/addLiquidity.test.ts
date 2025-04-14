@@ -2,7 +2,6 @@ import { ProgramTestContext } from "solana-bankrun";
 import {
   executeTransaction,
   getPool,
-  getPosition,
   setupTestContext,
   startTest,
 } from "./bankrun-utils/common";
@@ -18,6 +17,7 @@ import {
   AddLiquidityParams,
   BaseFee,
   CpAmm,
+  derivePositionNftAccount,
   getTokenProgram,
   InitializeCustomizeablePoolParams,
   MAX_SQRT_PRICE,
@@ -69,6 +69,19 @@ describe("Add liquidity", () => {
 
       const positionNft = Keypair.generate();
 
+      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+        ammInstance.preparePoolCreationParams({
+          tokenAAmount,
+          tokenBAmount,
+
+          minSqrtPrice: MIN_SQRT_PRICE,
+          maxSqrtPrice: MAX_SQRT_PRICE,
+          tokenADecimal: DECIMALS,
+          tokenBDecimal: DECIMALS,
+        });
+
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
         creator: creator.publicKey,
@@ -77,10 +90,10 @@ describe("Add liquidity", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        minSqrtPrice: MIN_SQRT_PRICE,
-        maxSqrtPrice: MAX_SQRT_PRICE,
-        tokenADecimal: DECIMALS,
-        tokenBDecimal: DECIMALS,
+        sqrtMinPrice: MIN_SQRT_PRICE,
+        sqrtMaxPrice: MAX_SQRT_PRICE,
+        liquidityDelta: initPoolLiquidityDelta,
+        initSqrtPrice,
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
@@ -107,27 +120,20 @@ describe("Add liquidity", () => {
         ammInstance.getProgram(),
         pool
       );
-      const positionState = await getPosition(
-        context.banksClient,
-        ammInstance.getProgram(),
-        position
-      );
-      const liquidityDelta = await ammInstance.getLiquidityDelta({
-        maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
-        maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
+      const { liquidityDelta } = await ammInstance.getDepositQuote({
+        inAmount: new BN(1000 * 10 ** DECIMALS),
+        isTokenA: true,
         sqrtPrice: poolState.sqrtPrice,
-        sqrtMinPrice: poolState.sqrtMinPrice,
-        sqrtMaxPrice: poolState.sqrtMaxPrice,
+        minSqrtPrice: poolState.sqrtMinPrice,
+        maxSqrtPrice: poolState.sqrtMaxPrice,
       });
 
       const addLiquidityParams: AddLiquidityParams = {
         owner: creator.publicKey,
         position,
         pool,
-        positionNftMint: positionState.nftMint,
-        liquidityDeltaQ64: liquidityDelta,
+        positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
+        liquidityDelta,
         maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
         maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
         tokenAAmountThreshold: new BN(U64_MAX),
@@ -189,6 +195,19 @@ describe("Add liquidity", () => {
 
       const positionNft = Keypair.generate();
 
+      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+        ammInstance.preparePoolCreationParams({
+          tokenAAmount,
+          tokenBAmount,
+
+          minSqrtPrice: MIN_SQRT_PRICE,
+          maxSqrtPrice: MAX_SQRT_PRICE,
+          tokenADecimal: DECIMALS,
+          tokenBDecimal: DECIMALS,
+        });
+
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
         creator: creator.publicKey,
@@ -197,10 +216,10 @@ describe("Add liquidity", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        minSqrtPrice: MIN_SQRT_PRICE,
-        maxSqrtPrice: MAX_SQRT_PRICE,
-        tokenADecimal: DECIMALS,
-        tokenBDecimal: DECIMALS,
+        sqrtMinPrice: MIN_SQRT_PRICE,
+        sqrtMaxPrice: MAX_SQRT_PRICE,
+        liquidityDelta: initPoolLiquidityDelta,
+        initSqrtPrice,
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
@@ -227,27 +246,20 @@ describe("Add liquidity", () => {
         ammInstance.getProgram(),
         pool
       );
-      const positionState = await getPosition(
-        context.banksClient,
-        ammInstance.getProgram(),
-        position
-      );
-      const liquidityDelta = await ammInstance.getLiquidityDelta({
-        maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
-        maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
+      const { liquidityDelta } = await ammInstance.getDepositQuote({
+        inAmount: new BN(1000 * 10 ** DECIMALS),
+        isTokenA: true,
         sqrtPrice: poolState.sqrtPrice,
-        sqrtMinPrice: poolState.sqrtMinPrice,
-        sqrtMaxPrice: poolState.sqrtMaxPrice,
+        minSqrtPrice: poolState.sqrtMinPrice,
+        maxSqrtPrice: poolState.sqrtMaxPrice,
       });
 
       const addLiquidityParams: AddLiquidityParams = {
         owner: creator.publicKey,
         position,
         pool,
-        positionNftMint: positionState.nftMint,
-        liquidityDeltaQ64: liquidityDelta,
+        positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
+        liquidityDelta,
         maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
         maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
         tokenAAmountThreshold: new BN(U64_MAX),

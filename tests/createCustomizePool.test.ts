@@ -71,6 +71,19 @@ describe("Initialize customizable pool", () => {
 
       const positionNft = Keypair.generate();
 
+      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+        ammInstance.preparePoolCreationParams({
+          tokenAAmount,
+          tokenBAmount,
+
+          minSqrtPrice: MIN_SQRT_PRICE,
+          maxSqrtPrice: MAX_SQRT_PRICE,
+          tokenADecimal: DECIMALS,
+          tokenBDecimal: DECIMALS,
+        });
+
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
         creator: creator.publicKey,
@@ -79,10 +92,10 @@ describe("Initialize customizable pool", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        minSqrtPrice: MIN_SQRT_PRICE,
-        maxSqrtPrice: MAX_SQRT_PRICE,
-        tokenADecimal: DECIMALS,
-        tokenBDecimal: DECIMALS,
+        sqrtMinPrice: MIN_SQRT_PRICE,
+        sqrtMaxPrice: MAX_SQRT_PRICE,
+        liquidityDelta: initPoolLiquidityDelta,
+        initSqrtPrice,
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
@@ -152,6 +165,19 @@ describe("Initialize customizable pool", () => {
 
       const positionNft = Keypair.generate();
 
+      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+        ammInstance.preparePoolCreationParams({
+          tokenAAmount,
+          tokenBAmount,
+
+          minSqrtPrice: MIN_SQRT_PRICE,
+          maxSqrtPrice: MAX_SQRT_PRICE,
+          tokenADecimal: DECIMALS,
+          tokenBDecimal: DECIMALS,
+        });
+
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
         creator: creator.publicKey,
@@ -160,10 +186,10 @@ describe("Initialize customizable pool", () => {
         tokenBMint: tokenY,
         tokenAAmount: new BN(1000 * 10 ** DECIMALS),
         tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        minSqrtPrice: MIN_SQRT_PRICE,
-        maxSqrtPrice: MAX_SQRT_PRICE,
-        tokenADecimal: DECIMALS,
-        tokenBDecimal: DECIMALS,
+        sqrtMinPrice: MIN_SQRT_PRICE,
+        sqrtMaxPrice: MAX_SQRT_PRICE,
+        liquidityDelta: initPoolLiquidityDelta,
+        initSqrtPrice,
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp

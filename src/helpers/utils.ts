@@ -48,7 +48,7 @@ export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
 };
 
 // (sqrtPrice >> 64) ** 2 * 10 ** (base_decimal - quote_decimal)
-export const getCurrentPrice = (
+export const getPriceFromSqrtPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
   tokenBDecimal: number
@@ -61,6 +61,26 @@ export const getCurrentPrice = (
     .toString();
 
   return price;
+};
+
+// Original formula: price = (sqrtPrice >> 64)^2 * 10^(tokenADecimal - tokenBDecimal)
+// Reverse formula: sqrtPrice = sqrt(price / 10^(tokenADecimal - tokenBDecimal)) << 64
+export const getSqrtPriceFromPrice = (
+  price: string,
+  tokenADecimal: number,
+  tokenBDecimal: number
+): BN => {
+  const decimalPrice = new Decimal(price);
+
+  const adjustedByDecimals = decimalPrice.div(
+    new Decimal(10 ** (tokenADecimal - tokenBDecimal))
+  );
+
+  const sqrtValue = Decimal.sqrt(adjustedByDecimals);
+
+  const sqrtValueQ64 = sqrtValue.mul(Decimal.pow(2, 64));
+
+  return new BN(sqrtValueQ64.floor().toFixed());
 };
 
 // fee = totalLiquidity * feePerTokenStore

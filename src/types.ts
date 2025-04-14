@@ -110,7 +110,6 @@ export type InitializeCustomizeablePoolParams = {
 export type PreparePoolCreationParams = {
   tokenAAmount: BN;
   tokenBAmount: BN;
-
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
   tokenADecimal: number;
@@ -128,6 +127,17 @@ export type PreparePoolCreationParams = {
 export type PreparedPoolCreation = {
   initSqrtPrice: BN;
   liquidityDelta: BN;
+};
+
+export type PreparePoolCreationSingleSide = {
+  tokenAAmount: BN;
+  minSqrtPrice: BN;
+  maxSqrtPrice: BN;
+  initSqrtPrice: BN;
+  tokenAInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
 };
 
 export type CreatePoolParams = {
@@ -157,8 +167,8 @@ export type AddLiquidityParams = {
   owner: PublicKey;
   position: PublicKey;
   pool: PublicKey;
-  positionNftMint: PublicKey;
-  liquidityDeltaQ64: BN;
+  positionNftAccount: PublicKey;
+  liquidityDelta: BN;
   maxAmountTokenA: BN;
   maxAmountTokenB: BN;
   tokenAAmountThreshold: BN;
@@ -191,8 +201,8 @@ export type RemoveLiquidityParams = {
   owner: PublicKey;
   position: PublicKey;
   pool: PublicKey;
-  positionNftMint: PublicKey;
-  liquidityDeltaQ64: BN;
+  positionNftAccount: PublicKey;
+  liquidityDelta: BN;
   tokenAAmountThreshold: BN;
   tokenBAmountThreshold: BN;
   tokenAMint: PublicKey;
@@ -205,7 +215,7 @@ export type RemoveLiquidityParams = {
 
 export type RemoveAllLiquidityParams = Omit<
   RemoveLiquidityParams,
-  "liquidityDeltaQ64"
+  "liquidityDelta"
 >;
 
 export type BuildAddLiquidityParams = {
@@ -249,11 +259,13 @@ export type ClosePositionParams = {
   pool: PublicKey;
   position: PublicKey;
   positionNftMint: PublicKey;
+  positionNftAccount: PublicKey;
 };
 
 export type RemoveAllLiquidityAndClosePositionParams = {
   owner: PublicKey;
   position: PublicKey;
+  positionNftAccount: PublicKey;
   poolState: PoolState;
   positionState: PositionState;
   tokenAAmountThreshold: BN;
@@ -265,10 +277,13 @@ export type MergePositionParams = {
   positionA: PublicKey;
   positionB: PublicKey;
   poolState: PoolState;
-  positionAState: PositionState;
+  positionBNftAccount: PublicKey;
+  positionANftAccount: PublicKey;
   positionBState: PositionState;
-  tokenAAmountThreshold: BN;
-  tokenBAmountThreshold: BN;
+  tokenAAmountAddLiquidityThreshold: BN;
+  tokenBAmountAddLiquidityThreshold: BN;
+  tokenAAmountRemoveLiquidityThreshold: BN;
+  tokenBAmountRemoveLiquidityThreshold: BN;
 };
 
 export type GetQuoteParams = {
@@ -315,7 +330,7 @@ export type LockPositionParams = {
   payer: PublicKey;
   vestingAccount: PublicKey;
   position: PublicKey;
-  positionNftMint: PublicKey;
+  positionNftAccount: PublicKey;
   pool: PublicKey;
   cliffPoint: BN | null;
   periodFrequency: BN;
@@ -344,7 +359,7 @@ export type ClaimPositionFeeParams = {
   owner: PublicKey;
   position: PublicKey;
   pool: PublicKey;
-  nftPositionMint: PublicKey;
+  positionNftAccount: PublicKey;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
   tokenAVault: PublicKey;
@@ -408,13 +423,16 @@ export type ClaimPartnerFeeParams = {
 export type ClaimRewardParams = {
   user: PublicKey;
   position: PublicKey;
+  poolState: PoolState;
+  positionState: PositionState;
+  positionNftAccount: PublicKey;
   rewardIndex: number;
 };
 
 export type RefreshVestingParams = {
   owner: PublicKey;
   position: PublicKey;
-  positionNftMint: PublicKey;
+  positionNftAccount: PublicKey;
   pool: PublicKey;
   vestings: PublicKey[];
 };
@@ -422,7 +440,7 @@ export type RefreshVestingParams = {
 export type PermanentLockParams = {
   owner: PublicKey;
   position: PublicKey;
-  positionNftMint: PublicKey;
+  positionNftAccount: PublicKey;
   pool: PublicKey;
   unlockedLiquidity: BN;
 };

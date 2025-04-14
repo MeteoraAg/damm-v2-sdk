@@ -8,8 +8,7 @@ import {
 } from "../constants";
 import { ONE, pow } from "../math/feeMath";
 import { mulDiv } from "../math";
-import { getDeltaAmountA, getDeltaAmountB, getNextSqrtPrice } from "./curve";
-import Decimal from "decimal.js";
+import { getAmountBFromLiquidityDelta, getNextSqrtPrice } from "./curve";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
@@ -183,13 +182,13 @@ export function getSwapAmount(
 
   // Calculate the output amount based on swap direction
   const outAmount = aToB
-    ? getDeltaAmountB(
+    ? getAmountBFromLiquidityDelta(
         getNextSqrtPrice(actualInAmount, sqrtPrice, liquidity, true),
         sqrtPrice,
         liquidity,
         Rounding.Down
       )
-    : getDeltaAmountA(
+    : getAmountBFromLiquidityDelta(
         sqrtPrice,
         getNextSqrtPrice(actualInAmount, sqrtPrice, liquidity, false),
         liquidity,
@@ -199,8 +198,8 @@ export function getSwapAmount(
   // Apply fees to output amount if fee is taken on output
   const amountOut = feeMode.feeOnInput
     ? outAmount
-    : ((totalFee = getTotalFeeOnAmount(outAmount, tradeFeeNumerator)),
-      outAmount.sub(totalFee));
+    : ((totalFee = getTotalFeeOnAmount(new BN(outAmount), tradeFeeNumerator)),
+      new BN(outAmount).sub(totalFee));
 
-  return { amountOut, totalFee };
+  return { amountOut: new BN(amountOut), totalFee };
 }

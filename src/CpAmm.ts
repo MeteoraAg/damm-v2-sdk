@@ -685,7 +685,8 @@ export class CpAmm {
           liquidityDelta: getLiquidityDeltaFromAmountA(
             actualAmountIn,
             sqrtPrice,
-            maxSqrtPrice
+            maxSqrtPrice,
+            Rounding.Down
           ),
           rawAmount: (delta: BN) =>
             getAmountBFromLiquidityDelta(
@@ -699,7 +700,8 @@ export class CpAmm {
           liquidityDelta: getLiquidityDeltaFromAmountB(
             actualAmountIn,
             minSqrtPrice,
-            sqrtPrice
+            sqrtPrice,
+            Rounding.Down
           ),
           rawAmount: (delta: BN) =>
             getAmountAFromLiquidityDelta(
@@ -815,7 +817,8 @@ export class CpAmm {
     const liquidityDelta = getLiquidityDeltaFromAmountA(
       actualAmountIn,
       initSqrtPrice,
-      maxSqrtPrice
+      maxSqrtPrice,
+      Rounding.Down
     );
 
     return liquidityDelta;
@@ -873,13 +876,15 @@ export class CpAmm {
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       actualAmountAIn,
       initSqrtPrice,
-      maxSqrtPrice
+      maxSqrtPrice,
+      Rounding.Down
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       actualAmountBIn,
       minSqrtPrice,
-      initSqrtPrice
+      initSqrtPrice,
+      Rounding.Down
     );
 
     const liquidityDelta = min(

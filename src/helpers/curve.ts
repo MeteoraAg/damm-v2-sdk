@@ -113,19 +113,17 @@ export function getAmountAFromLiquidityDelta(
   maxSqrtPrice: BN,
   rounding: Rounding
 ): string {
-  const prod = new Decimal(liquidity.toString()).mul(
-    new Decimal(maxSqrtPrice.sub(currentSqrtPrice).toString())
-  );
+  // Q128.128
+  const product = liquidity.mul(maxSqrtPrice.sub(currentSqrtPrice));
+  // Q128.128
   const denominator = currentSqrtPrice.mul(maxSqrtPrice);
-  // prod: Q128.128, denominator: Q128.128
-  const result = prod
-    .mul(Decimal.pow(2, 64))
-    .div(new Decimal(denominator.toString()));
-
+  const one = new BN(1).shln(64);
+  // Q64.64
+  const result = product.shln(64).div(denominator);
   if (rounding == Rounding.Up) {
-    return result.div(Decimal.pow(2, 64)).ceil().toFixed();
+    return result.add(one).shrn(64).toString();
   }
-  return result.div(Decimal.pow(2, 64)).floor().toFixed();
+  return result.shrn(64).toString();
 }
 
 // L = Δb / (√P_upper - √P_lower)
@@ -136,14 +134,11 @@ export function getAmountBFromLiquidityDelta(
   minSqrtPrice: BN,
   rounding: Rounding
 ): string {
-  const delta = currentSqrtPrice.sub(minSqrtPrice);
-  // Q64.64 * Q64.64 => prod: Q128.128
-  const prod = new Decimal(liquidity.toString()).mul(
-    new Decimal(delta.toString())
-  );
-
+  const one = new BN(1).shln(128);
+  const denominator = currentSqrtPrice.sub(minSqrtPrice);
+  const result = liquidity.mul(denominator); // Q128
   if (rounding == Rounding.Up) {
-    return prod.div(Decimal.pow(2, 128)).ceil().toFixed();
+    return result.add(one).shrn(128).toString();
   }
-  return prod.div(Decimal.pow(2, 128)).floor().toFixed();
+  return result.shrn(128).toString();
 }

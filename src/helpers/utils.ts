@@ -48,7 +48,7 @@ export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
 };
 
 // (sqrtPrice >> 64) ** 2 * 10 ** (base_decimal - quote_decimal)
-export const getCurrentPrice = (
+export const getPriceFromSqrtPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
   tokenBDecimal: number

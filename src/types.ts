@@ -110,7 +110,6 @@ export type InitializeCustomizeablePoolParams = {
 export type PreparePoolCreationParams = {
   tokenAAmount: BN;
   tokenBAmount: BN;
-
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
   tokenADecimal: number;
@@ -128,6 +127,17 @@ export type PreparePoolCreationParams = {
 export type PreparedPoolCreation = {
   initSqrtPrice: BN;
   liquidityDelta: BN;
+};
+
+export type PreparePoolCreationSingleSide = {
+  tokenAAmount: BN;
+  minSqrtPrice: BN;
+  maxSqrtPrice: BN;
+  initSqrtPrice: BN;
+  tokenAInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
 };
 
 export type CreatePoolParams = {

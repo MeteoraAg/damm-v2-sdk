@@ -39,6 +39,7 @@ import {
   PositionState,
   PreparedPoolCreation,
   PreparePoolCreationParams,
+  PreparePoolCreationSingleSide,
   RefreshVestingParams,
   RemoveAllLiquidityAndClosePositionParams,
   RemoveAllLiquidityParams,
@@ -780,6 +781,44 @@ export class CpAmm {
           ).amount
         : new BN(amountB),
     };
+  }
+
+  /**
+   * Calculates liquidity and corresponding token amounts for token A single-sided pool creation
+   * Only supports initialization where initial price equals min sqrt price
+   * @param params Parameters for single-sided pool creation
+   * @returns Calculated liquidity delta
+   */
+  preparePoolCreationSingleSide(params: PreparePoolCreationSingleSide): BN {
+    const {
+      tokenAAmount,
+      initSqrtPrice,
+      minSqrtPrice,
+      maxSqrtPrice,
+      tokenAInfo,
+    } = params;
+
+    if (!initSqrtPrice.eq(minSqrtPrice)) {
+      throw new Error("Only support single side for base token.");
+    }
+
+    const actualAmountIn = tokenAInfo
+      ? tokenAAmount.sub(
+          calculateTransferFeeIncludedAmount(
+            tokenAAmount,
+            tokenAInfo.mint,
+            tokenAInfo.currentEpoch
+          ).transferFee
+        )
+      : tokenAAmount;
+
+    const liquidityDelta = getLiquidityDeltaFromAmountA(
+      actualAmountIn,
+      initSqrtPrice,
+      maxSqrtPrice
+    );
+
+    return liquidityDelta;
   }
 
   /**

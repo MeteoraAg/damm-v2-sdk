@@ -239,6 +239,18 @@ export type BuildAddLiquidityParams = {
   tokenBProgram: PublicKey;
 };
 
+export type BuildLiquidatePositionInstructionParams = {
+  owner: PublicKey;
+  position: PublicKey;
+  positionNftAccount: PublicKey;
+  positionState: PositionState;
+  poolState: PoolState;
+  tokenAAccount: PublicKey;
+  tokenBAccount: PublicKey;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
+};
+
 export type BuildRemoveAllLiquidityInstructionParams = {
   poolAuthority: PublicKey;
   owner: PublicKey;

@@ -16,6 +16,7 @@ import {
   AddLiquidityParams,
   AmmProgram,
   BuildAddLiquidityParams,
+  BuildLiquidatePositionInstructionParams,
   BuildRemoveAllLiquidityInstructionParams,
   ClaimPartnerFeeParams,
   ClaimPositionFeeInstructionParams,
@@ -82,9 +83,10 @@ import {
   getAmountBFromLiquidityDelta,
   getAmountAFromLiquidityDelta,
   getAllUserPositionNftAccount,
+  getAvailableVestingLiquidity,
+  isVestingComplete,
 } from "./helpers";
 import { min } from "bn.js";
-import { isVestingComplete } from "./helpers/vestings";
 
 /**
  * CpAmm SDK class to interact with the Dynamic CP-AMM
@@ -386,6 +388,90 @@ export class CpAmm {
         })
       )
       .instruction();
+  }
+
+  /**
+   * Helper function that builds instructions to claim fees, remove liquidity, and close a position
+   * @param {BuildLiquidatePositionInstructionParams} params - Parameters for liquidating a position
+   * @returns {Promise<TransactionInstruction[]>} Array of instructions
+   * @private
+   */
+  private async buildLiquidatePositionInstruction(
+    params: BuildLiquidatePositionInstructionParams
+  ): Promise<TransactionInstruction[]> {
+    const {
+      owner,
+      position,
+      positionNftAccount,
+      positionState,
+      poolState,
+      tokenAAccount,
+      tokenBAccount,
+      tokenAAmountThreshold,
+      tokenBAmountThreshold,
+    } = params;
+
+    const { nftMint: positionNftMint, pool } = positionState;
+    const { tokenAMint, tokenBMint, tokenAVault, tokenBVault } = poolState;
+
+    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
+    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
+
+    const instructions: TransactionInstruction[] = [];
+
+    // 1. claim position fee
+    const claimPositionFeeInstruction =
+      await this.buildClaimPositionFeeInstruction({
+        owner,
+        poolAuthority: this.poolAuthority,
+        pool,
+        position,
+        positionNftAccount,
+        tokenAAccount,
+        tokenBAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+      });
+
+    instructions.push(claimPositionFeeInstruction);
+
+    // 2. remove all liquidity
+    const removeAllLiquidityInstruction =
+      await this.buildRemoveAllLiquidityInstruction({
+        poolAuthority: this.poolAuthority,
+        owner,
+        pool,
+        position,
+        positionNftAccount,
+        tokenAAccount,
+        tokenBAccount,
+        tokenAAmountThreshold,
+        tokenBAmountThreshold,
+        tokenAMint,
+        tokenBMint,
+        tokenAVault,
+        tokenBVault,
+        tokenAProgram,
+        tokenBProgram,
+      });
+
+    instructions.push(removeAllLiquidityInstruction);
+    // 3. close position
+    const closePositionInstruction = await this.buildClosePositionInstruction({
+      owner,
+      poolAuthority: this.poolAuthority,
+      pool,
+      position,
+      positionNftMint,
+      positionNftAccount,
+    });
+    instructions.push(closePositionInstruction);
+
+    return instructions;
   }
 
   /**
@@ -1748,8 +1834,8 @@ export class CpAmm {
       currentPoint,
     } = params;
 
-    const { nftMint: positionNftMint, pool } = positionState;
-    const { tokenAMint, tokenBMint, tokenAVault, tokenBVault } = poolState;
+    const { pool } = positionState;
+    const { tokenAMint, tokenBMint } = poolState;
 
     const { canUnlock, reason } = this.canUnlockPosition(
       positionState,
@@ -1802,61 +1888,26 @@ export class CpAmm {
     }
 
     const transaction = new Transaction();
+
     if (preInstructions.length > 0) {
       transaction.add(...preInstructions);
     }
 
-    // 2. claim position fee
-    const claimPositionFeeInstruction =
-      await this.buildClaimPositionFeeInstruction({
+    // 2. claim fee, remove liquidity and close position
+    const liquidatePositionInstructions =
+      await this.buildLiquidatePositionInstruction({
         owner,
-        poolAuthority: this.poolAuthority,
-        pool,
         position,
         positionNftAccount,
-        tokenAAccount,
-        tokenBAccount,
-        tokenAVault,
-        tokenBVault,
-        tokenAMint,
-        tokenBMint,
-        tokenAProgram,
-        tokenBProgram,
-      });
-
-    transaction.add(claimPositionFeeInstruction);
-
-    // 3. remove all liquidity
-    const removeAllLiquidityInstruction =
-      await this.buildRemoveAllLiquidityInstruction({
-        poolAuthority: this.poolAuthority,
-        owner,
-        pool,
-        position,
-        positionNftAccount,
+        positionState,
+        poolState,
         tokenAAccount,
         tokenBAccount,
         tokenAAmountThreshold,
         tokenBAmountThreshold,
-        tokenAMint,
-        tokenBMint,
-        tokenAVault,
-        tokenBVault,
-        tokenAProgram,
-        tokenBProgram,
       });
 
-    transaction.add(removeAllLiquidityInstruction);
-    // 4. close position
-    const closePositionInstruction = await this.buildClosePositionInstruction({
-      owner,
-      poolAuthority: this.poolAuthority,
-      pool,
-      position,
-      positionNftMint,
-      positionNftAccount,
-    });
-    transaction.add(closePositionInstruction);
+    transaction.add(...liquidatePositionInstructions);
 
     if (postInstructions.length > 0) {
       transaction.add(...postInstructions);
@@ -1904,7 +1955,6 @@ export class CpAmm {
       throw new Error(`Cannot remove liquidity: ${reason}`);
     }
 
-    const positionBLiquidityDelta = positionBState.unlockedLiquidity;
     const pool = positionBState.pool;
     const { tokenAMint, tokenBMint, tokenAVault, tokenBVault } = poolState;
 
@@ -1933,8 +1983,25 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
+    let positionBLiquidityDelta = positionBState.unlockedLiquidity;
     // 1. refresh vesting position B if vesting account provided
     if (positionBVestings.length > 0) {
+      // accumulate all liquidity delta of position b (unlocked + available vesting)
+      const totalAvailableVestingLiquidity = positionBVestings.reduce(
+        (total, position) => {
+          const available = getAvailableVestingLiquidity(
+            position.vestingState,
+            currentPoint
+          );
+          return total.add(available);
+        },
+        new BN(0)
+      );
+
+      positionBLiquidityDelta = positionBLiquidityDelta.add(
+        totalAvailableVestingLiquidity
+      );
+
       const refreshVestingInstruction =
         await this.buildRefreshVestingInstruction({
           owner,
@@ -1948,53 +2015,28 @@ export class CpAmm {
     }
 
     const transaction = new Transaction();
+
     if (preInstructions.length > 0) {
       transaction.add(...preInstructions);
     }
 
-    // 2. claim all position fee in position B
-    const claimPositionFeeInstruction =
-      await this.buildClaimPositionFeeInstruction({
+    // 2. claim fee, remove liquidity and close position
+    const liquidatePositionInstructions =
+      await this.buildLiquidatePositionInstruction({
         owner,
-        poolAuthority: this.poolAuthority,
-        pool,
         position: positionB,
         positionNftAccount: positionBNftAccount,
-        tokenAAccount,
-        tokenBAccount,
-        tokenAVault,
-        tokenBVault,
-        tokenAMint,
-        tokenBMint,
-        tokenAProgram,
-        tokenBProgram,
-      });
-
-    transaction.add(claimPositionFeeInstruction);
-
-    // 3. remove all liquidity in position B
-    const removeAllLiquidityInstruction =
-      await this.buildRemoveAllLiquidityInstruction({
-        poolAuthority: this.poolAuthority,
-        owner,
-        pool,
-        position: positionB,
-        positionNftAccount: positionBNftAccount,
+        positionState: positionBState,
+        poolState,
         tokenAAccount,
         tokenBAccount,
         tokenAAmountThreshold: tokenAAmountRemoveLiquidityThreshold,
         tokenBAmountThreshold: tokenBAmountRemoveLiquidityThreshold,
-        tokenAMint,
-        tokenBMint,
-        tokenAVault,
-        tokenBVault,
-        tokenAProgram,
-        tokenBProgram,
       });
 
-    transaction.add(removeAllLiquidityInstruction);
+    transaction.add(...liquidatePositionInstructions);
 
-    // 4. add liquidity from position B to positon A
+    // 3. add liquidity from position B to positon A
     const addLiquidityInstruction = await this.buildAddLiquidityInstruction({
       pool,
       position: positionA,
@@ -2014,17 +2056,6 @@ export class CpAmm {
     });
 
     transaction.add(addLiquidityInstruction);
-
-    // 5. close position B
-    const closePositionInstruction = await this.buildClosePositionInstruction({
-      owner,
-      poolAuthority: this.poolAuthority,
-      pool: positionBState.pool,
-      position: positionB,
-      positionNftMint: positionBState.nftMint,
-      positionNftAccount: positionBNftAccount,
-    });
-    transaction.add(closePositionInstruction);
 
     if (postInstructions.length > 0) {
       transaction.add(...postInstructions);

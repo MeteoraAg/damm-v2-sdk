@@ -6,3 +6,4 @@ export * from "./utils";
 export * from "./accountFilters";
 export * from "./priceMath";
 export * from "./token2022";
+export * from "./vestings";

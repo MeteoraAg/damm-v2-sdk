@@ -84,6 +84,7 @@ import {
   getAllUserPositionNftAccount,
 } from "./helpers";
 import { min } from "bn.js";
+import { isVestingComplete } from "./helpers/vestings";
 
 /**
  * CpAmm SDK class to interact with the Dynamic CP-AMM
@@ -353,6 +354,41 @@ export class CpAmm {
   }
 
   /**
+   * Builds an instruction to refresh vesting for a position
+   * @param params Parameters required for the refresh vesting instruction
+   * @returns Transaction instruction or null if no vestings to refresh
+   */
+  private async buildRefreshVestingInstruction(
+    params: RefreshVestingParams
+  ): Promise<TransactionInstruction | null> {
+    const { owner, position, positionNftAccount, pool, vestingAccounts } =
+      params;
+
+    if (vestingAccounts.length == 0) {
+      return null;
+    }
+
+    return await this._program.methods
+      .refreshVesting()
+      .accountsPartial({
+        position,
+        positionNftAccount,
+        pool,
+        owner,
+      })
+      .remainingAccounts(
+        vestingAccounts.map((pubkey: PublicKey) => {
+          return {
+            isSigner: false,
+            isWritable: true,
+            pubkey,
+          };
+        })
+      )
+      .instruction();
+  }
+
+  /**
    * Fetches the Config state of the program.
    * @param config - Public key of the config account.
    * @returns Parsed ConfigState.
@@ -546,6 +582,55 @@ export class CpAmm {
     return totalLockedLiquidity.gtn(0);
   }
 
+  isPermanentLockedPosition(positionState: PositionState): boolean {
+    return positionState.permanentLockedLiquidity.gtn(0);
+  }
+
+  /**
+   * Checks if a position can be unlocked based on its locking state and vesting schedules.
+   *
+   * This method evaluates whether a position is eligible for operations that require
+   * unlocked liquidity, such as removing all liquidity or closing the position. It checks both
+   * permanent locks and time-based vesting schedules.
+   *
+   * @private
+   * @param {PositionState} positionState - The current state of the position
+   * @param {Array<{account: PublicKey; vestingState: VestingState}>} vestings - Array of vesting accounts and their states
+   * @param {BN} currentPoint - Current timestamp or slot number (depending on activation type of pool)
+   *
+   * @returns {Object} Result object containing unlock status and reason
+   * @returns {boolean} result.canUnlock - Whether the position can be unlocked
+   * @returns {string|undefined} result.reason - Reason why position cannot be unlocked (if applicable)
+   */
+  canUnlockPosition(
+    positionState: PositionState,
+    vestings: Array<{ account: PublicKey; vestingState: VestingState }>,
+    currentPoint: BN
+  ): { canUnlock: boolean; reason?: string } {
+    if (vestings.length > 0) {
+      // Check if permanently locked
+      if (this.isPermanentLockedPosition(positionState)) {
+        return {
+          canUnlock: false,
+          reason: "Position is permanently locked",
+        };
+      }
+
+      // Check each vesting
+      // We expect that should have only one vesting per position
+      for (const vesting of vestings) {
+        if (!isVestingComplete(vesting.vestingState, currentPoint)) {
+          return {
+            canUnlock: false,
+            reason: "Position has incomplete vesting schedule",
+          };
+        }
+      }
+    }
+
+    return { canUnlock: true };
+  }
+
   async isPoolExist(pool: PublicKey): Promise<boolean> {
     const poolState = await this._program.account.pool.fetchNullable(pool);
     return poolState !== null;
@@ -628,24 +713,27 @@ export class CpAmm {
       collectFeeMode
     );
 
-    let actualAmoutOut = amountOut;
+    let actualAmountOut = amountOut;
     if (outputTokenInfo) {
-      actualAmoutOut = calculateTransferFeeExcludedAmount(
+      actualAmountOut = calculateTransferFeeExcludedAmount(
         amountOut,
         outputTokenInfo.mint,
         outputTokenInfo.currentEpoch
       ).amount;
     }
 
-    const minSwapOutAmount = getMinAmountWithSlippage(actualAmoutOut, slippage);
+    const minSwapOutAmount = getMinAmountWithSlippage(
+      actualAmountOut,
+      slippage
+    );
 
     return {
       swapInAmount: inAmount,
       consumedInAmount: actualAmountIn,
-      swapOutAmount: actualAmoutOut,
+      swapOutAmount: actualAmountOut,
       minSwapOutAmount,
       totalFee,
-      priceImpact: getPriceImpact(minSwapOutAmount, actualAmoutOut),
+      priceImpact: getPriceImpact(minSwapOutAmount, actualAmountOut),
     };
   }
 
@@ -854,14 +942,14 @@ export class CpAmm {
       : tokenAAmount;
 
     const actualAmountBIn = tokenBInfo
-      ? tokenAAmount.sub(
+      ? tokenBAmount.sub(
           calculateTransferFeeIncludedAmount(
             tokenBAmount,
             tokenBInfo.mint,
             tokenBInfo.currentEpoch
           ).transferFee
         )
-      : tokenAAmount;
+      : tokenBAmount;
 
     const initSqrtPrice = calculateInitSqrtPrice(
       tokenAAmount,
@@ -1245,7 +1333,9 @@ export class CpAmm {
       tokenBVault,
       tokenAProgram,
       tokenBProgram,
+      vestings,
     } = params;
+
     const {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
@@ -1266,6 +1356,19 @@ export class CpAmm {
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    if (vestings.length > 0) {
+      const refreshVestingInstruction =
+        await this.buildRefreshVestingInstruction({
+          owner,
+          position,
+          positionNftAccount,
+          pool,
+          vestingAccounts: vestings.map((item) => item.account),
+        });
+      refreshVestingInstruction &&
+        preInstructions.push(refreshVestingInstruction);
     }
 
     return await this._program.methods
@@ -1313,6 +1416,7 @@ export class CpAmm {
       tokenBVault,
       tokenAProgram,
       tokenBProgram,
+      vestings,
     } = params;
 
     const {
@@ -1335,6 +1439,19 @@ export class CpAmm {
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    if (vestings.length > 0) {
+      const refreshVestingInstruction =
+        await this.buildRefreshVestingInstruction({
+          owner,
+          position,
+          positionNftAccount,
+          pool,
+          vestingAccounts: vestings.map((item) => item.account),
+        });
+      refreshVestingInstruction &&
+        preInstructions.push(refreshVestingInstruction);
     }
 
     const removeAllLiquidityInstruction =
@@ -1516,25 +1633,9 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async refreshVesting(params: RefreshVestingParams): TxBuilder {
-    const { owner, position, positionNftAccount, pool, vestings } = params;
-    return await this._program.methods
-      .refreshVesting()
-      .accountsPartial({
-        position,
-        positionNftAccount,
-        pool: pool,
-        owner,
-      })
-      .remainingAccounts(
-        vestings.map((pubkey: PublicKey) => {
-          return {
-            isSigner: false,
-            isWritable: true,
-            pubkey,
-          };
-        })
-      )
-      .transaction();
+    const instruction = await this.buildRefreshVestingInstruction(params);
+
+    return new Transaction().add(instruction);
   }
 
   /**
@@ -1643,14 +1744,21 @@ export class CpAmm {
       poolState,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
+      vestings,
+      currentPoint,
     } = params;
 
     const { nftMint: positionNftMint, pool } = positionState;
     const { tokenAMint, tokenBMint, tokenAVault, tokenBVault } = poolState;
 
-    const isLockedPosition = this.isLockedPosition(positionState);
-    if (isLockedPosition) {
-      throw Error("position must be unlocked");
+    const { canUnlock, reason } = this.canUnlockPosition(
+      positionState,
+      vestings,
+      currentPoint
+    );
+
+    if (!canUnlock) {
+      throw new Error(`Cannot remove liquidity: ${reason}`);
     }
 
     const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
@@ -1678,12 +1786,27 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
+    // 1. refresh vesting if vesting account provided
+    if (vestings.length > 0) {
+      const refreshVestingInstruction =
+        await this.buildRefreshVestingInstruction({
+          owner,
+          position,
+          positionNftAccount,
+          pool,
+          vestingAccounts: vestings.map((item) => item.account),
+        });
+
+      refreshVestingInstruction &&
+        preInstructions.push(refreshVestingInstruction);
+    }
+
     const transaction = new Transaction();
     if (preInstructions.length > 0) {
       transaction.add(...preInstructions);
     }
 
-    // 1. claim position fee
+    // 2. claim position fee
     const claimPositionFeeInstruction =
       await this.buildClaimPositionFeeInstruction({
         owner,
@@ -1703,7 +1826,7 @@ export class CpAmm {
 
     transaction.add(claimPositionFeeInstruction);
 
-    // 2. remove all liquidity
+    // 3. remove all liquidity
     const removeAllLiquidityInstruction =
       await this.buildRemoveAllLiquidityInstruction({
         poolAuthority: this.poolAuthority,
@@ -1724,7 +1847,7 @@ export class CpAmm {
       });
 
     transaction.add(removeAllLiquidityInstruction);
-    // close position
+    // 4. close position
     const closePositionInstruction = await this.buildClosePositionInstruction({
       owner,
       poolAuthority: this.poolAuthority,
@@ -1767,14 +1890,21 @@ export class CpAmm {
       tokenBAmountAddLiquidityThreshold,
       tokenAAmountRemoveLiquidityThreshold,
       tokenBAmountRemoveLiquidityThreshold,
+      positionBVestings,
+      currentPoint,
     } = params;
 
-    const isLockedPosition = this.isLockedPosition(positionBState);
-    if (isLockedPosition) {
-      throw Error("position must be unlocked");
+    const { canUnlock, reason } = this.canUnlockPosition(
+      positionBState,
+      positionBVestings,
+      currentPoint
+    );
+
+    if (!canUnlock) {
+      throw new Error(`Cannot remove liquidity: ${reason}`);
     }
 
-    const postionBLiquidityDelta = positionBState.unlockedLiquidity;
+    const positionBLiquidityDelta = positionBState.unlockedLiquidity;
     const pool = positionBState.pool;
     const { tokenAMint, tokenBMint, tokenAVault, tokenBVault } = poolState;
 
@@ -1803,12 +1933,26 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
+    // 1. refresh vesting position B if vesting account provided
+    if (positionBVestings.length > 0) {
+      const refreshVestingInstruction =
+        await this.buildRefreshVestingInstruction({
+          owner,
+          position: positionB,
+          positionNftAccount: positionBNftAccount,
+          pool,
+          vestingAccounts: positionBVestings.map((item) => item.account),
+        });
+      refreshVestingInstruction &&
+        preInstructions.push(refreshVestingInstruction);
+    }
+
     const transaction = new Transaction();
     if (preInstructions.length > 0) {
       transaction.add(...preInstructions);
     }
 
-    // 1. claim position fee in position B
+    // 2. claim all position fee in position B
     const claimPositionFeeInstruction =
       await this.buildClaimPositionFeeInstruction({
         owner,
@@ -1828,7 +1972,7 @@ export class CpAmm {
 
     transaction.add(claimPositionFeeInstruction);
 
-    // 2. remove all liquidity in position B
+    // 3. remove all liquidity in position B
     const removeAllLiquidityInstruction =
       await this.buildRemoveAllLiquidityInstruction({
         poolAuthority: this.poolAuthority,
@@ -1850,7 +1994,7 @@ export class CpAmm {
 
     transaction.add(removeAllLiquidityInstruction);
 
-    // 3 add liquidity from position B to positon A
+    // 4. add liquidity from position B to positon A
     const addLiquidityInstruction = await this.buildAddLiquidityInstruction({
       pool,
       position: positionA,
@@ -1864,14 +2008,14 @@ export class CpAmm {
       tokenBVault,
       tokenAProgram,
       tokenBProgram,
-      liquidityDelta: postionBLiquidityDelta,
+      liquidityDelta: positionBLiquidityDelta,
       tokenAAmountThreshold: tokenAAmountAddLiquidityThreshold,
       tokenBAmountThreshold: tokenBAmountAddLiquidityThreshold,
     });
 
     transaction.add(addLiquidityInstruction);
 
-    // close position B
+    // 5. close position B
     const closePositionInstruction = await this.buildClosePositionInstruction({
       owner,
       poolAuthority: this.poolAuthority,

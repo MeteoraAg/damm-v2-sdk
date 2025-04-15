@@ -70,11 +70,8 @@ describe("Create position", () => {
         ammInstance.preparePoolCreationParams({
           tokenAAmount,
           tokenBAmount,
-
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
       const positionNft = Keypair.generate();
       params = {
@@ -179,11 +176,8 @@ describe("Create position", () => {
         ammInstance.preparePoolCreationParams({
           tokenAAmount,
           tokenBAmount,
-
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
       const positionNft = Keypair.generate();
       params = {

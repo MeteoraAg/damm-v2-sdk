@@ -77,11 +77,8 @@ describe("Initialize customizable pool", () => {
         ammInstance.preparePoolCreationParams({
           tokenAAmount,
           tokenBAmount,
-
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -171,11 +168,8 @@ describe("Initialize customizable pool", () => {
         ammInstance.preparePoolCreationParams({
           tokenAAmount,
           tokenBAmount,
-
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
 
       const params: InitializeCustomizeablePoolParams = {

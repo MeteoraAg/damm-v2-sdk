@@ -23,6 +23,7 @@ import {
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,
   PoolFeesParams,
+  RemoveAllLiquidityParams,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
 
@@ -74,11 +75,8 @@ describe("Remove liquidity & Close position", () => {
         ammInstance.preparePoolCreationParams({
           tokenAAmount,
           tokenBAmount,
-
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -147,7 +145,11 @@ describe("Remove liquidity & Close position", () => {
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
-      const removeLiquidityParams = addLiquidityParams;
+      let removeLiquidityParams: RemoveAllLiquidityParams = {
+        ...addLiquidityParams,
+        vestings: [],
+        currentPoint: new BN(0),
+      };
       // remove all liquidity
       removeLiquidityParams.tokenAAmountThreshold = new BN(0);
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
@@ -223,8 +225,6 @@ describe("Remove liquidity & Close position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
@@ -293,7 +293,12 @@ describe("Remove liquidity & Close position", () => {
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
-      const removeLiquidityParams = addLiquidityParams;
+      let removeLiquidityParams: RemoveAllLiquidityParams = {
+        ...addLiquidityParams,
+        vestings: [],
+        currentPoint: new BN(0),
+      };
+      // remove all liquidity
       removeLiquidityParams.tokenAAmountThreshold = new BN(0);
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
 

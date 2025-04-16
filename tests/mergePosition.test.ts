@@ -73,11 +73,8 @@ describe("Merge position", () => {
       ammInstance.preparePoolCreationParams({
         tokenAAmount,
         tokenBAmount,
-
         minSqrtPrice: MIN_SQRT_PRICE,
         maxSqrtPrice: MAX_SQRT_PRICE,
-        tokenADecimal: DECIMALS,
-        tokenBDecimal: DECIMALS,
       });
 
     const params: InitializeCustomizeablePoolParams = {
@@ -211,6 +208,8 @@ describe("Merge position", () => {
       tokenBAmountAddLiquidityThreshold: new BN(U64_MAX),
       tokenAAmountRemoveLiquidityThreshold: new BN(0),
       tokenBAmountRemoveLiquidityThreshold: new BN(0),
+      positionBVestings: [],
+      currentPoint: new BN(0),
     });
 
     await executeTransaction(context.banksClient, mergeTx, [creator]);

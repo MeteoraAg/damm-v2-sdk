@@ -24,6 +24,7 @@ import {
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,
   PoolFeesParams,
+  RemoveAllLiquidityParams,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
 
@@ -76,11 +77,8 @@ describe("Remove liquidity", () => {
         ammInstance.preparePoolCreationParams({
           tokenAAmount,
           tokenBAmount,
-
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -155,9 +153,15 @@ describe("Remove liquidity", () => {
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
-      const removeLiquidityParams = addLiquidityParams;
+      let removeLiquidityParams = {
+        ...addLiquidityParams,
+        vestings: [],
+        currentPoint: new BN(0),
+      };
+      // remove all liquidity
       removeLiquidityParams.tokenAAmountThreshold = new BN(0);
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
+
       const removeLiquidityTx = await ammInstance.removeLiquidity(
         removeLiquidityParams
       );
@@ -217,11 +221,8 @@ describe("Remove liquidity", () => {
         ammInstance.preparePoolCreationParams({
           tokenAAmount,
           tokenBAmount,
-
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          tokenADecimal: DECIMALS,
-          tokenBDecimal: DECIMALS,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -296,7 +297,12 @@ describe("Remove liquidity", () => {
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
-      const removeLiquidityParams = addLiquidityParams;
+      let removeLiquidityParams = {
+        ...addLiquidityParams,
+        vestings: [],
+        currentPoint: new BN(0),
+      };
+      // remove all liquidity
       removeLiquidityParams.tokenAAmountThreshold = new BN(0);
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
       const removeLiquidityTx = await ammInstance.removeLiquidity(

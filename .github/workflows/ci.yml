@@ -24,7 +24,8 @@ jobs:
         uses: tj-actions/changed-files@v18.6
         with:
           files: |
-            ts-client
+            src
+            tests
 
   sdk_test:
     runs-on: ubuntu-latest
@@ -49,8 +50,8 @@ jobs:
       - uses: actions/cache@v4
         id: cache-node-modules
         with:
-          path: ./ts-client/node_modules
+          path: ./node_modules
           key: ${{ runner.os }}-${{ hashFiles('./package-lock.json') }}
       # Testing
-      - run: cd ts-client && npm install && npm run test
+      - run: npm install && npm run test
         shell: bash

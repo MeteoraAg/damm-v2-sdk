@@ -112,8 +112,6 @@ export type PreparePoolCreationParams = {
   tokenBAmount: BN;
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
-  tokenADecimal: number;
-  tokenBDecimal: number;
   tokenAInfo?: {
     mint: Mint;
     currentEpoch: number;
@@ -211,6 +209,11 @@ export type RemoveLiquidityParams = {
   tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
+  vestings: Array<{
+    account: PublicKey;
+    vestingState: VestingState;
+  }>;
+  currentPoint: BN;
 };
 
 export type RemoveAllLiquidityParams = Omit<
@@ -234,6 +237,18 @@ export type BuildAddLiquidityParams = {
   tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
+};
+
+export type BuildLiquidatePositionInstructionParams = {
+  owner: PublicKey;
+  position: PublicKey;
+  positionNftAccount: PublicKey;
+  positionState: PositionState;
+  poolState: PoolState;
+  tokenAAccount: PublicKey;
+  tokenBAccount: PublicKey;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
 };
 
 export type BuildRemoveAllLiquidityInstructionParams = {
@@ -270,6 +285,11 @@ export type RemoveAllLiquidityAndClosePositionParams = {
   positionState: PositionState;
   tokenAAmountThreshold: BN;
   tokenBAmountThreshold: BN;
+  vestings: Array<{
+    account: PublicKey;
+    vestingState: VestingState;
+  }>;
+  currentPoint: BN;
 };
 
 export type MergePositionParams = {
@@ -284,6 +304,11 @@ export type MergePositionParams = {
   tokenBAmountAddLiquidityThreshold: BN;
   tokenAAmountRemoveLiquidityThreshold: BN;
   tokenBAmountRemoveLiquidityThreshold: BN;
+  positionBVestings: Array<{
+    account: PublicKey;
+    vestingState: VestingState;
+  }>;
+  currentPoint: BN;
 };
 
 export type GetQuoteParams = {
@@ -434,7 +459,7 @@ export type RefreshVestingParams = {
   position: PublicKey;
   positionNftAccount: PublicKey;
   pool: PublicKey;
-  vestings: PublicKey[];
+  vestingAccounts: PublicKey[];
 };
 
 export type PermanentLockParams = {

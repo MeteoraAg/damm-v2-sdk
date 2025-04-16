@@ -1227,10 +1227,11 @@ export class CpAmm {
     }
 
     if (tokenBMint.equals(NATIVE_MINT)) {
+      const lamports = tokenBAmount.eq(new BN(0)) ? new BN(1) : tokenBAmount;
       const wrapSOLIx = wrapSOLInstruction(
         payer,
         payerTokenB,
-        BigInt(tokenBAmount.toString())
+        BigInt(lamports.toString())
       );
 
       preInstructions.push(...wrapSOLIx);

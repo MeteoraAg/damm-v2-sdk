@@ -34,14 +34,18 @@
   - [getAllVestingsByPosition](#getallvestingsbyposition)
   - [isLockedPosition](#islockedposition)
   - [isPoolExist](#ispoolexist)
-- [Reward Management Functions](#reward-management-functions)
-  - [updateRewardDuration](#updaterewardduration)
-  - [updateRewardFunder](#updaterewardfunder)
-  - [fundReward](#fundreward)
-  - [withdrawIneligibleReward](#withdrawineligiblereward)
 - [Helper Functions](#helper-functions)
   - [preparePoolCreationParams](#preparepoolcreationparams)
   - [getProgram](#getprogram)
+  - [isVestingComplete](#isvestingcomplete)
+  - [getTotalLockedLiquidity](#gettotallockedliquidity)
+  - [getAvailableVestingLiquidity](#getavailablevestingliquidity)
+  - [getMaxAmountWithSlippage](#getmaxamountwithslippage)
+  - [getMinAmountWithSlippage](#getminamountwithslippage)
+  - [getPriceImpact](#getpriceimpact)
+  - [getPriceFromSqrtPrice](#getpricefromsqrtprice)
+  - [getSqrtPriceFromPrice](#getsqrtpricefromprice)
+  - [getUnClaimReward](#getunclaimreward)
 
 ---
 
@@ -634,6 +638,7 @@ interface RemoveLiquidityParams {
   tokenBVault: PublicKey;        // The pool's token B vault
   tokenAProgram: PublicKey;      // Token program for token A
   tokenBProgram: PublicKey;      // Token program for token B
+  vestings?: Array<{account: PublicKey}>; // Optional vesting accounts to refresh
 }
 ```
 
@@ -707,6 +712,7 @@ interface RemoveAllLiquidityParams {
   tokenBVault: PublicKey;        // The pool's token B vault
   tokenAProgram: PublicKey;      // Token program for token A
   tokenBProgram: PublicKey;      // Token program for token B
+  vestings?: Array<{account: PublicKey}>; // Optional vesting accounts to refresh
 }
 ```
 
@@ -772,8 +778,9 @@ interface RemoveAllLiquidityAndClosePositionParams {
   poolState: PoolState;            // The current pool state
   tokenAAmountThreshold: BN;       // Minimum acceptable token A amount (slippage protection)
   tokenBAmountThreshold: BN;       // Minimum acceptable token B amount (slippage protection)
+  vestings?: Array<{account: PublicKey, vestingState: VestingState}>; // Optional vesting accounts
+  currentPoint?: BN;               // Current timestamp or slot number for vesting calculations
 }
-```
 
 #### Returns
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
@@ -819,6 +826,7 @@ const result = await wallet.sendTransaction(tx, connection);
 - The position must be completely unlocked
 - The function will throw an error if the position has any locked liquidity
 - This is more gas-efficient than doing these operations separately
+- If there are vesting schedules, they must be refreshed before closing the position
 
 ---
 
@@ -845,6 +853,8 @@ interface MergePositionParams {
   tokenBAmountAddLiquidityThreshold: BN;  // Minimum token B amount for add liquidity
   tokenAAmountRemoveLiquidityThreshold: BN; // Minimum token A amount for remove liquidity
   tokenBAmountRemoveLiquidityThreshold: BN; // Minimum token B amount for remove liquidity
+  positionBVestings?: Array<{account: PublicKey, vestingState: VestingState}>; // Optional vesting accounts for position B
+  currentPoint?: BN;                       // Current timestamp or slot number for vesting calculations
 }
 ```
 
@@ -879,4 +889,1066 @@ const tx = await cpAmm.mergePosition({
 });
 
 const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- This function combines multiple operations:
+  1. Claims any accumulated fees from the source position
+  2. Removes all liquidity from the source position
+  3. Adds the liquidity to the target position
+  4. Closes the source position
+- Both positions must be owned by the same wallet
+- The source position must be completely unlocked
+- This is more gas-efficient than performing these operations separately
+- Set appropriate thresholds to protect against slippage for both add and remove operations
+
+---
+
+### lockPosition
+
+Builds a transaction to lock a position with vesting schedule.
+
+#### Function
+```typescript
+async lockPosition(params: LockPositionParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface LockPositionParams {
+  owner: PublicKey;           // The owner of the position
+  pool: PublicKey;            // The pool address
+  payer: PublicKey;           // The wallet paying for the transaction
+  vestingAccount: PublicKey;  // The vesting account to create
+  position: PublicKey;        // The position address
+  positionNftAccount: PublicKey; // The position NFT account
+  cliffPoint: BN;             // The cliff point (slot or timestamp)
+  periodFrequency: BN;        // How often liquidity unlocks
+  cliffUnlockLiquidity: BN;   // Amount to unlock at cliff
+  liquidityPerPeriod: BN;     // Amount to unlock per period
+  numberOfPeriod: number;     // Number of vesting periods
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+const vestingAccount = Keypair.generate();
+
+const lockPositionTx = await cpAmm.lockPosition({
+  owner: wallet.publicKey,
+  pool: poolAddress,
+  payer: wallet.publicKey,
+  vestingAccount: vestingAccount.publicKey,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  cliffPoint: new BN(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days cliff
+  periodFrequency: new BN(24 * 60 * 60 * 1000), // 1 day periods
+  cliffUnlockLiquidity: new BN(0), // No initial unlock
+  liquidityPerPeriod: positionState.unlockedLiquidity.div(new BN(30)), // Unlock over 30 days
+  numberOfPeriod: 30 // 30 periods
+});
+
+const tx = await lockPositionTx.transaction();
+tx.add(SystemProgram.transfer({
+  fromPubkey: wallet.publicKey,
+  toPubkey: vestingAccount.publicKey,
+  lamports: 0
+}));
+const result = await wallet.sendTransaction(tx, [vestingAccount], connection);
+```
+
+#### Notes
+- Locking positions is useful for creating various incentive mechanisms
+- The vesting schedule controls how quickly liquidity unlocks over time
+- Locked liquidity cannot be withdrawn until it becomes unlocked
+- The vesting account is a new account that must be created
+- The function only locks currently unlocked liquidity
+
+---
+
+### permanentLockPosition
+
+Permanently locks a portion of liquidity in a position.
+
+#### Function
+```typescript
+async permanentLockPosition(params: PermanentLockParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface PermanentLockParams {
+  owner: PublicKey;             // The owner of the position
+  position: PublicKey;          // The position address
+  positionNftAccount: PublicKey; // The position NFT account
+  pool: PublicKey;              // The pool address
+  unlockedLiquidity: BN;        // Amount of liquidity to permanently lock
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Permanently lock half of the unlocked liquidity
+const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
+
+const lockTx = await cpAmm.permanentLockPosition({
+  owner: wallet.publicKey,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  pool: poolAddress,
+  unlockedLiquidity: liquidityToLock
+});
+
+const tx = await lockTx.transaction();
+const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- Permanently locked liquidity can never be withdrawn
+- This is useful for deep liquidity protocols or governance mechanisms
+- Once liquidity is permanently locked, this action cannot be reversed
+- The owner can still collect fees from permanently locked liquidity
+
+---
+
+### refreshVesting
+
+Refreshes vesting status of a position to unlock available liquidity.
+
+#### Function
+```typescript
+async refreshVesting(params: RefreshVestingParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface RefreshVestingParams {
+  owner: PublicKey;               // The owner of the position
+  position: PublicKey;            // The position address
+  positionNftAccount: PublicKey;  // The position NFT account
+  pool: PublicKey;                // The pool address
+  vestingAccounts: PublicKey[];   // Array of vesting accounts to refresh
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+// Get all vesting accounts for the position
+const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
+
+const refreshVestingTx = await cpAmm.refreshVesting({
+  owner: wallet.publicKey,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  pool: poolAddress,
+  vestingAccounts: vestings.map(v => v.publicKey)
+});
+
+const tx = await refreshVestingTx.transaction();
+const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- Call this function to update the vesting state and unlock available liquidity
+- Should be called periodically to ensure liquidity is properly unlocked
+- If all liquidity is unlocked, the vesting account remains but is no longer used
+- Must be called before removing liquidity if position has vesting accounts
+
+---
+
+### claimPositionFee
+
+Claims accumulated fees for a position.
+
+#### Function
+```typescript
+async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface ClaimPositionFeeParams {
+  owner: PublicKey;               // The owner of the position
+  pool: PublicKey;                // The pool address
+  position: PublicKey;            // The position address
+  positionNftAccount: PublicKey;  // The position NFT account
+  tokenAVault: PublicKey;         // The pool's token A vault
+  tokenBVault: PublicKey;         // The pool's token B vault
+  tokenAMint: PublicKey;          // The mint of token A
+  tokenBMint: PublicKey;          // The mint of token B
+  tokenAProgram: PublicKey;       // Token program for token A
+  tokenBProgram: PublicKey;       // Token program for token B
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+
+const claimFeeTx = await cpAmm.claimPositionFee({
+  owner: wallet.publicKey,
+  pool: poolAddress,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  tokenAVault: poolState.tokenAVault,
+  tokenBVault: poolState.tokenBVault,
+  tokenAMint: poolState.tokenAMint,
+  tokenBMint: poolState.tokenBMint,
+  tokenAProgram: TOKEN_PROGRAM_ID,
+  tokenBProgram: TOKEN_PROGRAM_ID
+});
+
+const tx = await claimFeeTx.transaction();
+const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- Fees are collected when trades occur in the pool
+- Only the position owner can claim fees
+- Fees are earned on both token A and token B based on the amount of liquidity provided
+- Fees accumulate over time and should be claimed periodically
+- The SDK handles wrapping/unwrapping of SOL automatically
+
+---
+
+### claimPartnerFee
+
+Claims partner fee rewards.
+
+#### Function
+```typescript
+async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface ClaimPartnerFeeParams {
+  partner: PublicKey;         // Partner address to receive fees
+  pool: PublicKey;            // The pool address
+  maxAmountA: BN;             // Maximum amount of token A to claim
+  maxAmountB: BN;             // Maximum amount of token B to claim
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+
+const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
+  partner: partnerWallet.publicKey,
+  pool: poolAddress,
+  maxAmountA: new BN(1_000_000_000), // 1,000 USDC
+  maxAmountB: new BN(5_000_000_000)  // 5 SOL
+});
+
+const tx = await claimPartnerFeeTx.transaction();
+const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- Partner fees are a portion of trading fees directed to a specific account
+- Only the configured partner address can claim these fees
+- Partner fees must be enabled in the pool configuration
+- The SDK handles wrapping/unwrapping of SOL automatically
+- Token accounts are created automatically if they don't exist
+
+---
+
+### claimReward
+
+Claims reward tokens from a position.
+
+#### Function
+```typescript
+async claimReward(params: ClaimRewardParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface ClaimRewardParams {
+  user: PublicKey;               // The user claiming rewards
+  position: PublicKey;           // The position address
+  positionNftAccount: PublicKey; // The position NFT account
+  rewardIndex: number;           // Index of the reward to claim
+  poolState: PoolState;          // The current pool state
+  positionState: PositionState;  // The current position state
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Claim reward at index 0
+const claimRewardTx = await cpAmm.claimReward({
+  user: wallet.publicKey,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  rewardIndex: 0,
+  poolState: poolState,
+  positionState: positionState
+});
+
+const tx = await claimRewardTx.transaction();
+const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- Pools can have multiple reward tokens configured
+- The rewardIndex parameter specifies which reward token to claim
+- Rewards accrue based on the amount of liquidity provided and duration
+- Only the position owner can claim rewards
+- The SDK handles wrapping/unwrapping of SOL automatically
+
+---
+
+### closePosition
+
+Closes a position with no liquidity.
+
+#### Function
+```typescript
+async closePosition(params: ClosePositionParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+interface ClosePositionParams {
+  owner: PublicKey;               // The owner of the position
+  pool: PublicKey;                // The pool address
+  position: PublicKey;            // The position address
+  positionNftMint: PublicKey;     // The position NFT mint
+  positionNftAccount: PublicKey;  // The position NFT account
+}
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+```typescript
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Check if position has no liquidity
+if (!positionState.unlockedLiquidity.isZero() || !positionState.vestedLiquidity.isZero() || !positionState.permanentLockedLiquidity.isZero()) {
+  console.error("Position still has liquidity");
+  return;
+}
+
+const closePositionTx = await cpAmm.closePosition({
+  owner: wallet.publicKey,
+  pool: positionState.pool,
+  position: positionAddress,
+  positionNftMint: positionState.nftMint,
+  positionNftAccount: positionNftAccount
+});
+
+const tx = await closePositionTx.transaction();
+const result = await wallet.sendTransaction(tx, connection);
+```
+
+#### Notes
+- Position must have zero liquidity before closing
+- Use `removeAllLiquidity` first if the position still has liquidity
+- Closing a position returns the rent to the owner
+- This function only closes the position account, not the NFT
+- For a full cleanup, use `removeAllLiquidityAndClosePosition` instead
+
+---
+
+## State Functions
+
+### fetchConfigState
+
+Fetches the Config state of the program.
+
+#### Function
+```typescript
+async fetchConfigState(config: PublicKey): Promise<ConfigState>
+```
+
+#### Parameters
+- `config`: Public key of the config account.
+
+#### Returns
+Parsed ConfigState.
+
+#### Example
+```typescript
+const configState = await cpAmm.fetchConfigState(configAddress);
+console.log(configState);
+```
+
+#### Notes
+- Throws an error if the config account does not exist
+
+---
+
+### fetchPoolState
+
+Fetches the Pool state.
+
+#### Function
+```typescript
+async fetchPoolState(pool: PublicKey): Promise<PoolState>
+```
+
+#### Parameters
+- `pool`: Public key of the pool.
+
+#### Returns
+Parsed PoolState.
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+console.log(`Current Price: ${poolState.sqrtPrice.toString()}`);
+console.log(`Liquidity: ${poolState.liquidity.toString()}`);
+```
+
+#### Notes
+- Throws an error if the pool account does not exist
+- Contains all essential information about the pool including prices, liquidity, and fees
+
+---
+
+### fetchPositionState
+
+Fetches the Position state.
+
+#### Function
+```typescript
+async fetchPositionState(position: PublicKey): Promise<PositionState>
+```
+
+#### Parameters
+- `position`: Public key of the position.
+
+#### Returns
+Parsed PositionState.
+
+#### Example
+```typescript
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+console.log(`Unlocked Liquidity: ${positionState.unlockedLiquidity.toString()}`);
+console.log(`Vested Liquidity: ${positionState.vestedLiquidity.toString()}`);
+console.log(`Permanent Locked Liquidity: ${positionState.permanentLockedLiquidity.toString()}`);
+```
+
+#### Notes
+- Throws an error if the position account does not exist
+- Contains information about liquidity amounts, fee collection, and rewards
+
+---
+
+### getAllConfigs
+
+Retrieves all config accounts.
+
+#### Function
+```typescript
+async getAllConfigs(): Promise<Array<{ publicKey: PublicKey; account: ConfigState }>>
+```
+
+#### Returns
+Array of config public keys and their states.
+
+#### Example
+```typescript
+const configs = await cpAmm.getAllConfigs();
+console.log(`Found ${configs.length} configs`);
+configs.forEach((config, i) => {
+  console.log(`Config ${i}: ${config.publicKey.toString()}`);
+});
+```
+
+---
+
+### getAllPools
+
+Retrieves all pool accounts.
+
+#### Function
+```typescript
+async getAllPools(): Promise<Array<{ publicKey: PublicKey; account: PoolState }>>
+```
+
+#### Returns
+Array of pool public keys and their states.
+
+#### Example
+```typescript
+const pools = await cpAmm.getAllPools();
+console.log(`Found ${pools.length} pools`);
+pools.forEach((pool, i) => {
+  console.log(`Pool ${i}: ${pool.publicKey.toString()}`);
+  console.log(`- Token A: ${pool.account.tokenAMint.toString()}`);
+  console.log(`- Token B: ${pool.account.tokenBMint.toString()}`);
+});
+```
+
+---
+
+### getAllPositions
+
+Retrieves all position accounts.
+
+#### Function
+```typescript
+async getAllPositions(): Promise<Array<{ publicKey: PublicKey; account: PositionState }>>
+```
+
+#### Returns
+Array of position public keys and their states.
+
+#### Example
+```typescript
+const positions = await cpAmm.getAllPositions();
+console.log(`Found ${positions.length} positions`);
+```
+
+---
+
+### getAllPositionsByPool
+
+Gets all positions for a specific pool.
+
+#### Function
+```typescript
+async getAllPositionsByPool(pool: PublicKey): Promise<Array<{ publicKey: PublicKey; account: PositionState }>>
+```
+
+#### Parameters
+- `pool`: Public key of the pool.
+
+#### Returns
+List of positions for the pool.
+
+#### Example
+```typescript
+const poolPositions = await cpAmm.getAllPositionsByPool(poolAddress);
+console.log(`Pool has ${poolPositions.length} positions`);
+```
+
+---
+
+### getUserPositionByPool
+
+Gets all positions of a user for a specific pool.
+
+#### Function
+```typescript
+async getUserPositionByPool(pool: PublicKey, user: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState }>>
+```
+
+#### Parameters
+- `pool`: Public key of the pool.
+- `user`: Public key of the user.
+
+#### Returns
+List of user positions for the pool.
+
+#### Example
+```typescript
+const userPoolPositions = await cpAmm.getUserPositionByPool(poolAddress, wallet.publicKey);
+console.log(`User has ${userPoolPositions.length} positions in this pool`);
+```
+
+---
+
+### getPositionsByUser
+
+Gets all positions of a user across all pools.
+
+#### Function
+```typescript
+async getPositionsByUser(user: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState }>>
+```
+
+#### Parameters
+- `user`: Public key of the user.
+
+#### Returns
+Array of user positions already sorted by liquidity.
+
+#### Example
+```typescript
+const userPositions = await cpAmm.getPositionsByUser(wallet.publicKey);
+console.log(`User has ${userPositions.length} total positions`);
+```
+
+#### Notes
+- Positions are sorted by total liquidity in descending order
+- Returns position NFT accounts, position addresses, and full position states
+
+---
+
+### getAllVestingsByPosition
+
+Retrieves all vesting accounts associated with a position.
+
+#### Function
+```typescript
+async getAllVestingsByPosition(position: PublicKey): Promise<Array<{ publicKey: PublicKey; account: VestingState }>>
+```
+
+#### Parameters
+- `position`: Public key of the position.
+
+#### Returns
+Array of vesting account public keys and their states.
+
+#### Example
+```typescript
+const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
+console.log(`Position has ${vestings.length} vesting accounts`);
+```
+
+---
+
+### isLockedPosition
+
+Checks if a position has any locked liquidity.
+
+#### Function
+```typescript
+isLockedPosition(position: PositionState): boolean
+```
+
+#### Parameters
+- `position`: The position state.
+
+#### Returns
+Boolean indicating whether the position has locked liquidity.
+
+#### Example
+```typescript
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+if (cpAmm.isLockedPosition(positionState)) {
+  console.log("Position has locked liquidity");
+} else {
+  console.log("Position has no locked liquidity");
+}
+```
+
+---
+
+### isPoolExist
+
+Checks if a pool exists.
+
+#### Function
+```typescript
+async isPoolExist(pool: PublicKey): Promise<boolean>
+```
+
+#### Parameters
+- `pool`: Public key of the pool.
+
+#### Returns
+Boolean indicating whether the pool exists.
+
+#### Example
+```typescript
+const exists = await cpAmm.isPoolExist(poolAddress);
+if (exists) {
+  console.log("Pool exists");
+} else {
+  console.log("Pool does not exist");
+}
+```
+
+---
+
+## Helper Functions
+
+### preparePoolCreationParams
+
+Prepares parameters required for pool creation, including initial sqrt price and liquidity.
+
+#### Function
+```typescript
+preparePoolCreationParams(params: PreparePoolCreationParams): PreparedPoolCreation
+```
+
+#### Parameters
+```typescript
+interface PreparePoolCreationParams {
+  tokenAAmount: BN;        // Initial amount of token A to deposit
+  tokenBAmount: BN;        // Initial amount of token B to deposit
+  minSqrtPrice: BN;        // Minimum sqrt price
+  maxSqrtPrice: BN;        // Maximum sqrt price
+  tokenAInfo?: any;        // Token info for Token2022 transfer fee calculations
+  tokenBInfo?: any;        // Token info for Token2022 transfer fee calculations
+}
+```
+
+#### Returns
+An object containing:
+- `initSqrtPrice`: The initial sqrt price in Q64 format
+- `liquidityDelta`: The initial liquidity in Q64 format
+
+#### Example
+```typescript
+const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
+  tokenAAmount: new BN(1_000_000_000), // 1,000 USDC with 6 decimals
+  tokenBAmount: new BN(5_000_000_000), // 5 SOL with 9 decimals
+  minSqrtPrice: MIN_SQRT_PRICE,
+  maxSqrtPrice: MAX_SQRT_PRICE
+});
+
+console.log(`Initial sqrt price: ${initSqrtPrice.toString()}`);
+console.log(`Initial liquidity: ${liquidityDelta.toString()}`);
+```
+
+#### Notes
+- This function calculates the correct initial price and liquidity based on the token amounts
+- Both token amounts must be greater than zero
+- The function handles Token2022 transfer fees if token info is provided
+
+---
+
+### getProgram
+
+Returns the Anchor program instance.
+
+#### Function
+```typescript
+getProgram(): AmmProgram
+```
+
+#### Returns
+The AmmProgram instance.
+
+#### Example
+```typescript
+const program = cpAmm.getProgram();
+// Now you can use the program instance directly
+const poolAccounts = await program.account.pool.all();
+```
+
+### isVestingComplete
+
+Checks if a vesting schedule is ready for full release.
+
+#### Function
+```typescript
+function isVestingComplete(vestingData: VestingState, currentPoint: BN): boolean
+```
+
+#### Parameters
+- `vestingData`: The vesting account state data
+- `currentPoint`: Current timestamp or slot number
+
+#### Returns
+Boolean indicating whether the vesting schedule is complete and all liquidity can be released.
+
+#### Example
+```typescript
+const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
+if (vestings.length > 0) {
+  const isComplete = isVestingComplete(vestings[0].account, new BN(Date.now()));
+  if (isComplete) {
+    console.log("Vesting schedule is complete, all liquidity can be released");
+  } else {
+    console.log("Vesting schedule is still active");
+  }
+}
+```
+
+#### Notes
+- This function checks if the current point (timestamp or slot) has passed the end of the vesting schedule
+- The end point is calculated as: cliffPoint + (periodFrequency * numberOfPeriods)
+- Returns true if currentPoint >= endPoint, false otherwise
+- Useful to determine if a position can be fully unlocked
+
+---
+
+### getTotalLockedLiquidity
+
+Gets the total amount of liquidity in the vesting schedule.
+
+#### Function
+```typescript
+function getTotalLockedLiquidity(vestingData: VestingState): BN
+```
+
+#### Parameters
+- `vestingData`: The vesting account state data
+
+#### Returns
+The total locked liquidity amount as a BN.
+
+#### Example
+```typescript
+const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
+if (vestings.length > 0) {
+  const totalLocked = getTotalLockedLiquidity(vestings[0].account);
+  console.log(`Total locked liquidity: ${totalLocked.toString()}`);
+}
+```
+
+#### Notes
+- Calculates the sum of cliff unlock liquidity and periodic unlock liquidity
+- Formula: cliffUnlockLiquidity + (liquidityPerPeriod * numberOfPeriod)
+- This is the total amount of liquidity that was initially locked in the vesting schedule
+- Does not account for already released liquidity
+
+---
+
+### getAvailableVestingLiquidity
+
+Calculates the available liquidity to withdraw based on vesting schedule.
+
+#### Function
+```typescript
+function getAvailableVestingLiquidity(vestingData: VestingState, currentPoint: BN): BN
+```
+
+#### Parameters
+- `vestingData`: The vesting account state data
+- `currentPoint`: Current timestamp or slot number
+
+#### Returns
+The amount of liquidity available to withdraw as a BN.
+
+#### Example
+```typescript
+const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
+if (vestings.length > 0) {
+  const availableLiquidity = getAvailableVestingLiquidity(
+    vestings[0].account,
+    new BN(Date.now())
+  );
+  console.log(`Available liquidity to withdraw: ${availableLiquidity.toString()}`);
+}
+```
+
+### getMaxAmountWithSlippage
+
+Calculates the maximum amount after applying a slippage rate.
+
+#### Function
+```typescript
+function getMaxAmountWithSlippage(amount: BN, rate: number): BN
+```
+
+#### Parameters
+- `amount`: The base amount as a BN
+- `rate`: The slippage rate as a percentage (e.g., 0.5 for 0.5%)
+
+#### Returns
+The maximum amount after applying slippage as a BN.
+
+#### Example
+```typescript
+const tokenAmount = new BN(1_000_000_000); // 1,000 tokens
+const slippageRate = 0.5; // 0.5% slippage allowance
+const maxAmount = getMaxAmountWithSlippage(tokenAmount, slippageRate);
+console.log(`Maximum amount with slippage: ${maxAmount.toString()}`);
+```
+
+#### Notes
+- Used when you need to calculate the upper bound of an amount with slippage tolerance
+- Formula: amount * (100 + rate) / 100
+- Common use case: Setting a maximum deposit amount when adding liquidity
+- Slippage rate is expressed as a percentage and supports up to 2 decimal places
+
+---
+
+### getMinAmountWithSlippage
+
+Calculates the minimum amount after applying a slippage rate.
+
+#### Function
+```typescript
+function getMinAmountWithSlippage(amount: BN, rate: number): BN
+```
+
+#### Parameters
+- `amount`: The base amount as a BN
+- `rate`: The slippage rate as a percentage (e.g., 0.5 for 0.5%)
+
+#### Returns
+The minimum amount after applying slippage as a BN.
+
+#### Example
+```typescript
+const expectedOutput = new BN(1_000_000_000); // 1,000 tokens
+const slippageRate = 0.5; // 0.5% slippage allowance
+const minAmount = getMinAmountWithSlippage(expectedOutput, slippageRate);
+console.log(`Minimum amount with slippage: ${minAmount.toString()}`);
+```
+
+#### Notes
+- Used when you need to calculate the lower bound of an amount with slippage tolerance
+- Formula: amount * (100 - rate) / 100
+- Common use case: Setting a minimum output amount when swapping tokens
+- Slippage rate is expressed as a percentage and supports up to 2 decimal places
+
+---
+
+### getPriceImpact
+
+Calculates the price impact as a percentage.
+
+#### Function
+```typescript
+function getPriceImpact(actualAmount: BN, idealAmount: BN): number
+```
+
+#### Parameters
+- `actualAmount`: The actual amount after slippage in token units
+- `idealAmount`: The theoretical amount without slippage in token units
+
+#### Returns
+The price impact as a percentage (e.g., 1.5 means 1.5%).
+
+#### Example
+```typescript
+const idealAmount = new BN(1_000_000_000); // 1,000 tokens (theoretical)
+const actualAmount = new BN(990_000_000);  // 990 tokens (actual)
+const impact = getPriceImpact(actualAmount, idealAmount);
+console.log(`Price impact: ${impact.toFixed(2)}%`);
+```
+
+#### Notes
+- Used to express how much a transaction will affect the price
+- Formula: ((idealAmount - actualAmount) / idealAmount) * 100
+- Higher price impact indicates a greater effect on the market price
+- Common use case: Showing users the effect of their swap on the pool
+
+---
+
+## Price Conversion Utilities
+
+### getPriceFromSqrtPrice
+
+Converts a sqrt price in Q64 format to a human-readable price.
+
+#### Function
+```typescript
+function getPriceFromSqrtPrice(sqrtPrice: BN, tokenADecimal: number, tokenBDecimal: number): string
+```
+
+#### Parameters
+- `sqrtPrice`: The sqrt price in Q64 format
+- `tokenADecimal`: The number of decimals for token A
+- `tokenBDecimal`: The number of decimals for token B
+
+#### Returns
+The price as a string in human-readable format.
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const price = getPriceFromSqrtPrice(
+  poolState.sqrtPrice,
+  6,  // USDC has 6 decimals
+  9   // SOL has 9 decimals
+);
+console.log(`Current price: ${price} USDC per SOL`);
+```
+
+#### Notes
+- Converts the internal sqrt price representation to a human-readable price
+- Formula: (sqrtPrice >> 64)^2 * 10^(tokenADecimal - tokenBDecimal)
+- The result represents the price of token B in terms of token A
+- Useful for displaying current pool prices to users
+
+---
+
+### getSqrtPriceFromPrice
+
+Converts a human-readable price to a sqrt price in Q64 format.
+
+#### Function
+```typescript
+function getSqrtPriceFromPrice(price: string, tokenADecimal: number, tokenBDecimal: number): BN
+```
+
+#### Parameters
+- `price`: The price as a string in human-readable format
+- `tokenADecimal`: The number of decimals for token A
+- `tokenBDecimal`: The number of decimals for token B
+
+#### Returns
+The sqrt price as a BN in Q64 format.
+
+#### Example
+```typescript
+const price = "0.05"; // 0.05 USDC per SOL
+const sqrtPrice = getSqrtPriceFromPrice(
+  price,
+  6,  // USDC has 6 decimals
+  9   // SOL has 9 decimals
+);
+console.log(`Sqrt price in Q64 format: ${sqrtPrice.toString()}`);
+```
+
+#### Notes
+- Converts a human-readable price to the internal sqrt price representation
+- Formula: sqrt(price / 10^(tokenADecimal - tokenBDecimal)) << 64
+- Useful when creating pools with a specific initial price
+- Can be used to define price boundaries for concentrated liquidity positions
+
+---
+
+## Fee Calculation Utilities
+
+### getUnClaimReward
+
+Calculates unclaimed fees and rewards for a position.
+
+#### Function
+```typescript
+function getUnClaimReward(poolState: PoolState, positionState: PositionState): {
+  feeTokenA: BN;
+  feeTokenB: BN;
+  rewards: BN[];
+}
+```
+
+#### Parameters
+- `poolState`: The current state of the pool
+- `positionState`: The current state of the position
+
+#### Returns
+An object containing:
+- `feeTokenA`: Unclaimed fees in token A
+- `feeTokenB`: Unclaimed fees in token B
+- `rewards`: Array of unclaimed reward amounts for each reward token
+
+#### Example
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+const unclaimed = getUnClaimReward(poolState, positionState);
+console.log(`Unclaimed token A fees: ${unclaimed.feeTokenA.toString()}`);
+console.log(`Unclaimed token B fees: ${unclaimed.feeTokenB.toString()}`);
+unclaimed.rewards.forEach((reward, i) => {
+  console.log(`Unclaimed reward ${i}: ${reward.toString()}`);
+});
 ```

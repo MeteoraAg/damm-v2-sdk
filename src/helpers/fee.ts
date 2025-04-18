@@ -8,7 +8,11 @@ import {
 } from "../constants";
 import { ONE, pow } from "../math/feeMath";
 import { mulDiv } from "../math";
-import { getAmountBFromLiquidityDelta, getNextSqrtPrice } from "./curve";
+import {
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
+  getNextSqrtPrice,
+} from "./curve";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
@@ -82,8 +86,8 @@ export function getFeeNumerator(
   reductionFactor: BN,
   dynamicFeeParams?: {
     volatilityAccumulator: BN;
-    binStep: BN;
-    variableFeeControl: BN;
+    binStep: number;
+    variableFeeControl: number;
   }
 ): BN {
   if (Number(periodFrequency) == 0) {
@@ -108,8 +112,8 @@ export function getFeeNumerator(
       dynamicFeeParams;
     const dynamicFeeNumberator = getDynamicFeeNumerator(
       volatilityAccumulator,
-      binStep,
-      variableFeeControl
+      new BN(binStep),
+      new BN(variableFeeControl)
     );
     feeNumerator.add(dynamicFeeNumberator);
   }
@@ -183,15 +187,15 @@ export function getSwapAmount(
   // Calculate the output amount based on swap direction
   const outAmount = aToB
     ? getAmountBFromLiquidityDelta(
-        getNextSqrtPrice(actualInAmount, sqrtPrice, liquidity, true),
-        sqrtPrice,
         liquidity,
+        sqrtPrice,
+        getNextSqrtPrice(actualInAmount, sqrtPrice, liquidity, true),
         Rounding.Down
       )
-    : getAmountBFromLiquidityDelta(
+    : getAmountAFromLiquidityDelta(
+        liquidity,
         sqrtPrice,
         getNextSqrtPrice(actualInAmount, sqrtPrice, liquidity, false),
-        liquidity,
         Rounding.Down
       );
 

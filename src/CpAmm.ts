@@ -28,6 +28,7 @@ import {
   CreatePoolParams,
   CreatePositionParams,
   DepositQuote,
+  DynamicFeeParams,
   FundRewardParams,
   GetDepositQuoteParams,
   GetQuoteParams,
@@ -773,7 +774,7 @@ export class CpAmm {
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
     const currentPoint = activationType ? currentTime : currentSlot;
 
-    let dynamicFeeParams;
+    let dynamicFeeParams: DynamicFeeParams;
     if (dynamicFee.initialized) {
       const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
       dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };

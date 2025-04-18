@@ -513,3 +513,9 @@ export type WithdrawQuote = {
   outAmountA: BN;
   outAmountB: BN;
 };
+
+export type DynamicFeeParams = {
+  volatilityAccumulator: BN;
+  binStep: number;
+  variableFeeControl: number;
+};

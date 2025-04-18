@@ -82,8 +82,8 @@ export function getFeeNumerator(
   reductionFactor: BN,
   dynamicFeeParams?: {
     volatilityAccumulator: BN;
-    binStep: BN;
-    variableFeeControl: BN;
+    binStep: number;
+    variableFeeControl: number;
   }
 ): BN {
   if (Number(periodFrequency) == 0) {
@@ -108,8 +108,8 @@ export function getFeeNumerator(
       dynamicFeeParams;
     const dynamicFeeNumberator = getDynamicFeeNumerator(
       volatilityAccumulator,
-      binStep,
-      variableFeeControl
+      new BN(binStep),
+      new BN(variableFeeControl)
     );
     feeNumerator.add(dynamicFeeNumberator);
   }

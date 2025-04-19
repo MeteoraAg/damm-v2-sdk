@@ -61,7 +61,7 @@ import {
   derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
-  deriveTokenBadge,
+  deriveTokenBadgeAddress,
   deriveTokenVaultAddress,
 } from "./pda";
 
@@ -172,12 +172,12 @@ export class CpAmm {
   ): AccountMeta[] {
     return [
       {
-        pubkey: deriveTokenBadge(tokenAMint),
+        pubkey: deriveTokenBadgeAddress(tokenAMint),
         isWritable: false,
         isSigner: false,
       },
       {
-        pubkey: deriveTokenBadge(tokenBMint),
+        pubkey: deriveTokenBadgeAddress(tokenBMint),
         isWritable: false,
         isSigner: false,
       },

@@ -52,12 +52,12 @@ export function getAvailableVestingLiquidity(
     totalReleasedLiquidity,
   } = vestingData;
 
-  if (currentPoint < cliffPoint) {
+  if (currentPoint.lt(cliffPoint)) {
     return new BN(0);
   }
 
   if (periodFrequency.isZero()) {
-    return cliffUnlockLiquidity.sub(totalReleasedLiquidity);
+    return cliffUnlockLiquidity;
   }
 
   let passedPeriod = new BN(currentPoint).sub(cliffPoint).div(periodFrequency);

@@ -115,10 +115,3 @@ export function derivePositionNftAccount(
     CP_AMM_PROGRAM_ID
   )[0];
 }
-
-export function deriveTokenBadge(tokenMint: PublicKey) {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("token_badge"), tokenMint.toBuffer()],
-    CP_AMM_PROGRAM_ID
-  )[0];
-}

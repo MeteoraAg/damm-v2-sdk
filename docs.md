@@ -85,31 +85,33 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 #### Example
 ```typescript
 // First, prepare the pool creation parameters
-const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
-  tokenAAmount: new BN(1_000_000_000), // 1,000 USDC with 6 decimals
-  tokenBAmount: new BN(5_000_000_000), // 5 SOL with 9 decimals
-  minSqrtPrice: MIN_SQRT_PRICE,
-  maxSqrtPrice: MAX_SQRT_PRICE
-});
+const configState = await cpAmm.getConfigState(configAccount);
+const initPrice = 10; // 1 base token = 10 quote token
+const {actualInputAmount, consumedInputAmount, outputAmount, liquidityDelta} = cpAmm.getDepositQuote({
+  inAmount: new BN(5_000_000_000), // 5 tokenA (base token) with 9 decimals
+  isTokenA: true;
+  minSqrtPrice: configState.sqrtMinPrice,
+  maxSqrtPrice: configState.sqrtMinPrice,
+  sqrtPrice: getSqrtPriceFromPrice(initPrice, tokenADecimal, tokenBDecimal),
+  inputTokenInfo, // provide if input token is token2022
+  outputTokenInfo // provide if output token is token2022
+})
 
 const createPoolTx = await cpAmm.createPool({
   payer: wallet.publicKey,
   creator: wallet.publicKey,
   config: configAddress,
   positionNft: positionNftMint,
-  tokenAMint: usdcMint,
-  tokenBMint: solMint,
-  activationPoint: new BN(Date.now()),
-  tokenAAmount: new BN(1_000_000_000),
-  tokenBAmount: new BN(5_000_000_000),
-  initSqrtPrice: initSqrtPrice,
+  tokenAMint,
+  tokenBMint,
+  activationPoint: null,
+  tokenAAmount: consumedInputAmount,
+  tokenBAmount: outputAmount,
+  initSqrtPrice: getSqrtPriceFromPrice(initPrice, tokenADecimal, tokenBDecimal);,
   liquidityDelta: liquidityDelta,
-  tokenAProgram: TOKEN_PROGRAM_ID,
-  tokenBProgram: TOKEN_PROGRAM_ID
+  tokenAProgram,
+  tokenBProgram
 });
-
-const tx = await createPoolTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes

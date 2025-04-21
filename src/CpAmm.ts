@@ -834,7 +834,7 @@ export class CpAmm {
    * @returns {BN} returns.outputAmount - The calculated corresponding amount of the other token.
    * @returns {BN} returns.liquidityDelta - The amount of liquidity that will be added to the pool.
    */
-  async getDepositQuote(params: GetDepositQuoteParams): Promise<DepositQuote> {
+  getDepositQuote(params: GetDepositQuoteParams): DepositQuote {
     const {
       inAmount,
       isTokenA,
@@ -915,9 +915,7 @@ export class CpAmm {
    * @returns {BN} returns.outAmountA - The calculated amount of token A to be received (after deducting transfer fees)
    * @returns {BN} returns.outAmountB - The calculated amount of token B to be received (after deducting transfer fees)
    */
-  async getWithdrawQuote(
-    params: GetWithdrawQuoteParams
-  ): Promise<WithdrawQuote> {
+  getWithdrawQuote(params: GetWithdrawQuoteParams): WithdrawQuote {
     const {
       liquidityDelta,
       sqrtPrice,

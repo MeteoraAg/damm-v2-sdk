@@ -69,7 +69,7 @@ interface CreatePoolParams {
   positionNft: PublicKey;        // The mint for the initial position NFT
   tokenAMint: PublicKey;         // The mint address for token A
   tokenBMint: PublicKey;         // The mint address for token B
-  activationPoint: BN;           // The slot or timestamp for activation 
+  activationPoint: BN | null;           // The slot or timestamp for activation 
   tokenAAmount: BN;              // Initial amount of token A to deposit
   tokenBAmount: BN;              // Initial amount of token B to deposit
   initSqrtPrice: BN;             // Initial sqrt price in Q64 format
@@ -161,26 +161,20 @@ interface InitializeCustomizeablePoolParams {
 
 interface PoolFees {
   baseFee: {
-    feeSchedulerMode: number;    // 0: Linear, 1: Exponential
-    cliffFeeNumerator: number;   // Initial fee numerator
+    cliffFeeNumerator: BN;   // Initial fee numerator
     numberOfPeriod: number;      // Number of fee reduction periods
-    reductionFactor: number;     // How much fee reduces each period
+    reductionFactor: BN;     // How much fee reduces each period
     periodFrequency: number;     // How often fees change
-  };
-  partnerFee?: {                 // Optional partner fee configuration
-    partnerAddress: PublicKey;   // Address to receive partner fees
-    partnerFeeNumerator: number; // Share of fees for partner
+    feeSchedulerMode: number;    // 0: Linear, 1: Exponential
   };
   dynamicFee?: {                 // Optional dynamic fee configuration
-    initialized: boolean;        // Whether dynamic fees are enabled
-    volatilityAccumulator?: number; // Current volatility measure
-    binStep?: number;           // Bin step for dynamic fee calculation
-    variableFeeControl?: {       // Controls for variable fees
-      maxFeeNumerator: number;   // Maximum fee rate 
-      minFeeNumerator: number;   // Minimum fee rate
-      volatilityThreshold: number; // Threshold to trigger fee changes
-      feeDamper: number;         // Controls fee response to volatility
-    };
+    binStep: number;
+    binStepU128: BN;
+    filterPeriod: number;
+    decayPeriod: number;
+    reductionFactor: number;
+    variableFeeControl: number;
+    maxVolatilityAccumulator: number;
   };
 }
 ```
@@ -214,8 +208,14 @@ const poolFees = {
     partnerFeeNumerator: 1000,
   },
   dynamicFee: {
-    initialized: false
-  }
+    binStep: 1,
+    binStepU128: new BN("1844674407370955"),
+    filterPeriod: 10,
+    decayPeriod: 120,
+    reductionFactor: 5000,
+    variableFeeControl: 2000000,
+    maxVolatilityAccumulator: 100000,
+  };
 };
 
 const { tx, pool, position } = await cpAmm.createCustomPool({
@@ -235,18 +235,13 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
   collectFeeMode: 0, // 0: BothToken, 1: onlyB
   activationPoint: new BN(Date.now()),
   activationType: 1, // 0: slot, 1: timestamp
-  tokenAProgram: TOKEN_PROGRAM_ID,
-  tokenBProgram: TOKEN_PROGRAM_ID
+  tokenAProgram,
+  tokenBProgram
 });
-
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
 - Use this function instead of `createPool` when you need custom fee structures
-- Dynamic fees can adjust based on market volatility
-- Partner fees allow a portion of trading fees to be directed to a specific account
-- Alpha vault is an advanced feature for protocol-owned liquidity
 - Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
 
 ---
@@ -316,10 +311,16 @@ interface GetQuoteParams {
   inputTokenMint: PublicKey;   // The mint of the input token
   slippage: number;            // Slippage tolerance in percentage (e.g., 0.5 for 0.5%)
   poolState: PoolState;        // The state of the pool
-  currentTime?: number;        // Current timestamp (for time-based fees)
-  currentSlot?: number;        // Current slot (for slot-based fees)
-  inputTokenInfo?: any;        // Token info for Token2022 transfer fee calculations
-  outputTokenInfo?: any;       // Token info for Token2022 transfer fee calculations
+  currentTime: number;        // Current timestamp (for time-based fees)
+  currentSlot: number;        // Current slot (for slot-based fees)
+  inputTokenInfo?: {
+    mint: Mint,
+    currentEpoch: number
+  };        // Token info for Token2022 transfer fee calculations
+  outputTokenInfo?: {
+    mint: Mint,
+    currentEpoch: number
+  };       // Token info for Token2022 transfer fee calculations
 }
 ```
 
@@ -335,13 +336,15 @@ An object containing:
 #### Example
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
-
+const currentSlot = await connection.getSlot();
+const blockTime = await connection.getBlockTime(currentSlot);
 const quote = await cpAmm.getQuote({
   inAmount: new BN(100_000_000), // 100 USDC
   inputTokenMint: usdcMint,
   slippage: 0.5, // 0.5% slippage
   poolState,
-  currentTime: Date.now()
+  currentTime: blockTime,
+  currentSlot
 });
 
 console.log(`Expected output: ${quote.swapOutAmount.toString()}`);
@@ -353,7 +356,6 @@ console.log(`Price impact: ${quote.priceImpact.toFixed(2)}%`);
 #### Notes
 - Always check the price impact before executing a swap
 - The `slippage` parameter protects users from price movements
-- This function doesn't execute a swap, only provides a quote
 - Use the `minSwapOutAmount` as the `minimumAmountOut` parameter for `swap`
 - For Token2022 tokens with transfer fees, provide the token info parameters
 
@@ -373,11 +375,17 @@ async getDepositQuote(params: GetDepositQuoteParams): Promise<DepositQuote>
 interface GetDepositQuoteParams {
   inAmount: BN;                 // The amount of input token
   isTokenA: boolean;            // Whether the input token is token A
-  inputTokenInfo?: any;         // Token info for Token2022 transfer fee calculations  
-  outputTokenInfo?: any;        // Token info for Token2022 transfer fee calculations
   minSqrtPrice: BN;             // Minimum sqrt price
   maxSqrtPrice: BN;             // Maximum sqrt price
   sqrtPrice: BN;                // Current sqrt price
+  inputTokenInfo?: {
+    mint: Mint,
+    currentEpoch: number
+  };        // Token info for Token2022 transfer fee calculations
+  outputTokenInfo?: {
+    mint: Mint,
+    currentEpoch: number
+  };       // Token info for Token2022 transfer fee calculations
 }
 ```
 
@@ -395,8 +403,8 @@ const poolState = await cpAmm.fetchPoolState(poolAddress);
 const depositQuote = await cpAmm.getDepositQuote({
   inAmount: new BN(1_000_000_000), // 1,000 USDC
   isTokenA: true, // USDC is token A
-  minSqrtPrice: MIN_SQRT_PRICE,
-  maxSqrtPrice: MAX_SQRT_PRICE,
+  minSqrtPrice: poolState.sqrtMinPrice,
+  maxSqrtPrice: poolState.sqrtMaxPrice,
   sqrtPrice: poolState.sqrtPrice
 });
 
@@ -427,8 +435,14 @@ interface GetWithdrawQuoteParams {
   sqrtPrice: BN;              // Current sqrt price
   maxSqrtPrice: BN;           // Maximum sqrt price
   minSqrtPrice: BN;           // Minimum sqrt price
-  tokenATokenInfo?: any;      // Token info for Token2022 transfer fee calculations
-  tokenBTokenInfo?: any;      // Token info for Token2022 transfer fee calculations
+  inputTokenInfo?: {
+    mint: Mint,
+    currentEpoch: number
+  };        // Token info for Token2022 transfer fee calculations
+  outputTokenInfo?: {
+    mint: Mint,
+    currentEpoch: number
+  };       // Token info for Token2022 transfer fee calculations
 }
 ```
 
@@ -449,8 +463,8 @@ const liquidityToRemove = positionState.liquidity.div(new BN(2));
 const withdrawQuote = await cpAmm.getWithdrawQuote({
   liquidityDelta: liquidityToRemove,
   sqrtPrice: poolState.sqrtPrice,
-  maxSqrtPrice: MAX_SQRT_PRICE,
-  minSqrtPrice: MIN_SQRT_PRICE
+  minSqrtPrice: poolState.sqrtMinPrice,
+  maxSqrtPrice: poolState.sqrtMaxPrice,
 });
 
 console.log(`Expected token A: ${withdrawQuote.outAmountA.toString()}`);
@@ -498,14 +512,16 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 #### Example
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
-
+const currentSlot = await connection.getSlot();
+const blockTime = await connection.getBlockTime(currentSlot);
 // Get quote first
 const quote = await cpAmm.getQuote({
   inAmount: new BN(100_000_000), // 100 USDC
   inputTokenMint: poolState.tokenAMint,
   slippage: 0.5,
   poolState,
-  currentTime: Date.now()
+  currentTime: blockTime,
+  currentSlot
 });
 
 // Execute swap
@@ -523,9 +539,6 @@ const swapTx = await cpAmm.swap({
   tokenAProgram: TOKEN_PROGRAM_ID,
   tokenBProgram: TOKEN_PROGRAM_ID
 });
-
-const tx = await swapTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -552,7 +565,7 @@ interface AddLiquidityParams {
   owner: PublicKey;              // The owner of the position
   pool: PublicKey;               // The pool address
   position: PublicKey;           // The position address
-  positionNftAccount?: PublicKey; // The position NFT account
+  positionNftAccount: PublicKey; // The ata account of position nft
   liquidityDelta: BN;            // The amount of liquidity to add in Q64 format
   maxAmountTokenA: BN;           // Maximum amount of token A to use
   maxAmountTokenB: BN;           // Maximum amount of token B to use
@@ -579,8 +592,8 @@ const positionState = await cpAmm.fetchPositionState(positionAddress);
 const depositQuote = await cpAmm.getDepositQuote({
   inAmount: new BN(1_000_000_000), // 1,000 USDC
   isTokenA: true,
-  minSqrtPrice: MIN_SQRT_PRICE,
-  maxSqrtPrice: MAX_SQRT_PRICE,
+  minSqrtPrice: poolState.sqrtMinPrice,
+  maxSqrtPrice: poolState.sqrtMaxPrice,
   sqrtPrice: poolState.sqrtPrice
 });
 
@@ -593,18 +606,15 @@ const addLiquidityTx = await cpAmm.addLiquidity({
   liquidityDelta: depositQuote.liquidityDelta,
   maxAmountTokenA: new BN(1_000_000_000),
   maxAmountTokenB: depositQuote.outputAmount,
-  tokenAAmountThreshold: new BN(0),
-  tokenBAmountThreshold: new BN(0),
+  tokenAAmountThreshold: maxAmountTokenA,
+  tokenBAmountThreshold: maxAmountTokenB,
   tokenAMint: poolState.tokenAMint,
   tokenBMint: poolState.tokenBMint,
   tokenAVault: poolState.tokenAVault,
   tokenBVault: poolState.tokenBVault,
-  tokenAProgram: TOKEN_PROGRAM_ID,
-  tokenBProgram: TOKEN_PROGRAM_ID
+  tokenAProgram,
+  tokenBProgram
 });
-
-const tx = await addLiquidityTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -657,8 +667,8 @@ const liquidityToRemove = positionState.unlockedLiquidity.div(new BN(2));
 const withdrawQuote = await cpAmm.getWithdrawQuote({
   liquidityDelta: liquidityToRemove,
   sqrtPrice: poolState.sqrtPrice,
-  maxSqrtPrice: MAX_SQRT_PRICE,
-  minSqrtPrice: MIN_SQRT_PRICE
+  minSqrtPrice: poolState.sqrtMinPrice,
+  maxSqrtPrice: poolState.sqrtMaxPrice,
 });
 
 const removeLiquidityTx = await cpAmm.removeLiquidity({
@@ -667,18 +677,15 @@ const removeLiquidityTx = await cpAmm.removeLiquidity({
   position: positionAddress,
   positionNftAccount: positionNftAccount,
   liquidityDelta: liquidityToRemove,
-  tokenAAmountThreshold: withdrawQuote.outAmountA.mul(new BN(95)).div(new BN(100)), // 5% slippage
-  tokenBAmountThreshold: withdrawQuote.outAmountB.mul(new BN(95)).div(new BN(100)), // 5% slippage
+  tokenAAmountThreshold: new BN(0),
+  tokenBAmountThreshold: new BN(0),
   tokenAMint: poolState.tokenAMint,
   tokenBMint: poolState.tokenBMint,
   tokenAVault: poolState.tokenAVault,
   tokenBVault: poolState.tokenBVault,
-  tokenAProgram: TOKEN_PROGRAM_ID,
-  tokenBProgram: TOKEN_PROGRAM_ID
+  tokenAProgram,
+  tokenBProgram
 });
-
-const tx = await removeLiquidityTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -705,7 +712,7 @@ interface RemoveAllLiquidityParams {
   owner: PublicKey;              // The owner of the position
   pool: PublicKey;               // The pool address
   position: PublicKey;           // The position address
-  positionNftAccount: PublicKey; // The position NFT account
+  positionNftAccount: PublicKey; // The ata account of position nft
   tokenAAmountThreshold: BN;     // Minimum acceptable token A amount (slippage protection)
   tokenBAmountThreshold: BN;     // Minimum acceptable token B amount (slippage protection)
   tokenAMint: PublicKey;         // The mint of token A
@@ -714,7 +721,7 @@ interface RemoveAllLiquidityParams {
   tokenBVault: PublicKey;        // The pool's token B vault
   tokenAProgram: PublicKey;      // Token program for token A
   tokenBProgram: PublicKey;      // Token program for token B
-  vestings?: Array<{account: PublicKey}>; // Optional vesting accounts to refresh
+  vestings?: Array<{account: PublicKey}>; // Optional vesting accounts to refresh if position has vesting lock
 }
 ```
 
@@ -726,31 +733,20 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 const poolState = await cpAmm.fetchPoolState(poolAddress);
 const positionState = await cpAmm.fetchPositionState(positionAddress);
 
-// Get withdraw quote for all unlocked liquidity
-const withdrawQuote = await cpAmm.getWithdrawQuote({
-  liquidityDelta: positionState.unlockedLiquidity,
-  sqrtPrice: poolState.sqrtPrice,
-  maxSqrtPrice: MAX_SQRT_PRICE,
-  minSqrtPrice: MIN_SQRT_PRICE
-});
-
 const removeAllLiquidityTx = await cpAmm.removeAllLiquidity({
   owner: wallet.publicKey,
   pool: poolAddress,
   position: positionAddress,
   positionNftAccount: positionNftAccount,
-  tokenAAmountThreshold: withdrawQuote.outAmountA.mul(new BN(95)).div(new BN(100)), // 5% slippage
-  tokenBAmountThreshold: withdrawQuote.outAmountB.mul(new BN(95)).div(new BN(100)), // 5% slippage
+  tokenAAmountThreshold: new BN(0),
+  tokenBAmountThreshold: new BN(0),
   tokenAMint: poolState.tokenAMint,
   tokenBMint: poolState.tokenBMint,
   tokenAVault: poolState.tokenAVault,
   tokenBVault: poolState.tokenBVault,
-  tokenAProgram: TOKEN_PROGRAM_ID,
-  tokenBProgram: TOKEN_PROGRAM_ID
+  tokenAProgram,
+  tokenBProgram
 });
-
-const tx = await removeAllLiquidityTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -780,9 +776,10 @@ interface RemoveAllLiquidityAndClosePositionParams {
   poolState: PoolState;            // The current pool state
   tokenAAmountThreshold: BN;       // Minimum acceptable token A amount (slippage protection)
   tokenBAmountThreshold: BN;       // Minimum acceptable token B amount (slippage protection)
+  currentPoint: BN;               // Current timestamp or slot number for vesting calculations
   vestings?: Array<{account: PublicKey, vestingState: VestingState}>; // Optional vesting accounts
-  currentPoint?: BN;               // Current timestamp or slot number for vesting calculations
 }
+```
 
 #### Returns
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
@@ -798,14 +795,6 @@ if (cpAmm.isLockedPosition(positionState)) {
   return;
 }
 
-// Get withdraw quote
-const withdrawQuote = await cpAmm.getWithdrawQuote({
-  liquidityDelta: positionState.unlockedLiquidity,
-  sqrtPrice: poolState.sqrtPrice,
-  maxSqrtPrice: MAX_SQRT_PRICE,
-  minSqrtPrice: MIN_SQRT_PRICE
-});
-
 // Build transaction to remove all liquidity and close position
 const tx = await cpAmm.removeAllLiquidityAndClosePosition({
   owner: wallet.publicKey,
@@ -813,11 +802,9 @@ const tx = await cpAmm.removeAllLiquidityAndClosePosition({
   positionNftAccount: positionNftAccount,
   positionState: positionState,
   poolState: poolState,
-  tokenAAmountThreshold: withdrawQuote.outAmountA.mul(new BN(95)).div(new BN(100)), // 5% slippage
-  tokenBAmountThreshold: withdrawQuote.outAmountB.mul(new BN(95)).div(new BN(100))  // 5% slippage
+  tokenAAmountThreshold: new BN(0),
+  tokenBAmountThreshold: new BN(0)
 });
-
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -849,14 +836,14 @@ interface MergePositionParams {
   positionB: PublicKey;                   // Source position to merge from
   positionBState: PositionState;          // State of the source position
   poolState: PoolState;                   // State of the pool
-  positionANftAccount: PublicKey;         // NFT account of target position
-  positionBNftAccount: PublicKey;         // NFT account of source position
+  positionANftAccount: PublicKey;         // ata account of target position NFT
+  positionBNftAccount: PublicKey;         // ata account of source position NFT
   tokenAAmountAddLiquidityThreshold: BN;  // Minimum token A amount for add liquidity
   tokenBAmountAddLiquidityThreshold: BN;  // Minimum token B amount for add liquidity
   tokenAAmountRemoveLiquidityThreshold: BN; // Minimum token A amount for remove liquidity
   tokenBAmountRemoveLiquidityThreshold: BN; // Minimum token B amount for remove liquidity
+  currentPoint: BN;                       // Current timestamp or slot number for vesting calculations
   positionBVestings?: Array<{account: PublicKey, vestingState: VestingState}>; // Optional vesting accounts for position B
-  currentPoint?: BN;                       // Current timestamp or slot number for vesting calculations
 }
 ```
 
@@ -884,13 +871,11 @@ const tx = await cpAmm.mergePosition({
   poolState: poolState,
   positionANftAccount: positionANftAccount,
   positionBNftAccount: positionBNftAccount,
-  tokenAAmountAddLiquidityThreshold: new BN(0),
-  tokenBAmountAddLiquidityThreshold: new BN(0),
+  tokenAAmountAddLiquidityThreshold: new BN(U64_MAX),
+  tokenBAmountAddLiquidityThreshold: new BN(u64_MAX),
   tokenAAmountRemoveLiquidityThreshold: new BN(0),
   tokenBAmountRemoveLiquidityThreshold: new BN(0)
 });
-
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -924,7 +909,7 @@ interface LockPositionParams {
   vestingAccount: PublicKey;  // The vesting account to create
   position: PublicKey;        // The position address
   positionNftAccount: PublicKey; // The position NFT account
-  cliffPoint: BN;             // The cliff point (slot or timestamp)
+  cliffPoint: BN | null;             // The cliff point (slot or timestamp)
   periodFrequency: BN;        // How often liquidity unlocks
   cliffUnlockLiquidity: BN;   // Amount to unlock at cliff
   liquidityPerPeriod: BN;     // Amount to unlock per period
@@ -952,14 +937,6 @@ const lockPositionTx = await cpAmm.lockPosition({
   liquidityPerPeriod: positionState.unlockedLiquidity.div(new BN(30)), // Unlock over 30 days
   numberOfPeriod: 30 // 30 periods
 });
-
-const tx = await lockPositionTx.transaction();
-tx.add(SystemProgram.transfer({
-  fromPubkey: wallet.publicKey,
-  toPubkey: vestingAccount.publicKey,
-  lamports: 0
-}));
-const result = await wallet.sendTransaction(tx, [vestingAccount], connection);
 ```
 
 #### Notes
@@ -1008,9 +985,6 @@ const lockTx = await cpAmm.permanentLockPosition({
   pool: poolAddress,
   unlockedLiquidity: liquidityToLock
 });
-
-const tx = await lockTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -1056,9 +1030,6 @@ const refreshVestingTx = await cpAmm.refreshVesting({
   pool: poolAddress,
   vestingAccounts: vestings.map(v => v.publicKey)
 });
-
-const tx = await refreshVestingTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -1110,12 +1081,9 @@ const claimFeeTx = await cpAmm.claimPositionFee({
   tokenBVault: poolState.tokenBVault,
   tokenAMint: poolState.tokenAMint,
   tokenBMint: poolState.tokenBMint,
-  tokenAProgram: TOKEN_PROGRAM_ID,
-  tokenBProgram: TOKEN_PROGRAM_ID
+  tokenAProgram,
+  tokenBProgram
 });
-
-const tx = await claimFeeTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -1159,9 +1127,6 @@ const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
   maxAmountA: new BN(1_000_000_000), // 1,000 USDC
   maxAmountB: new BN(5_000_000_000)  // 5 SOL
 });
-
-const tx = await claimPartnerFeeTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -1211,9 +1176,6 @@ const claimRewardTx = await cpAmm.claimReward({
   poolState: poolState,
   positionState: positionState
 });
-
-const tx = await claimRewardTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -1265,9 +1227,6 @@ const closePositionTx = await cpAmm.closePosition({
   positionNftMint: positionState.nftMint,
   positionNftAccount: positionNftAccount
 });
-
-const tx = await closePositionTx.transaction();
-const result = await wallet.sendTransaction(tx, connection);
 ```
 
 #### Notes
@@ -1628,27 +1587,6 @@ console.log(`Initial liquidity: ${liquidityDelta.toString()}`);
 - This function calculates the correct initial price and liquidity based on the token amounts
 - Both token amounts must be greater than zero
 - The function handles Token2022 transfer fees if token info is provided
-
----
-
-### getProgram
-
-Returns the Anchor program instance.
-
-#### Function
-```typescript
-getProgram(): AmmProgram
-```
-
-#### Returns
-The AmmProgram instance.
-
-#### Example
-```typescript
-const program = cpAmm.getProgram();
-// Now you can use the program instance directly
-const poolAccounts = await program.account.pool.all();
-```
 
 ### isVestingComplete
 

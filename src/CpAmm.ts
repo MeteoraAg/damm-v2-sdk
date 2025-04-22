@@ -728,14 +728,14 @@ export class CpAmm {
    * @param params - Swap parameters including input amount, pool state, slippage, etc.
    * @returns Swap quote including expected output amount, fee, and price impact.
    */
-  async getQuote(params: GetQuoteParams): Promise<{
+  getQuote(params: GetQuoteParams): {
     swapInAmount: BN;
     consumedInAmount: BN;
     swapOutAmount: BN;
     minSwapOutAmount: BN;
     totalFee: BN;
     priceImpact: number;
-  }> {
+  } {
     const {
       inAmount,
       inputTokenMint,

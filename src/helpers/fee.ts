@@ -207,3 +207,109 @@ export function getSwapAmount(
 
   return { amountOut, totalFee };
 }
+
+/**
+ * Converts basis points (bps) to a fee numerator
+ * 1 bps = 0.01% = 0.0001 in decimal
+ *
+ * @param bps - The value in basis points [1-10_000]
+ * @returns The equivalent fee numerator
+ */
+export function bpsToFeeNumerator(bps: number): number {
+  return (bps * FEE_DENOMINATOR) / BASIS_POINT_MAX;
+}
+
+/**
+ * Converts a fee numerator back to basis points (bps)
+ *
+ * @param feeNumerator - The fee numerator to convert
+ * @returns The equivalent value in basis points [1-10_000]
+ */
+export function feeNumeratorToBps(feeNumerator: number): number {
+  return (feeNumerator * BASIS_POINT_MAX) / FEE_DENOMINATOR;
+}
+
+/**
+ * Calculates the reduction factor for a Linear fee schedule
+ * Formula: fee = cliff_fee_numerator - passed_period * reduction_factor
+ *
+ * @param cliffFeeBps - The initial fee value at the cliff in basis points
+ * @param targetFeeBps - The desired final fee value after all periods in basis points
+ * @param totalPeriods - The total number of periods over which the reduction occurs
+ * @returns The estimate of reduction factor
+ */
+export function estimateLinearReductionFactor(
+  cliffFeeBps: number,
+  targetFeeBps: number,
+  totalPeriods: number
+): number {
+  if (totalPeriods <= 0) {
+    throw new Error("Total periods must be greater than zero");
+  }
+
+  if (cliffFeeBps > feeNumeratorToBps(MAX_FEE_NUMERATOR)) {
+    throw new Error(
+      `Cliff fee (${cliffFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
+        MAX_FEE_NUMERATOR
+      )} bps`
+    );
+  }
+
+  if (targetFeeBps > cliffFeeBps) {
+    throw new Error(
+      "Target fee must be less than or equal to cliff fee for reduction"
+    );
+  }
+
+  const cliffFeeNumerator = bpsToFeeNumerator(cliffFeeBps);
+
+  const targetFeeNumerator = bpsToFeeNumerator(targetFeeBps);
+
+  const totalReduction = cliffFeeNumerator - targetFeeNumerator;
+  const reductionFactor = totalReduction / totalPeriods;
+
+  return Math.floor(reductionFactor);
+}
+
+/**
+ * Calculates the reduction factor for an Exponential fee schedule
+ * Formula: fee_numerator = cliff_fee_numerator * (1 - reduction_factor/BASIS_POINT_MAX)^passed_period
+ * reduction_factor = BASIS_POINT_MAX * (1 - (fee_numerator/cliff_fee_numerator)^(1/totalPeriods))
+ * @param cliffFeeBps - The initial fee value at the cliff in basis points
+ * @param targetFeeBps - The desired final fee value after all periods in basis points
+ * @param totalPeriods - The total number of periods over which the reduction occurs
+ * @returns The estimate of reduction factor
+ */
+export function estimateExponentialReductionFactor(
+  cliffFeeBps: number,
+  targetFeeBps: number,
+  totalPeriods: number
+): number {
+  // Validate inputs
+  if (totalPeriods <= 0) {
+    throw new Error("Total periods must be greater than zero");
+  }
+
+  if (cliffFeeBps > feeNumeratorToBps(MAX_FEE_NUMERATOR)) {
+    throw new Error(
+      `Cliff fee (${cliffFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
+        MAX_FEE_NUMERATOR
+      )} bps`
+    );
+  }
+
+  if (targetFeeBps > cliffFeeBps) {
+    throw new Error(
+      "Target fee bps must be less than or equal to cliff fee bps for reduction"
+    );
+  }
+
+  const cliffFeeNumerator = bpsToFeeNumerator(cliffFeeBps);
+
+  const targetFeeNumerator = bpsToFeeNumerator(targetFeeBps);
+
+  const ratio = targetFeeNumerator / cliffFeeNumerator;
+  const decayBase = Math.pow(ratio, 1 / totalPeriods);
+  const reductionFactor = BASIS_POINT_MAX * (1 - decayBase);
+  return Math.floor(reductionFactor);
+}

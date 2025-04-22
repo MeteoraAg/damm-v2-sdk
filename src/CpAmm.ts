@@ -61,7 +61,7 @@ import {
   derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
-  deriveTokenBadge,
+  deriveTokenBadgeAddress,
   deriveTokenVaultAddress,
 } from "./pda";
 
@@ -172,12 +172,12 @@ export class CpAmm {
   ): AccountMeta[] {
     return [
       {
-        pubkey: deriveTokenBadge(tokenAMint),
+        pubkey: deriveTokenBadgeAddress(tokenAMint),
         isWritable: false,
         isSigner: false,
       },
       {
-        pubkey: deriveTokenBadge(tokenBMint),
+        pubkey: deriveTokenBadgeAddress(tokenBMint),
         isWritable: false,
         isSigner: false,
       },
@@ -728,14 +728,14 @@ export class CpAmm {
    * @param params - Swap parameters including input amount, pool state, slippage, etc.
    * @returns Swap quote including expected output amount, fee, and price impact.
    */
-  async getQuote(params: GetQuoteParams): Promise<{
+  getQuote(params: GetQuoteParams): {
     swapInAmount: BN;
     consumedInAmount: BN;
     swapOutAmount: BN;
     minSwapOutAmount: BN;
     totalFee: BN;
     priceImpact: number;
-  }> {
+  } {
     const {
       inAmount,
       inputTokenMint,
@@ -834,7 +834,7 @@ export class CpAmm {
    * @returns {BN} returns.outputAmount - The calculated corresponding amount of the other token.
    * @returns {BN} returns.liquidityDelta - The amount of liquidity that will be added to the pool.
    */
-  async getDepositQuote(params: GetDepositQuoteParams): Promise<DepositQuote> {
+  getDepositQuote(params: GetDepositQuoteParams): DepositQuote {
     const {
       inAmount,
       isTokenA,
@@ -915,9 +915,7 @@ export class CpAmm {
    * @returns {BN} returns.outAmountA - The calculated amount of token A to be received (after deducting transfer fees)
    * @returns {BN} returns.outAmountB - The calculated amount of token B to be received (after deducting transfer fees)
    */
-  async getWithdrawQuote(
-    params: GetWithdrawQuoteParams
-  ): Promise<WithdrawQuote> {
+  getWithdrawQuote(params: GetWithdrawQuoteParams): WithdrawQuote {
     const {
       liquidityDelta,
       sqrtPrice,

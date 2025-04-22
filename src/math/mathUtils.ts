@@ -11,14 +11,6 @@ export function mulDiv(x: BN, y: BN, denominator: BN, rounding: Rounding): BN {
   return div;
 }
 
-export function divCeil(a: BN, b: BN): BN {
-  if (a.isZero()) {
-    return new BN(0);
-  }
-  // (a + b - 1) /b
-  return a.add(b.sub(new BN(1))).div(b);
-}
-
 export function q64ToDecimal(num: BN, decimalPlaces?: number): Decimal {
   return new Decimal(num.toString())
     .div(Decimal.pow(2, 64))

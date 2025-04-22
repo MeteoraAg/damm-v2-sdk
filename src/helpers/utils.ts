@@ -1,10 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import {
-  BASIS_POINT_MAX,
-  LIQUIDITY_SCALE,
-  PRECISION,
-  SCALE_OFFSET,
-} from "../constants";
+import { BASIS_POINT_MAX, LIQUIDITY_SCALE } from "../constants";
 import Decimal from "decimal.js";
 import { PoolState, PositionState } from "../types";
 import { PublicKey } from "@solana/web3.js";
@@ -47,7 +42,7 @@ export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
     .toNumber();
 };
 
-// (sqrtPrice >> 64) ** 2 * 10 ** (base_decimal - quote_decimal)
+// (sqrtPrice)^2 * 10 ** (base_decimal - quote_decimal) / 2^128
 export const getPriceFromSqrtPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
@@ -63,8 +58,7 @@ export const getPriceFromSqrtPrice = (
   return price;
 };
 
-// Original formula: price = (sqrtPrice >> 64)^2 * 10^(tokenADecimal - tokenBDecimal)
-// Reverse formula: sqrtPrice = sqrt(price / 10^(tokenADecimal - tokenBDecimal)) << 64
+//  sqrt(price / 10^(tokenADecimal - tokenBDecimal)) * 2^64
 export const getSqrtPriceFromPrice = (
   price: string,
   tokenADecimal: number,

@@ -17,7 +17,8 @@ export function getNextSqrtPrice(
   if (aToB) {
     const product = amount.mul(sqrtPrice);
     const denominator = liquidity.add(product);
-    result = mulDiv(liquidity, sqrtPrice, denominator, Rounding.Up);
+    const numerator = liquidity.mul(sqrtPrice);
+    result = numerator.add(denominator.sub(new BN(1))).div(denominator);
   } else {
     const quotient = amount.shln(SCALE_OFFSET * 2).div(liquidity);
     result = sqrtPrice.add(quotient);

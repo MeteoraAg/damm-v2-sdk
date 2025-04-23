@@ -34,6 +34,7 @@ import {
   GetQuoteParams,
   GetWithdrawQuoteParams,
   InitializeCustomizeablePoolParams,
+  LiquidityDeltaParams,
   LockPositionParams,
   MergePositionParams,
   PermanentLockParams,
@@ -722,6 +723,36 @@ export class CpAmm {
   async isPoolExist(pool: PublicKey): Promise<boolean> {
     const poolState = await this._program.account.pool.fetchNullable(pool);
     return poolState !== null;
+  }
+
+  /**
+   * Computes the liquidity delta based on the provided token amounts and sqrt price
+   *
+   * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation
+   * @returns {Promise<BN>} - The computed liquidity delta in Q64 value.
+   */
+  getLiquidityDelta(params: LiquidityDeltaParams): BN {
+    const {
+      maxAmountTokenA,
+      maxAmountTokenB,
+      sqrtMaxPrice,
+      sqrtMinPrice,
+      sqrtPrice,
+    } = params;
+
+    const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
+      maxAmountTokenA,
+      sqrtPrice,
+      sqrtMaxPrice
+    );
+
+    const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
+      maxAmountTokenB,
+      sqrtMinPrice,
+      sqrtPrice
+    );
+
+    return min(liquidityDeltaFromAmountA, liquidityDeltaFromAmountB);
   }
 
   /**

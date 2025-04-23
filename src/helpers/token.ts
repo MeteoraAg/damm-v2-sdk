@@ -182,10 +182,12 @@ export async function getAllPositionNftAccountByOwner(
   }> = [];
   for (const { account, pubkey } of tokenAccounts.value) {
     const tokenAccountData = AccountLayout.decode(account.data);
-    userPositionNftAccount.push({
-      positionNft: tokenAccountData.mint,
-      positionNftAccount: pubkey,
-    });
+    if (tokenAccountData.amount.toString() === "1") {
+      userPositionNftAccount.push({
+        positionNft: tokenAccountData.mint,
+        positionNftAccount: pubkey,
+      });
+    }
   }
 
   return userPositionNftAccount;

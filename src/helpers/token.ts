@@ -162,3 +162,31 @@ export async function getAllUserPositionNftAccount(
 
   return userPositionNftAccount;
 }
+
+export async function getAllPositionNftAccountByOwner(
+  connection: Connection,
+  user: PublicKey
+): Promise<
+  Array<{
+    positionNft: PublicKey;
+    positionNftAccount: PublicKey;
+  }>
+> {
+  const tokenAccounts = await connection.getTokenAccountsByOwner(user, {
+    programId: TOKEN_2022_PROGRAM_ID,
+  });
+
+  const userPositionNftAccount: Array<{
+    positionNft: PublicKey;
+    positionNftAccount: PublicKey;
+  }> = [];
+  for (const { account, pubkey } of tokenAccounts.value) {
+    const tokenAccountData = AccountLayout.decode(account.data);
+    userPositionNftAccount.push({
+      positionNft: tokenAccountData.mint,
+      positionNftAccount: pubkey,
+    });
+  }
+
+  return userPositionNftAccount;
+}

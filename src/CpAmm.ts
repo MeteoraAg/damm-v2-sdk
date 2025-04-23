@@ -86,6 +86,7 @@ import {
   getAllUserPositionNftAccount,
   getAvailableVestingLiquidity,
   isVestingComplete,
+  getAllPositionNftAccountByOwner,
 } from "./helpers";
 import { min } from "bn.js";
 
@@ -604,7 +605,7 @@ export class CpAmm {
       positionState: PositionState;
     }>
   > {
-    const userPositionAccounts = await getAllUserPositionNftAccount(
+    const userPositionAccounts = await getAllPositionNftAccountByOwner(
       this._program.provider.connection,
       user
     );

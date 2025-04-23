@@ -26,6 +26,7 @@ import {
   ClosePositionParams,
   ConfigState,
   CreatePoolParams,
+  CreatePositionAndAddLiquidity,
   CreatePositionParams,
   DepositQuote,
   DynamicFeeParams,
@@ -473,6 +474,45 @@ export class CpAmm {
     instructions.push(closePositionInstruction);
 
     return instructions;
+  }
+
+  /**
+   * Builds a instruction to create a position.
+   * @param {CreatePositionParams} params - Parameters for position creation.
+   * @returns Transaction instruction.
+   */
+  private async buildCreatePositionInstruction(
+    params: CreatePositionParams
+  ): Promise<{
+    ix: TransactionInstruction;
+    position: PublicKey;
+    positionNftAccount: PublicKey;
+  }> {
+    const { owner, payer, pool, positionNft } = params;
+
+    const position = derivePositionAddress(positionNft);
+    const positionNftAccount = derivePositionNftAccount(positionNft);
+
+    const ix = await this._program.methods
+      .createPosition()
+      .accountsPartial({
+        owner,
+        positionNftMint: positionNft,
+        poolAuthority: this.poolAuthority,
+        positionNftAccount,
+        payer: payer,
+        pool,
+        position,
+        tokenProgram: TOKEN_2022_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+
+    return {
+      ix,
+      position,
+      positionNftAccount,
+    };
   }
 
   /**
@@ -1284,25 +1324,8 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async createPosition(params: CreatePositionParams): TxBuilder {
-    const { owner, payer, pool, positionNft } = params;
-
-    const position = derivePositionAddress(positionNft);
-    const positionNftAccount = derivePositionNftAccount(positionNft);
-
-    return await this._program.methods
-      .createPosition()
-      .accountsPartial({
-        owner,
-        positionNftMint: positionNft,
-        poolAuthority: this.poolAuthority,
-        positionNftAccount,
-        payer: payer,
-        pool,
-        position,
-        tokenProgram: TOKEN_2022_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .transaction();
+    const { ix } = await this.buildCreatePositionInstruction(params);
+    return new Transaction().add(ix);
   }
 
   /**
@@ -1390,6 +1413,117 @@ export class CpAmm {
     });
 
     const transaction = new Transaction();
+    transaction.add(
+      ...(preInstructions.length > 0 ? preInstructions : []),
+      addLiquidityInstruction,
+      ...(postInstructions.length > 0 ? postInstructions : [])
+    );
+
+    return transaction;
+  }
+
+  /**
+   * Creates a new position and add liquidity to position it in a single transaction.
+   * Handles both native SOL and other tokens, automatically wrapping/unwrapping SOL as needed.
+   *
+   * @param {CreatePositionAndAddLiquidity} params - Parameters for creating position and adding liquidity
+   *
+   * @returns {Transaction} A transaction that creates a position and adds liquidity
+   *
+   **/
+  async createPositionAndAddLiquidity(
+    params: CreatePositionAndAddLiquidity
+  ): TxBuilder {
+    const {
+      owner,
+      pool,
+      positionNft,
+      liquidityDelta,
+      maxAmountTokenA,
+      maxAmountTokenB,
+      tokenAAmountThreshold,
+      tokenBAmountThreshold,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
+
+    const {
+      tokenAAta: tokenAAccount,
+      tokenBAta: tokenBAccount,
+      instructions: preInstructions,
+    } = await this.prepareTokenAccounts(
+      owner,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram
+    );
+
+    if (tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        owner,
+        tokenAAccount,
+        BigInt(maxAmountTokenA.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    if (tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        owner,
+        tokenBAccount,
+        BigInt(maxAmountTokenB.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    const {
+      ix: createPositionIx,
+      position,
+      positionNftAccount,
+    } = await this.buildCreatePositionInstruction({
+      owner,
+      payer: owner,
+      pool,
+      positionNft,
+    });
+
+    const addLiquidityInstruction = await this.buildAddLiquidityInstruction({
+      pool,
+      position,
+      positionNftAccount,
+      owner,
+      tokenAAccount,
+      tokenBAccount,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
+      liquidityDelta,
+      tokenAAmountThreshold,
+      tokenBAmountThreshold,
+    });
+
+    const transaction = new Transaction();
+    transaction.add(createPositionIx);
     transaction.add(
       ...(preInstructions.length > 0 ? preInstructions : []),
       addLiquidityInstruction,

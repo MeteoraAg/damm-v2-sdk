@@ -179,6 +179,23 @@ export type AddLiquidityParams = {
   tokenBProgram: PublicKey;
 };
 
+export type CreatePositionAndAddLiquidity = {
+  owner: PublicKey;
+  pool: PublicKey;
+  positionNft: PublicKey;
+  liquidityDelta: BN;
+  maxAmountTokenA: BN;
+  maxAmountTokenB: BN;
+  tokenAAmountThreshold: BN;
+  tokenBAmountThreshold: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+};
+
 export type LiquidityDeltaParams = {
   maxAmountTokenA: BN;
   maxAmountTokenB: BN;

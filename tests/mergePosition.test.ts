@@ -112,7 +112,7 @@ describe("Merge position", () => {
     // add liquidity
     const poolState = await getPool(
       context.banksClient,
-      ammInstance.getProgram(),
+      ammInstance._program,
       pool
     );
     const { liquidityDelta } = await ammInstance.getDepositQuote({
@@ -190,7 +190,7 @@ describe("Merge position", () => {
     // // merge two position
     const secondPositionState = await getPosition(
       context.banksClient,
-      ammInstance.getProgram(),
+      ammInstance._program,
       position
     );
 

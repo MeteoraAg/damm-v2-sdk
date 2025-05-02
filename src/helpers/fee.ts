@@ -313,3 +313,33 @@ export function estimateExponentialReductionFactor(
   const reductionFactor = BASIS_POINT_MAX * (1 - decayBase);
   return Math.floor(reductionFactor);
 }
+
+/**
+ * Calculates the dynamic variable fee control parameter based on base fee, max volatility accumulator
+ *
+ * @param {BN} baseFeeNumerator - The numerator of the base fee value
+ * @param {BN} maxVolatilityAccumulator - The maximum volatility accumulator value.
+ * @param {number} dynamicFeePercentage -  The relative percentage of dynamic fee to base fee (e.g., 20 means dynamic fee is 20% of base fee)
+ * @param {number} binStep
+ * @returns {BN} The calculated dynamic variable fee control value
+ */
+export function calculateDynamicVariableFeeControl(
+  baseFeeNumerator: BN,
+  maxVolatilityAccumulator: BN,
+  dynamicToBaseRatio: number,
+  binStep: number
+): BN {
+  const maxDynamicFeeNumerator = baseFeeNumerator
+    .muln(dynamicToBaseRatio)
+    .divn(100);
+
+  const vFee = maxDynamicFeeNumerator
+    .mul(new BN(100_000_000_000))
+    .sub(new BN(99_999_999_999));
+
+  const squareVfaBin = maxVolatilityAccumulator
+    .mul(new BN(binStep))
+    .pow(new BN(2));
+
+  return vFee.div(squareVfaBin);
+}

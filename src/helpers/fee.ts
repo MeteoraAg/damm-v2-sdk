@@ -318,13 +318,13 @@ export function estimateExponentialReductionFactor(
  * Calculates the dynamic variable fee control parameter based on base fee, max volatility accumulator
  *
  * @param {BN} baseFeeBps - The base fee value in bps
- * @param {BN} maxPriceChangeBps - The max price change between bin step in bps
+ * @param {BN} maxPriceChangeBps - The max price change between bin step in bps. Default 20%
  * @param {number} binStep
  * @returns {BN} The calculated dynamic variable fee control value
  */
 export function getDynamicFeeParams(
   baseFeeBps: number,
-  maxPriceChangeBps: number = 2000,
+  maxPriceChangeBps: number = 2000, // default 20%
   binStep: number = 1
 ): {
   maxDynamicFeeNumerator: BN;

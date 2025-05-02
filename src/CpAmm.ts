@@ -2169,19 +2169,30 @@ export class CpAmm {
         preInstructions.push(refreshVestingInstruction);
     }
 
+    // recalculate liquidity delta
+    const tokenAWithdrawAmount = getAmountAFromLiquidityDelta(
+      positionBLiquidityDelta,
+      poolState.sqrtPrice,
+      poolState.sqrtMaxPrice,
+      Rounding.Down
+    );
+
+    const tokenBWithdrawAmount = getAmountBFromLiquidityDelta(
+      positionBLiquidityDelta,
+      poolState.sqrtPrice,
+      poolState.sqrtMinPrice,
+      Rounding.Down
+    );
+
+    const newLiquidityDelta = this.getLiquidityDelta({
+      maxAmountTokenA: tokenAWithdrawAmount,
+      maxAmountTokenB: tokenBWithdrawAmount,
+      sqrtMaxPrice: poolState.sqrtMaxPrice,
+      sqrtMinPrice: poolState.sqrtMinPrice,
+      sqrtPrice: poolState.sqrtPrice,
+    });
+
     const transaction = new Transaction();
-
-    if (poolState.tokenAMint.equals(NATIVE_MINT)) {
-      const wrapSOLIx = wrapSOLInstruction(owner, tokenAAccount, BigInt(1));
-
-      preInstructions.push(...wrapSOLIx);
-    }
-
-    if (poolState.tokenBMint.equals(NATIVE_MINT)) {
-      const wrapSOLIx = wrapSOLInstruction(owner, tokenBAccount, BigInt(1));
-
-      preInstructions.push(...wrapSOLIx);
-    }
 
     if (preInstructions.length > 0) {
       transaction.add(...preInstructions);
@@ -2217,7 +2228,7 @@ export class CpAmm {
       tokenBVault,
       tokenAProgram,
       tokenBProgram,
-      liquidityDelta: positionBLiquidityDelta,
+      liquidityDelta: newLiquidityDelta,
       tokenAAmountThreshold: tokenAAmountAddLiquidityThreshold,
       tokenBAmountThreshold: tokenBAmountAddLiquidityThreshold,
     });

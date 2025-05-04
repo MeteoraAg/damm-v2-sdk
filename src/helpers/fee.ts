@@ -318,32 +318,32 @@ export function estimateExponentialReductionFactor(
  * Calculates the dynamic variable fee control parameter based on base fee, max volatility accumulator
  *
  * @param {BN} baseFeeBps - The base fee value in bps
- * @param {BN} maxPriceChangeBps - The max price change between bin step in bps. Default 20%
+ * @param {BN} maxPriceChangeBps - The max price change between bin step in bps. Default 15%
  * @param {number} binStep
  * @returns {BN} The calculated dynamic variable fee control value
  */
 export function getDynamicFeeParams(
   baseFeeBps: number,
-  maxPriceChangeBps: number = 2000, // default 20%
+  maxPriceChangeBps: number = 1500, // default 15%
   binStep: number = 1
 ): {
-  maxDynamicFeeNumerator: BN;
+  maxVolatilityAccumulator: BN;
   variableFeeControl: BN;
 } {
   const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
   const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100);
 
-  const maxVolatilityAccumulator = BASIS_POINT_MAX * maxPriceChangeBps;
+  const maxVolatilityAccumulator = new BN(BASIS_POINT_MAX * maxPriceChangeBps);
+
+  const squareVfaBin = maxVolatilityAccumulator
+    .mul(new BN(binStep))
+    .pow(new BN(2));
 
   const vFee = maxDynamicFeeNumerator
     .mul(new BN(100_000_000_000))
     .sub(new BN(99_999_999_999));
 
-  const squareVfaBin = new BN(maxVolatilityAccumulator)
-    .mul(new BN(binStep))
-    .pow(new BN(2));
-
   const variableFeeControl = vFee.div(squareVfaBin);
 
-  return { maxDynamicFeeNumerator, variableFeeControl };
+  return { maxVolatilityAccumulator, variableFeeControl };
 }

@@ -18,7 +18,7 @@ describe("fee helpers function", () => {
       minBaseFee,
       FeeSchedulerMode.Linear,
       120,
-      new BN(60)
+      60
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(
@@ -38,7 +38,7 @@ describe("fee helpers function", () => {
       minBaseFee,
       FeeSchedulerMode.Exponential,
       120,
-      new BN(60)
+      60
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(

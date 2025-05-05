@@ -260,7 +260,7 @@ export function getBaseFeeParams(
   minBaseFeeBps: number,
   feeSchedulerMode: FeeSchedulerMode,
   numberOfPeriod: number,
-  periodFrequency: BN
+  periodFrequency: number
 ): BaseFee {
   if (numberOfPeriod <= 0) {
     throw new Error("Total periods must be greater than zero");
@@ -298,7 +298,7 @@ export function getBaseFeeParams(
   return {
     cliffFeeNumerator: maxBaseFeeNumerator,
     numberOfPeriod,
-    periodFrequency,
+    periodFrequency: new BN(periodFrequency),
     reductionFactor,
     feeSchedulerMode,
   };

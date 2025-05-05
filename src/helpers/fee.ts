@@ -26,6 +26,7 @@ import {
   getAmountBFromLiquidityDelta,
   getNextSqrtPrice,
 } from "./curve";
+import Decimal from "decimal.js";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
@@ -262,6 +263,20 @@ export function getBaseFeeParams(
   numberOfPeriod: number,
   periodFrequency: number
 ): BaseFee {
+  if (maxBaseFeeBps == minBaseFeeBps) {
+    if (numberOfPeriod != 0 || periodFrequency != 0) {
+      throw new Error("numberOfPeriod and periodFrequency must both be zero");
+    }
+
+    return {
+      cliffFeeNumerator: bpsToFeeNumerator(maxBaseFeeBps),
+      numberOfPeriod: 0,
+      periodFrequency: new BN(0),
+      reductionFactor: new BN(0),
+      feeSchedulerMode: 0,
+    };
+  }
+
   if (numberOfPeriod <= 0) {
     throw new Error("Total periods must be greater than zero");
   }
@@ -277,6 +292,12 @@ export function getBaseFeeParams(
   if (minBaseFeeBps > maxBaseFeeBps) {
     throw new Error(
       "minBaseFee bps must be less than or equal to maxBaseFee bps"
+    );
+  }
+
+  if (numberOfPeriod == 0 || periodFrequency == 0) {
+    throw new Error(
+      "numberOfPeriod and periodFrequency must both greater than zero"
     );
   }
 
@@ -308,28 +329,37 @@ export function getBaseFeeParams(
  * Calculate dynamic fee parameters
  * @param {number} baseFeeBps - Base fee in basis points
  * @param {number} [maxPriceChangeBps=1500] - Maximum price change to consider for fee calculation (in basis points)
- * @param {number} [binStep=1] - Bin step size for price range calculations
  *
  * @returns {DynamicFee}
  */
 export function getDynamicFeeParams(
   baseFeeBps: number,
-  maxPriceChangeBps: number = MAX_PRICE_CHANGE_BPS_DEFAULT, // default 15%
-  binStep: number = BIN_STEP_BPS_DEFAULT
+  maxPriceChangeBps: number = MAX_PRICE_CHANGE_BPS_DEFAULT // default 15%
 ): DynamicFee {
   if (maxPriceChangeBps > MAX_PRICE_CHANGE_BPS_DEFAULT) {
     throw new Error(
       `maxPriceChangeBps (${maxPriceChangeBps} bps) must be less than or equal to ${MAX_PRICE_CHANGE_BPS_DEFAULT}`
     );
   }
-  const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
 
-  const maxVolatilityAccumulator = new BN(BASIS_POINT_MAX * maxPriceChangeBps);
+  const priceRatio = maxPriceChangeBps / BASIS_POINT_MAX + 1;
+  // Q64
+  const sqrtPriceRatio = Decimal.sqrt(priceRatio.toString()).mul(
+    Decimal.pow(2, 64)
+  );
+  const sqrtPriceRatioQ64 = new BN(sqrtPriceRatio.floor().toFixed());
+  const deltaBinId = sqrtPriceRatioQ64
+    .sub(ONE)
+    .div(BIN_STEP_BPS_U128_DEFAULT)
+    .muln(2);
+
+  const maxVolatilityAccumulator = new BN(deltaBinId.muln(BASIS_POINT_MAX));
 
   const squareVfaBin = maxVolatilityAccumulator
-    .mul(new BN(binStep))
+    .mul(new BN(BIN_STEP_BPS_DEFAULT))
     .pow(new BN(2));
 
+  const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
   const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100); // default max dynamic fee = 20% of base fee.
   const vFee = maxDynamicFeeNumerator
     .mul(new BN(100_000_000_000))
@@ -338,7 +368,7 @@ export function getDynamicFeeParams(
   const variableFeeControl = vFee.div(squareVfaBin);
 
   return {
-    binStep,
+    binStep: BIN_STEP_BPS_DEFAULT,
     binStepU128: BIN_STEP_BPS_U128_DEFAULT,
     filterPeriod: DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
     decayPeriod: DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,

@@ -117,12 +117,12 @@ describe("Lock Postion", () => {
       // add liquidity
       const poolState = await getPool(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         pool
       );
       const positionState = await getPosition(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         position
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
@@ -281,12 +281,12 @@ describe("Lock Postion", () => {
       // add liquidity
       const poolState = await getPool(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         pool
       );
       const positionState = await getPosition(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         position
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({

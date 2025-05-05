@@ -106,14 +106,6 @@ export class CpAmm {
   }
 
   /**
-   * Returns the Anchor program instance.
-   * @returns The AmmProgram instance.
-   */
-  getProgram() {
-    return this._program;
-  }
-
-  /**
    * Prepares token accounts for a transaction by retrieving or creating associated token accounts.
    * @private
    * @param {PublicKey} owner - The owner of the token accounts

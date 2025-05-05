@@ -114,7 +114,7 @@ describe("Add liquidity", () => {
       // add liquidity
       const poolState = await getPool(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         pool
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
@@ -237,7 +237,7 @@ describe("Add liquidity", () => {
       // add liquidity
       const poolState = await getPool(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         pool
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({

@@ -114,7 +114,7 @@ describe("Remove liquidity & Close position", () => {
       // add liquidity
       const poolState = await getPool(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         pool
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
@@ -260,7 +260,7 @@ describe("Remove liquidity & Close position", () => {
 
       const poolState = await getPool(
         context.banksClient,
-        ammInstance.getProgram(),
+        ammInstance._program,
         pool
       );
 

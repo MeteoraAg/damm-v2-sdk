@@ -1,9 +1,22 @@
 import { BN } from "@coral-xyz/anchor";
-import { CollectFeeMode, FeeMode, FeeSchedulerMode, Rounding } from "../types";
+import {
+  BaseFee,
+  CollectFeeMode,
+  DynamicFee,
+  FeeMode,
+  FeeSchedulerMode,
+  Rounding,
+} from "../types";
 import {
   BASIS_POINT_MAX,
+  BIN_STEP_BPS_DEFAULT,
+  BIN_STEP_BPS_U128_DEFAULT,
+  DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,
+  DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
+  DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
   FEE_DENOMINATOR,
   MAX_FEE_NUMERATOR,
+  MAX_PRICE_CHANGE_BPS_DEFAULT,
   SCALE_OFFSET,
 } from "../constants";
 import { ONE, pow } from "../math/feeMath";
@@ -13,6 +26,7 @@ import {
   getAmountBFromLiquidityDelta,
   getNextSqrtPrice,
 } from "./curve";
+import Decimal from "decimal.js";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
@@ -206,4 +220,164 @@ export function getSwapAmount(
       outAmount.sub(totalFee));
 
   return { amountOut, totalFee };
+}
+
+/**
+ * Converts basis points (bps) to a fee numerator
+ * 1 bps = 0.01% = 0.0001 in decimal
+ *
+ * @param bps - The value in basis points [1-10_000]
+ * @returns The equivalent fee numerator
+ */
+export function bpsToFeeNumerator(bps: number): BN {
+  return new BN(bps * FEE_DENOMINATOR).divn(BASIS_POINT_MAX);
+}
+
+/**
+ * Converts a fee numerator back to basis points (bps)
+ *
+ * @param feeNumerator - The fee numerator to convert
+ * @returns The equivalent value in basis points [1-10_000]
+ */
+export function feeNumeratorToBps(feeNumerator: BN): number {
+  return feeNumerator
+    .muln(BASIS_POINT_MAX)
+    .div(new BN(FEE_DENOMINATOR))
+    .toNumber();
+}
+
+/**
+ * Calculates base fee parameters for a fee scheduler system.
+ * @param {number} maxBaseFeeBps - Maximum fee in basis points
+ * @param {number} minBaseFeeBps - Minimum fee in basis points
+ * @param {FeeSchedulerMode} feeSchedulerMode - Mode for fee reduction (Linear or Exponential)
+ * @param {number} numberOfPeriod - Number of periods over which to schedule fee reduction
+ * @param {BN} periodFrequency - Time interval between fee reductions
+ *
+ * @returns {BaseFee}
+ */
+export function getBaseFeeParams(
+  maxBaseFeeBps: number,
+  minBaseFeeBps: number,
+  feeSchedulerMode: FeeSchedulerMode,
+  numberOfPeriod: number,
+  totalDuration: number
+): BaseFee {
+  if (maxBaseFeeBps == minBaseFeeBps) {
+    if (numberOfPeriod != 0 || totalDuration != 0) {
+      throw new Error("numberOfPeriod and totalDuration must both be zero");
+    }
+
+    return {
+      cliffFeeNumerator: bpsToFeeNumerator(maxBaseFeeBps),
+      numberOfPeriod: 0,
+      periodFrequency: new BN(0),
+      reductionFactor: new BN(0),
+      feeSchedulerMode: 0,
+    };
+  }
+
+  if (numberOfPeriod <= 0) {
+    throw new Error("Total periods must be greater than zero");
+  }
+
+  if (maxBaseFeeBps > feeNumeratorToBps(new BN(MAX_FEE_NUMERATOR))) {
+    throw new Error(
+      `maxBaseFeeBps (${maxBaseFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
+        new BN(MAX_FEE_NUMERATOR)
+      )} bps`
+    );
+  }
+
+  if (minBaseFeeBps > maxBaseFeeBps) {
+    throw new Error(
+      "minBaseFee bps must be less than or equal to maxBaseFee bps"
+    );
+  }
+
+  if (numberOfPeriod == 0 || totalDuration == 0) {
+    throw new Error(
+      "numberOfPeriod and totalDuration must both greater than zero"
+    );
+  }
+
+  const maxBaseFeeNumerator = bpsToFeeNumerator(maxBaseFeeBps);
+
+  const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFeeBps);
+
+  const periodFrequency = new BN(totalDuration / numberOfPeriod);
+
+  let reductionFactor: BN;
+  if (feeSchedulerMode == FeeSchedulerMode.Linear) {
+    const totalReduction = maxBaseFeeNumerator.sub(minBaseFeeNumerator);
+    reductionFactor = totalReduction.divn(numberOfPeriod);
+  } else {
+    const ratio =
+      minBaseFeeNumerator.toNumber() / maxBaseFeeNumerator.toNumber();
+    const decayBase = Math.pow(ratio, 1 / numberOfPeriod);
+    reductionFactor = new BN(BASIS_POINT_MAX * (1 - decayBase));
+  }
+
+  return {
+    cliffFeeNumerator: maxBaseFeeNumerator,
+    numberOfPeriod,
+    periodFrequency,
+    reductionFactor,
+    feeSchedulerMode,
+  };
+}
+
+/**
+ * Calculate dynamic fee parameters
+ * @param {number} baseFeeBps - Base fee in basis points
+ * @param {number} [maxPriceChangeBps=1500] - Maximum price change to consider for fee calculation (in basis points)
+ *
+ * @returns {DynamicFee}
+ */
+export function getDynamicFeeParams(
+  baseFeeBps: number,
+  maxPriceChangeBps: number = MAX_PRICE_CHANGE_BPS_DEFAULT // default 15%
+): DynamicFee {
+  if (maxPriceChangeBps > MAX_PRICE_CHANGE_BPS_DEFAULT) {
+    throw new Error(
+      `maxPriceChangeBps (${maxPriceChangeBps} bps) must be less than or equal to ${MAX_PRICE_CHANGE_BPS_DEFAULT}`
+    );
+  }
+
+  const priceRatio = maxPriceChangeBps / BASIS_POINT_MAX + 1;
+  // Q64
+  const sqrtPriceRatioQ64 = new BN(
+    Decimal.sqrt(priceRatio.toString())
+      .mul(Decimal.pow(2, 64))
+      .floor()
+      .toFixed()
+  );
+  const deltaBinId = sqrtPriceRatioQ64
+    .sub(ONE)
+    .div(BIN_STEP_BPS_U128_DEFAULT)
+    .muln(2);
+
+  const maxVolatilityAccumulator = new BN(deltaBinId.muln(BASIS_POINT_MAX));
+
+  const squareVfaBin = maxVolatilityAccumulator
+    .mul(new BN(BIN_STEP_BPS_DEFAULT))
+    .pow(new BN(2));
+
+  const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
+  const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100); // default max dynamic fee = 20% of base fee.
+  const vFee = maxDynamicFeeNumerator
+    .mul(new BN(100_000_000_000))
+    .sub(new BN(99_999_999_999));
+
+  const variableFeeControl = vFee.div(squareVfaBin);
+
+  return {
+    binStep: BIN_STEP_BPS_DEFAULT,
+    binStepU128: BIN_STEP_BPS_U128_DEFAULT,
+    filterPeriod: DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
+    decayPeriod: DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,
+    reductionFactor: DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
+    maxVolatilityAccumulator: maxVolatilityAccumulator.toNumber(),
+    variableFeeControl: variableFeeControl.toNumber(),
+  };
 }

@@ -462,7 +462,6 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
       });
-
     instructions.push(removeAllLiquidityInstruction);
     // 3. close position
     const closePositionInstruction = await this.buildClosePositionInstruction({
@@ -2139,16 +2138,6 @@ export class CpAmm {
       tokenBProgram
     );
 
-    const postInstructions: TransactionInstruction[] = [];
-    if (
-      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
-      )
-    ) {
-      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
-      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
-    }
-
     let positionBLiquidityDelta = positionBState.unlockedLiquidity;
     // 1. refresh vesting position B if vesting account provided
     if (positionBVestings.length > 0) {
@@ -2179,6 +2168,29 @@ export class CpAmm {
       refreshVestingInstruction &&
         preInstructions.push(refreshVestingInstruction);
     }
+
+    // recalculate liquidity delta
+    const tokenAWithdrawAmount = getAmountAFromLiquidityDelta(
+      positionBLiquidityDelta,
+      poolState.sqrtPrice,
+      poolState.sqrtMaxPrice,
+      Rounding.Down
+    );
+
+    const tokenBWithdrawAmount = getAmountBFromLiquidityDelta(
+      positionBLiquidityDelta,
+      poolState.sqrtPrice,
+      poolState.sqrtMinPrice,
+      Rounding.Down
+    );
+
+    const newLiquidityDelta = this.getLiquidityDelta({
+      maxAmountTokenA: tokenAWithdrawAmount,
+      maxAmountTokenB: tokenBWithdrawAmount,
+      sqrtMaxPrice: poolState.sqrtMaxPrice,
+      sqrtMinPrice: poolState.sqrtMinPrice,
+      sqrtPrice: poolState.sqrtPrice,
+    });
 
     const transaction = new Transaction();
 
@@ -2216,15 +2228,20 @@ export class CpAmm {
       tokenBVault,
       tokenAProgram,
       tokenBProgram,
-      liquidityDelta: positionBLiquidityDelta,
+      liquidityDelta: newLiquidityDelta,
       tokenAAmountThreshold: tokenAAmountAddLiquidityThreshold,
       tokenBAmountThreshold: tokenBAmountAddLiquidityThreshold,
     });
 
     transaction.add(addLiquidityInstruction);
 
-    if (postInstructions.length > 0) {
-      transaction.add(...postInstructions);
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
+      closeWrappedSOLIx && transaction.add(closeWrappedSOLIx);
     }
 
     return transaction;

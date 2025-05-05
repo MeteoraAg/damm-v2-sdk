@@ -1,9 +1,23 @@
 import { BN } from "@coral-xyz/anchor";
-import { CollectFeeMode, FeeMode, FeeSchedulerMode, Rounding } from "../types";
+import {
+  BaseFee,
+  CollectFeeMode,
+  DynamicFee,
+  DynamicFeeParams,
+  FeeMode,
+  FeeSchedulerMode,
+  Rounding,
+} from "../types";
 import {
   BASIS_POINT_MAX,
+  BIN_STEP_BPS_DEFAULT,
+  BIN_STEP_BPS_U128_DEFAULT,
+  DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,
+  DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
+  DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
   FEE_DENOMINATOR,
   MAX_FEE_NUMERATOR,
+  MAX_PRICE_CHANGE_BPS_DEFAULT,
   SCALE_OFFSET,
 } from "../constants";
 import { ONE, pow } from "../math/feeMath";
@@ -215,8 +229,8 @@ export function getSwapAmount(
  * @param bps - The value in basis points [1-10_000]
  * @returns The equivalent fee numerator
  */
-export function bpsToFeeNumerator(bps: number): number {
-  return (bps * FEE_DENOMINATOR) / BASIS_POINT_MAX;
+export function bpsToFeeNumerator(bps: number): BN {
+  return new BN(bps * FEE_DENOMINATOR).divn(BASIS_POINT_MAX);
 }
 
 /**
@@ -225,111 +239,86 @@ export function bpsToFeeNumerator(bps: number): number {
  * @param feeNumerator - The fee numerator to convert
  * @returns The equivalent value in basis points [1-10_000]
  */
-export function feeNumeratorToBps(feeNumerator: number): number {
-  return (feeNumerator * BASIS_POINT_MAX) / FEE_DENOMINATOR;
+export function feeNumeratorToBps(feeNumerator: BN): number {
+  return feeNumerator.muln(BASIS_POINT_MAX).divn(FEE_DENOMINATOR).toNumber();
 }
 
 /**
- * Calculates the reduction factor for a Linear fee schedule
- * Formula: fee = cliff_fee_numerator - passed_period * reduction_factor
+ * Calculates base fee parameters for a fee scheduler system.
+ * @param {number} maxBaseFeeBps - Maximum fee in basis points
+ * @param {number} minBaseFeeBps - Minimum fee in basis points
+ * @param {FeeSchedulerMode} feeSchedulerMode - Mode for fee reduction (Linear or Exponential)
+ * @param {number} numberOfPeriod - Number of periods over which to schedule fee reduction
+ * @param {BN} periodFrequency - Time interval between fee reductions
  *
- * @param cliffFeeBps - The initial fee value at the cliff in basis points
- * @param targetFeeBps - The desired final fee value after all periods in basis points
- * @param totalPeriods - The total number of periods over which the reduction occurs
- * @returns The estimate of reduction factor
+ * @returns {BaseFee}
  */
-export function estimateLinearReductionFactor(
-  cliffFeeBps: number,
-  targetFeeBps: number,
-  totalPeriods: number
-): number {
-  if (totalPeriods <= 0) {
+export function getBaseFeeParams(
+  maxBaseFeeBps: number,
+  minBaseFeeBps: number,
+  feeSchedulerMode: FeeSchedulerMode,
+  numberOfPeriod: number,
+  periodFrequency: BN
+): BaseFee {
+  if (numberOfPeriod <= 0) {
     throw new Error("Total periods must be greater than zero");
   }
 
-  if (cliffFeeBps > feeNumeratorToBps(MAX_FEE_NUMERATOR)) {
+  if (maxBaseFeeBps > feeNumeratorToBps(new BN(MAX_FEE_NUMERATOR))) {
     throw new Error(
-      `Cliff fee (${cliffFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
-        MAX_FEE_NUMERATOR
+      `maxBaseFeeBps (${maxBaseFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
+        new BN(MAX_FEE_NUMERATOR)
       )} bps`
     );
   }
 
-  if (targetFeeBps > cliffFeeBps) {
+  if (minBaseFeeBps > maxBaseFeeBps) {
     throw new Error(
-      "Target fee must be less than or equal to cliff fee for reduction"
+      "minBaseFee bps must be less than or equal to maxBaseFee bps"
     );
   }
 
-  const cliffFeeNumerator = bpsToFeeNumerator(cliffFeeBps);
+  const maxBaseFeeNumerator = bpsToFeeNumerator(maxBaseFeeBps);
 
-  const targetFeeNumerator = bpsToFeeNumerator(targetFeeBps);
+  const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFeeBps);
 
-  const totalReduction = cliffFeeNumerator - targetFeeNumerator;
-  const reductionFactor = totalReduction / totalPeriods;
+  let reductionFactor: BN;
+  if (feeSchedulerMode == FeeSchedulerMode.Linear) {
+    const totalReduction = maxBaseFeeNumerator.sub(minBaseFeeNumerator);
+    reductionFactor = totalReduction.divn(numberOfPeriod);
+  } else {
+    const ratio = minBaseFeeNumerator.div(maxBaseFeeNumerator);
+    const decayBase = Math.pow(ratio.toNumber(), 1 / numberOfPeriod);
+    reductionFactor = new BN(BASIS_POINT_MAX * (1 - decayBase));
+  }
 
-  return Math.floor(reductionFactor);
+  return {
+    cliffFeeNumerator: maxBaseFeeNumerator,
+    numberOfPeriod,
+    periodFrequency,
+    reductionFactor,
+    feeSchedulerMode,
+  };
 }
 
 /**
- * Calculates the reduction factor for an Exponential fee schedule
- * Formula: fee_numerator = cliff_fee_numerator * (1 - reduction_factor/BASIS_POINT_MAX)^passed_period
- * reduction_factor = BASIS_POINT_MAX * (1 - (fee_numerator/cliff_fee_numerator)^(1/totalPeriods))
- * @param cliffFeeBps - The initial fee value at the cliff in basis points
- * @param targetFeeBps - The desired final fee value after all periods in basis points
- * @param totalPeriods - The total number of periods over which the reduction occurs
- * @returns The estimate of reduction factor
- */
-export function estimateExponentialReductionFactor(
-  cliffFeeBps: number,
-  targetFeeBps: number,
-  totalPeriods: number
-): number {
-  // Validate inputs
-  if (totalPeriods <= 0) {
-    throw new Error("Total periods must be greater than zero");
-  }
-
-  if (cliffFeeBps > feeNumeratorToBps(MAX_FEE_NUMERATOR)) {
-    throw new Error(
-      `Cliff fee (${cliffFeeBps} bps) exceeds maximum allowed value of ${feeNumeratorToBps(
-        MAX_FEE_NUMERATOR
-      )} bps`
-    );
-  }
-
-  if (targetFeeBps > cliffFeeBps) {
-    throw new Error(
-      "Target fee bps must be less than or equal to cliff fee bps for reduction"
-    );
-  }
-
-  const cliffFeeNumerator = bpsToFeeNumerator(cliffFeeBps);
-
-  const targetFeeNumerator = bpsToFeeNumerator(targetFeeBps);
-
-  const ratio = targetFeeNumerator / cliffFeeNumerator;
-  const decayBase = Math.pow(ratio, 1 / totalPeriods);
-  const reductionFactor = BASIS_POINT_MAX * (1 - decayBase);
-  return Math.floor(reductionFactor);
-}
-
-/**
- * Calculates the dynamic variable fee control parameter based on base fee, max volatility accumulator
+ * Calculate dynamic fee parameters
+ * @param {number} baseFeeBps - Base fee in basis points
+ * @param {number} [maxPriceChangeBps=1500] - Maximum price change to consider for fee calculation (in basis points)
+ * @param {number} [binStep=1] - Bin step size for price range calculations
  *
- * @param {BN} baseFeeBps - The base fee value in bps
- * @param {BN} maxPriceChangeBps - The max price change between bin step in bps. Default 15%
- * @param {number} binStep
- * @returns {BN} The calculated dynamic variable fee control value
+ * @returns {DynamicFee}
  */
 export function getDynamicFeeParams(
   baseFeeBps: number,
-  maxPriceChangeBps: number = 1500, // default 15%
-  binStep: number = 1
-): {
-  maxVolatilityAccumulator: BN;
-  variableFeeControl: BN;
-} {
+  maxPriceChangeBps: number = MAX_PRICE_CHANGE_BPS_DEFAULT, // default 15%
+  binStep: number = BIN_STEP_BPS_DEFAULT
+): DynamicFee {
+  if (maxPriceChangeBps > MAX_PRICE_CHANGE_BPS_DEFAULT) {
+    throw new Error(
+      `maxPriceChangeBps (${maxPriceChangeBps} bps) must be less than or equal to ${MAX_PRICE_CHANGE_BPS_DEFAULT}`
+    );
+  }
   const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
   const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100); // default max dynamic fee = 15% of base fee.
 
@@ -345,5 +334,13 @@ export function getDynamicFeeParams(
 
   const variableFeeControl = vFee.div(squareVfaBin);
 
-  return { maxVolatilityAccumulator, variableFeeControl };
+  return {
+    binStep: BIN_STEP_BPS_DEFAULT,
+    binStepU128: BIN_STEP_BPS_U128_DEFAULT,
+    filterPeriod: DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
+    decayPeriod: DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,
+    reductionFactor: DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
+    maxVolatilityAccumulator: maxVolatilityAccumulator.toNumber(),
+    variableFeeControl: variableFeeControl.toNumber(),
+  };
 }

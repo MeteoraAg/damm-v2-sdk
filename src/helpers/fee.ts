@@ -331,7 +331,7 @@ export function getDynamicFeeParams(
   variableFeeControl: BN;
 } {
   const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
-  const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100);
+  const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100); // default max dynamic fee = 15% of base fee.
 
   const maxVolatilityAccumulator = new BN(BASIS_POINT_MAX * maxPriceChangeBps);
 

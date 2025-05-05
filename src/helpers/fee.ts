@@ -3,7 +3,6 @@ import {
   BaseFee,
   CollectFeeMode,
   DynamicFee,
-  DynamicFeeParams,
   FeeMode,
   FeeSchedulerMode,
   Rounding,
@@ -240,7 +239,10 @@ export function bpsToFeeNumerator(bps: number): BN {
  * @returns The equivalent value in basis points [1-10_000]
  */
 export function feeNumeratorToBps(feeNumerator: BN): number {
-  return feeNumerator.muln(BASIS_POINT_MAX).divn(FEE_DENOMINATOR).toNumber();
+  return feeNumerator
+    .muln(BASIS_POINT_MAX)
+    .div(new BN(FEE_DENOMINATOR))
+    .toNumber();
 }
 
 /**
@@ -287,8 +289,9 @@ export function getBaseFeeParams(
     const totalReduction = maxBaseFeeNumerator.sub(minBaseFeeNumerator);
     reductionFactor = totalReduction.divn(numberOfPeriod);
   } else {
-    const ratio = minBaseFeeNumerator.div(maxBaseFeeNumerator);
-    const decayBase = Math.pow(ratio.toNumber(), 1 / numberOfPeriod);
+    const ratio =
+      minBaseFeeNumerator.toNumber() / maxBaseFeeNumerator.toNumber();
+    const decayBase = Math.pow(ratio, 1 / numberOfPeriod);
     reductionFactor = new BN(BASIS_POINT_MAX * (1 - decayBase));
   }
 
@@ -320,7 +323,7 @@ export function getDynamicFeeParams(
     );
   }
   const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
-  const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100); // default max dynamic fee = 15% of base fee.
+  const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100); // default max dynamic fee = 20% of base fee.
 
   const maxVolatilityAccumulator = new BN(BASIS_POINT_MAX * maxPriceChangeBps);
 
@@ -335,7 +338,7 @@ export function getDynamicFeeParams(
   const variableFeeControl = vFee.div(squareVfaBin);
 
   return {
-    binStep: BIN_STEP_BPS_DEFAULT,
+    binStep,
     binStepU128: BIN_STEP_BPS_U128_DEFAULT,
     filterPeriod: DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
     decayPeriod: DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,

@@ -265,7 +265,7 @@ export function getBaseFeeParams(
 ): BaseFee {
   if (maxBaseFeeBps == minBaseFeeBps) {
     if (numberOfPeriod != 0 || totalDuration != 0) {
-      throw new Error("numberOfPeriod and periodFrequency must both be zero");
+      throw new Error("numberOfPeriod and totalDuration must both be zero");
     }
 
     return {
@@ -297,7 +297,7 @@ export function getBaseFeeParams(
 
   if (numberOfPeriod == 0 || totalDuration == 0) {
     throw new Error(
-      "numberOfPeriod and periodFrequency must both greater than zero"
+      "numberOfPeriod and totalDuration must both greater than zero"
     );
   }
 

@@ -261,10 +261,10 @@ export function getBaseFeeParams(
   minBaseFeeBps: number,
   feeSchedulerMode: FeeSchedulerMode,
   numberOfPeriod: number,
-  periodFrequency: number
+  totalDuration: number
 ): BaseFee {
   if (maxBaseFeeBps == minBaseFeeBps) {
-    if (numberOfPeriod != 0 || periodFrequency != 0) {
+    if (numberOfPeriod != 0 || totalDuration != 0) {
       throw new Error("numberOfPeriod and periodFrequency must both be zero");
     }
 
@@ -295,7 +295,7 @@ export function getBaseFeeParams(
     );
   }
 
-  if (numberOfPeriod == 0 || periodFrequency == 0) {
+  if (numberOfPeriod == 0 || totalDuration == 0) {
     throw new Error(
       "numberOfPeriod and periodFrequency must both greater than zero"
     );
@@ -304,6 +304,8 @@ export function getBaseFeeParams(
   const maxBaseFeeNumerator = bpsToFeeNumerator(maxBaseFeeBps);
 
   const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFeeBps);
+
+  const periodFrequency = new BN(totalDuration / numberOfPeriod);
 
   let reductionFactor: BN;
   if (feeSchedulerMode == FeeSchedulerMode.Linear) {
@@ -319,7 +321,7 @@ export function getBaseFeeParams(
   return {
     cliffFeeNumerator: maxBaseFeeNumerator,
     numberOfPeriod,
-    periodFrequency: new BN(periodFrequency),
+    periodFrequency,
     reductionFactor,
     feeSchedulerMode,
   };
@@ -344,10 +346,12 @@ export function getDynamicFeeParams(
 
   const priceRatio = maxPriceChangeBps / BASIS_POINT_MAX + 1;
   // Q64
-  const sqrtPriceRatio = Decimal.sqrt(priceRatio.toString()).mul(
-    Decimal.pow(2, 64)
+  const sqrtPriceRatioQ64 = new BN(
+    Decimal.sqrt(priceRatio.toString())
+      .mul(Decimal.pow(2, 64))
+      .floor()
+      .toFixed()
   );
-  const sqrtPriceRatioQ64 = new BN(sqrtPriceRatio.floor().toFixed());
   const deltaBinId = sqrtPriceRatioQ64
     .sub(ONE)
     .div(BIN_STEP_BPS_U128_DEFAULT)

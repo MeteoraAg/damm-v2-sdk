@@ -416,6 +416,7 @@ export type ClaimPositionFeeInstructionParams = {
 };
 
 export type ClaimPositionFeeParams = {
+  feePayer: PublicKey;
   owner: PublicKey;
   position: PublicKey;
   pool: PublicKey;
@@ -474,6 +475,7 @@ export type WithdrawIneligibleRewardParams = {
 };
 
 export type ClaimPartnerFeeParams = {
+  feePayer: PublicKey;
   partner: PublicKey;
   pool: PublicKey;
   maxAmountA: BN;
@@ -481,6 +483,7 @@ export type ClaimPartnerFeeParams = {
 };
 
 export type ClaimRewardParams = {
+  feePayer: PublicKey;
   user: PublicKey;
   position: PublicKey;
   poolState: PoolState;

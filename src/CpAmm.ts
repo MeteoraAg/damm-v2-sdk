@@ -2065,7 +2065,7 @@ export class CpAmm {
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
     } = await this.prepareTokenAccounts(
-      feePayer,
+      feePayer ?? owner,
       owner,
       tokenAMint,
       tokenBMint,
@@ -2561,7 +2561,7 @@ export class CpAmm {
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
     } = await this.prepareTokenAccounts(
-      feePayer,
+      feePayer ?? partner,
       partner,
       tokenAMint,
       tokenBMint,
@@ -2626,7 +2626,7 @@ export class CpAmm {
         this._program.provider.connection,
         rewardInfo.mint,
         user,
-        feePayer,
+        feePayer ?? user,
         true,
         tokenProgram
       );

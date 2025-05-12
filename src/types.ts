@@ -370,6 +370,7 @@ export type SwapQuotes = {
 };
 
 export type SwapParams = {
+  feePayer?: PublicKey;
   payer: PublicKey;
   pool: PublicKey;
   inputTokenMint: PublicKey;

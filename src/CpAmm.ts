@@ -1891,6 +1891,7 @@ export class CpAmm {
    */
   async swap(params: SwapParams): TxBuilder {
     const {
+      feePayer,
       payer,
       pool,
       inputTokenMint,
@@ -1917,7 +1918,7 @@ export class CpAmm {
       tokenBAta: outputTokenAccount,
       instructions: preInstructions,
     } = await this.prepareTokenAccounts(
-      payer,
+      feePayer ?? payer,
       payer,
       inputTokenMint,
       outputTokenMint,

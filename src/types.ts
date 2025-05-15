@@ -86,6 +86,18 @@ export type PoolFeesParams = {
   dynamicFee: DynamicFee | null;
 };
 
+export type PrepareCustomizablePoolParams = {
+  pool: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  payer: PublicKey;
+  positionNft: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+};
+
 export type InitializeCustomizeablePoolParams = {
   payer: PublicKey;
   creator: PublicKey;
@@ -106,6 +118,12 @@ export type InitializeCustomizeablePoolParams = {
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
 };
+
+export type InitializeCustomizeablePoolWithDynamicConfigParams =
+  InitializeCustomizeablePoolParams & {
+    config: PublicKey;
+    poolCreatorAuthority: PublicKey;
+  };
 
 export type PreparePoolCreationParams = {
   tokenAAmount: BN;

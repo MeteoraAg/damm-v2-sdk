@@ -35,12 +35,14 @@ import {
   GetQuoteParams,
   GetWithdrawQuoteParams,
   InitializeCustomizeablePoolParams,
+  InitializeCustomizeablePoolWithDynamicConfigParams,
   LiquidityDeltaParams,
   LockPositionParams,
   MergePositionParams,
   PermanentLockParams,
   PoolState,
   PositionState,
+  PrepareCustomizablePoolParams,
   PreparedPoolCreation,
   PreparePoolCreationParams,
   PreparePoolCreationSingleSide,
@@ -85,12 +87,11 @@ import {
   calculateTransferFeeIncludedAmount,
   getAmountBFromLiquidityDelta,
   getAmountAFromLiquidityDelta,
-  getAllUserPositionNftAccount,
   getAvailableVestingLiquidity,
   isVestingComplete,
   getAllPositionNftAccountByOwner,
 } from "./helpers";
-import { min } from "bn.js";
+import { min, max } from "bn.js";
 
 /**
  * CpAmm SDK class to interact with the Dynamic CP-AMM
@@ -105,6 +106,7 @@ export class CpAmm {
     this.poolAuthority = derivePoolAuthority();
   }
 
+  //// ANCHOR: PRIVATE FUNCTIONS //////
   /**
    * Prepares token accounts for a transaction by retrieving or creating associated token accounts.
    * @private
@@ -507,6 +509,82 @@ export class CpAmm {
       positionNftAccount,
     };
   }
+
+  /**
+   * Private helper method to prepare common customizable pool creation logic
+   * @param {PrepareCustomizablePoolParams} params - Common parameters for pool creation
+   * @returns Prepared transaction data including instructions and accounts
+   */
+  private async prepareCreateCustomizablePoolParams(
+    params: PrepareCustomizablePoolParams
+  ) {
+    const {
+      pool,
+      tokenAMint,
+      tokenBMint,
+      tokenAAmount,
+      tokenBAmount,
+      payer,
+      positionNft,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
+
+    const position = derivePositionAddress(positionNft);
+    const positionNftAccount = derivePositionNftAccount(positionNft);
+
+    const tokenAVault = deriveTokenVaultAddress(tokenAMint, pool);
+    const tokenBVault = deriveTokenVaultAddress(tokenBMint, pool);
+
+    const {
+      tokenAAta: payerTokenA,
+      tokenBAta: payerTokenB,
+      instructions: preInstructions,
+    } = await this.prepareTokenAccounts(
+      payer,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram
+    );
+
+    if (tokenAMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        payerTokenA,
+        BigInt(tokenAAmount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    if (tokenBMint.equals(NATIVE_MINT)) {
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        payerTokenB,
+        BigInt(tokenBAmount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+    const tokenBadgeAccounts = this.getTokenBadgeAccounts(
+      tokenAMint,
+      tokenBMint
+    );
+
+    return {
+      position,
+      positionNftAccount,
+      tokenAVault,
+      tokenBVault,
+      payerTokenA,
+      payerTokenB,
+      preInstructions,
+      tokenBadgeAccounts,
+    };
+  }
+
+  //// ANCHOR: GETTER/FETCHER FUNCTIONS //////
 
   /**
    * Fetches the Config state of the program.
@@ -1129,6 +1207,7 @@ export class CpAmm {
     };
   }
 
+  //// ANCHOR: MAIN ENDPOINT //////
   /**
    * Builds a transaction to create a permissionless pool.
    * @param params - Parameters for pool creation.
@@ -1260,48 +1339,28 @@ export class CpAmm {
       tokenBProgram,
     } = params;
     const pool = deriveCustomizablePoolAddress(tokenAMint, tokenBMint);
-    const position = derivePositionAddress(positionNft);
-    const positionNftAccount = derivePositionNftAccount(positionNft);
-
-    const tokenAVault = deriveTokenVaultAddress(tokenAMint, pool);
-    const tokenBVault = deriveTokenVaultAddress(tokenBMint, pool);
-
     const {
-      tokenAAta: payerTokenA,
-      tokenBAta: payerTokenB,
-      instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      payer,
+      position,
+      positionNftAccount,
+      tokenAVault,
+      tokenBVault,
+      payerTokenA,
+      payerTokenB,
+      preInstructions,
+      tokenBadgeAccounts,
+    } = await this.prepareCreateCustomizablePoolParams({
+      pool,
       tokenAMint,
       tokenBMint,
+      tokenAAmount,
+      tokenBAmount: tokenBMint.equals(NATIVE_MINT)
+        ? max(tokenBAmount, new BN(1))
+        : tokenBAmount,
+      payer,
+      positionNft,
       tokenAProgram,
-      tokenBProgram
-    );
-
-    if (tokenAMint.equals(NATIVE_MINT)) {
-      const wrapSOLIx = wrapSOLInstruction(
-        payer,
-        payerTokenA,
-        BigInt(tokenAAmount.toString())
-      );
-
-      preInstructions.push(...wrapSOLIx);
-    }
-
-    if (tokenBMint.equals(NATIVE_MINT)) {
-      const lamports = tokenBAmount.eq(new BN(0)) ? new BN(1) : tokenBAmount;
-      const wrapSOLIx = wrapSOLInstruction(
-        payer,
-        payerTokenB,
-        BigInt(lamports.toString())
-      );
-
-      preInstructions.push(...wrapSOLIx);
-    }
-    const tokenBadgeAccounts = this.getTokenBadgeAccounts(
-      tokenAMint,
-      tokenBMint
-    );
+      tokenBProgram,
+    });
 
     const transaction = await this._program.methods
       .initializeCustomizablePool({
@@ -1323,6 +1382,98 @@ export class CpAmm {
         poolAuthority: this.poolAuthority,
         pool,
         position,
+        tokenAMint,
+        tokenBMint,
+        tokenAVault,
+        tokenBVault,
+        payerTokenA,
+        payerTokenB,
+        token2022Program: TOKEN_2022_PROGRAM_ID,
+        tokenAProgram,
+        tokenBProgram,
+        systemProgram: SystemProgram.programId,
+      })
+      .preInstructions(preInstructions)
+      .remainingAccounts(tokenBadgeAccounts)
+      .transaction();
+
+    return { tx: transaction, pool, position };
+  }
+
+  async createCustomPoolWithDynamicConfig(
+    params: InitializeCustomizeablePoolWithDynamicConfigParams
+  ): Promise<{
+    tx: Transaction;
+    pool: PublicKey;
+    position: PublicKey;
+  }> {
+    const {
+      tokenAMint,
+      tokenBMint,
+      tokenAAmount,
+      tokenBAmount,
+      sqrtMinPrice,
+      sqrtMaxPrice,
+      liquidityDelta,
+      initSqrtPrice,
+      payer,
+      config,
+      poolCreatorAuthority,
+      creator,
+      positionNft,
+      poolFees,
+      hasAlphaVault,
+      collectFeeMode,
+      activationPoint,
+      activationType,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
+
+    const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
+    const {
+      position,
+      positionNftAccount,
+      tokenAVault,
+      tokenBVault,
+      payerTokenA,
+      payerTokenB,
+      preInstructions,
+      tokenBadgeAccounts,
+    } = await this.prepareCreateCustomizablePoolParams({
+      pool,
+      tokenAMint,
+      tokenBMint,
+      tokenAAmount,
+      tokenBAmount,
+      payer,
+      positionNft,
+      tokenAProgram,
+      tokenBProgram,
+    });
+
+    const transaction = await this._program.methods
+      .initializePoolWithDynamicConfig({
+        poolFees,
+        sqrtMinPrice,
+        sqrtMaxPrice,
+        hasAlphaVault,
+        liquidity: liquidityDelta,
+        sqrtPrice: initSqrtPrice,
+        activationType,
+        collectFeeMode,
+        activationPoint,
+      })
+      .accountsPartial({
+        creator,
+        positionNftAccount,
+        positionNftMint: positionNft,
+        payer: payer,
+        poolAuthority: this.poolAuthority,
+        pool,
+        position,
+        poolCreatorAuthority: poolCreatorAuthority,
+        config: config,
         tokenAMint,
         tokenBMint,
         tokenAVault,

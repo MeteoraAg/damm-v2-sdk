@@ -13,7 +13,7 @@ import { CP_AMM_PROGRAM_ID, DECIMALS } from "./constants";
 import { createToken, mintTo } from "./token";
 import { ExtensionType } from "@solana/spl-token";
 import { createToken2022, mintToToken2022 } from "./token2022";
-import { PoolState, PositionState } from "../../src";
+import { deriveConfigAddress, PoolState, PositionState } from "../../src";
 import { CpAmm as CpAmmTypes } from "../../src/idl/cp_amm";
 
 // bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1
@@ -350,4 +350,28 @@ export async function getPosition(
 ): Promise<PositionState> {
   const account = await banksClient.getAccount(position);
   return program.coder.accounts.decode("position", Buffer.from(account.data));
+}
+
+export async function createDynamicConfig(
+  banksClient: BanksClient,
+  program: Program<CpAmmTypes>,
+  admin: Keypair,
+  index: BN,
+  poolCreatorAuthority: PublicKey
+): Promise<PublicKey> {
+  const config = deriveConfigAddress(index);
+  const transaction = await program.methods
+    .createDynamicConfig(index, { poolCreatorAuthority })
+    .accountsPartial({
+      config,
+      admin: admin.publicKey,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
+  transaction.sign(admin);
+  await processTransactionMaybeThrow(banksClient, transaction);
+
+  return config;
 }

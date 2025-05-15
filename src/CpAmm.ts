@@ -516,9 +516,7 @@ export class CpAmm {
    * @param {PrepareCustomizablePoolParams} params - Common parameters for pool creation
    * @returns Prepared transaction data including instructions and accounts
    */
-  private async prepareCreateCustomizablePoolParams(
-    params: PrepareCustomizablePoolParams
-  ) {
+  private async prepareCreatePoolParams(params: PrepareCustomizablePoolParams) {
     const {
       pool,
       tokenAMint,
@@ -1233,50 +1231,26 @@ export class CpAmm {
     } = params;
 
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
-
-    const position = derivePositionAddress(positionNft);
-    const positionNftAccount = derivePositionNftAccount(positionNft);
-
-    const tokenAVault = deriveTokenVaultAddress(tokenAMint, pool);
-    const tokenBVault = deriveTokenVaultAddress(tokenBMint, pool);
-
     const {
-      tokenAAta: payerTokenA,
-      tokenBAta: payerTokenB,
-      instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      payer,
-      payer,
+      position,
+      positionNftAccount,
+      tokenAVault,
+      tokenBVault,
+      payerTokenA,
+      payerTokenB,
+      preInstructions,
+      tokenBadgeAccounts,
+    } = await this.prepareCreatePoolParams({
+      pool,
       tokenAMint,
       tokenBMint,
+      tokenAAmount,
+      tokenBAmount,
+      payer,
+      positionNft,
       tokenAProgram,
-      tokenBProgram
-    );
-
-    if (tokenAMint.equals(NATIVE_MINT)) {
-      const wrapSOLIx = wrapSOLInstruction(
-        payer,
-        payerTokenA,
-        BigInt(tokenAAmount.toString())
-      );
-
-      preInstructions.push(...wrapSOLIx);
-    }
-
-    if (tokenBMint.equals(NATIVE_MINT)) {
-      const wrapSOLIx = wrapSOLInstruction(
-        payer,
-        payerTokenB,
-        BigInt(tokenBAmount.toString())
-      );
-
-      preInstructions.push(...wrapSOLIx);
-    }
-
-    const tokenBadgeAccounts = this.getTokenBadgeAccounts(
-      tokenAMint,
-      tokenBMint
-    );
+      tokenBProgram,
+    });
 
     const tx = await this._program.methods
       .initializePool({
@@ -1351,7 +1325,7 @@ export class CpAmm {
       payerTokenB,
       preInstructions,
       tokenBadgeAccounts,
-    } = await this.prepareCreateCustomizablePoolParams({
+    } = await this.prepareCreatePoolParams({
       pool,
       tokenAMint,
       tokenBMint,
@@ -1443,7 +1417,7 @@ export class CpAmm {
       payerTokenB,
       preInstructions,
       tokenBadgeAccounts,
-    } = await this.prepareCreateCustomizablePoolParams({
+    } = await this.prepareCreatePoolParams({
       pool,
       tokenAMint,
       tokenBMint,

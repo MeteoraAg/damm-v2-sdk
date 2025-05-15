@@ -46,11 +46,13 @@ import {
   PreparedPoolCreation,
   PreparePoolCreationParams,
   PreparePoolCreationSingleSide,
+  PrepareTokenAccountParams,
   RefreshVestingParams,
   RemoveAllLiquidityAndClosePositionParams,
   RemoveAllLiquidityParams,
   RemoveLiquidityParams,
   Rounding,
+  SetupFeeClaimAccountsParams,
   SwapParams,
   TxBuilder,
   UpdateRewardDurationParams,
@@ -119,17 +121,21 @@ export class CpAmm {
    *          The token account addresses and any instructions needed to create them
    */
   private async prepareTokenAccounts(
-    payer: PublicKey,
-    owner: PublicKey,
-    tokenAMint: PublicKey,
-    tokenBMint: PublicKey,
-    tokenAProgram: PublicKey,
-    tokenBProgram: PublicKey
+    params: PrepareTokenAccountParams
   ): Promise<{
     tokenAAta: PublicKey;
     tokenBAta: PublicKey;
     instructions: TransactionInstruction[];
   }> {
+    const {
+      payer,
+      tokenAOwner,
+      tokenBOwner,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
     const instructions: TransactionInstruction[] = [];
     const [
       { ataPubkey: tokenAAta, ix: createInputTokenAccountIx },
@@ -138,7 +144,7 @@ export class CpAmm {
       getOrCreateATAInstruction(
         this._program.provider.connection,
         tokenAMint,
-        owner,
+        tokenAOwner,
         payer,
         true,
         tokenAProgram
@@ -146,7 +152,7 @@ export class CpAmm {
       getOrCreateATAInstruction(
         this._program.provider.connection,
         tokenBMint,
-        owner,
+        tokenBOwner,
         payer,
         true,
         tokenBProgram
@@ -539,14 +545,15 @@ export class CpAmm {
       tokenAAta: payerTokenA,
       tokenBAta: payerTokenB,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
+    } = await this.prepareTokenAccounts({
       payer,
-      payer,
+      tokenAOwner: payer,
+      tokenBOwner: payer,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     if (tokenAMint.equals(NATIVE_MINT)) {
       const wrapSOLIx = wrapSOLInstruction(
@@ -581,6 +588,95 @@ export class CpAmm {
       payerTokenB,
       preInstructions,
       tokenBadgeAccounts,
+    };
+  }
+
+  /**
+   * Sets up token accounts and instructions for fee claim operations.
+   * @private
+   * @param {SetupFeeClaimAccountsParams} params - Parameters for setting up fee claim accounts.
+   * @returns Token accounts and instructions for fee claiming.
+   */
+  private async setupFeeClaimAccounts(
+    params: SetupFeeClaimAccountsParams
+  ): Promise<{
+    tokenAAccount: PublicKey;
+    tokenBAccount: PublicKey;
+    preInstructions: TransactionInstruction[];
+    postInstructions: TransactionInstruction[];
+  }> {
+    const {
+      payer,
+      owner,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+      specifiedReceiver,
+    } = params;
+
+    const tokenAIsSOL = tokenAMint.equals(NATIVE_MINT);
+    const tokenBIsSOL = tokenBMint.equals(NATIVE_MINT);
+    const hasSolToken = tokenAIsSOL || tokenBIsSOL;
+
+    const preInstructions: TransactionInstruction[] = [];
+    const postInstructions: TransactionInstruction[] = [];
+    let tokenAAccount: PublicKey;
+    let tokenBAccount: PublicKey;
+
+    if (specifiedReceiver) {
+      const { tempWSolAccount, recipient } = specifiedReceiver;
+      const tokenAOwner = tokenAIsSOL ? tempWSolAccount : recipient;
+      const tokenBOwner = tokenBIsSOL ? tempWSolAccount : recipient;
+
+      const { tokenAAta, tokenBAta, instructions } =
+        await this.prepareTokenAccounts({
+          payer,
+          tokenAOwner,
+          tokenBOwner,
+          tokenAMint,
+          tokenBMint,
+          tokenAProgram,
+          tokenBProgram,
+        });
+
+      tokenAAccount = tokenAAta;
+      tokenBAccount = tokenBAta;
+      preInstructions.push(...instructions);
+
+      if (hasSolToken) {
+        const closeWrappedSOLIx = await unwrapSOLInstruction(
+          tempWSolAccount,
+          recipient
+        );
+        closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+      }
+    } else {
+      const { tokenAAta, tokenBAta, instructions } =
+        await this.prepareTokenAccounts({
+          payer,
+          tokenAOwner: owner,
+          tokenBOwner: owner,
+          tokenAMint,
+          tokenBMint,
+          tokenAProgram,
+          tokenBProgram,
+        });
+
+      tokenAAccount = tokenAAta;
+      tokenBAccount = tokenBAta;
+      preInstructions.push(...instructions);
+
+      if (hasSolToken) {
+        const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
+        closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+      }
+    }
+    return {
+      tokenAAccount,
+      tokenBAccount,
+      preInstructions,
+      postInstructions,
     };
   }
 
@@ -1507,14 +1603,15 @@ export class CpAmm {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      owner,
-      owner,
+    } = await this.prepareTokenAccounts({
+      payer: owner,
+      tokenAOwner: owner,
+      tokenBOwner: owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     if (tokenAMint.equals(NATIVE_MINT)) {
       const wrapSOLIx = wrapSOLInstruction(
@@ -1607,14 +1704,15 @@ export class CpAmm {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      owner,
-      owner,
+    } = await this.prepareTokenAccounts({
+      payer: owner,
+      tokenAOwner: owner,
+      tokenBOwner: owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     if (tokenAMint.equals(NATIVE_MINT)) {
       const wrapSOLIx = wrapSOLInstruction(
@@ -1713,14 +1811,15 @@ export class CpAmm {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      owner,
-      owner,
+    } = await this.prepareTokenAccounts({
+      payer: owner,
+      tokenAOwner: owner,
+      tokenBOwner: owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     const postInstructions: TransactionInstruction[] = [];
     if (
@@ -1797,14 +1896,15 @@ export class CpAmm {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      owner,
-      owner,
+    } = await this.prepareTokenAccounts({
+      payer: owner,
+      tokenAOwner: owner,
+      tokenBOwner: owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     const postInstructions: TransactionInstruction[] = [];
     if (
@@ -1891,14 +1991,15 @@ export class CpAmm {
       tokenAAta: inputTokenAccount,
       tokenBAta: outputTokenAccount,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      feePayer ?? payer,
-      payer,
-      inputTokenMint,
-      outputTokenMint,
-      inputTokenProgram,
-      outputTokenProgram
-    );
+    } = await this.prepareTokenAccounts({
+      payer: feePayer ?? payer,
+      tokenAOwner: payer,
+      tokenBOwner: payer,
+      tokenAMint: inputTokenMint,
+      tokenBMint: outputTokenMint,
+      tokenAProgram: inputTokenProgram,
+      tokenBProgram: outputTokenProgram,
+    });
 
     if (inputTokenMint.equals(NATIVE_MINT)) {
       const wrapSOLIx = wrapSOLInstruction(
@@ -2015,76 +2116,6 @@ export class CpAmm {
     return new Transaction().add(instruction);
   }
 
-  /**
-   * Builds a transaction to claim position fee rewards.
-   * @param {ClaimPositionFeeParams} params - Parameters for claiming position fee.
-   * @returns Transaction builder.
-   */
-  async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
-    const {
-      feePayer,
-      owner,
-      pool,
-      position,
-      positionNftAccount,
-      tokenAVault,
-      tokenBVault,
-      tokenAMint,
-      tokenBMint,
-      tokenAProgram,
-      tokenBProgram,
-    } = params;
-
-    const {
-      tokenAAta: tokenAAccount,
-      tokenBAta: tokenBAccount,
-      instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      feePayer ?? owner,
-      owner,
-      tokenAMint,
-      tokenBMint,
-      tokenAProgram,
-      tokenBProgram
-    );
-
-    const postInstructions: TransactionInstruction[] = [];
-    if (
-      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
-      )
-    ) {
-      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
-      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
-    }
-
-    const claimPositionFeeInstruction =
-      await this.buildClaimPositionFeeInstruction({
-        owner,
-        poolAuthority: this.poolAuthority,
-        pool,
-        position,
-        positionNftAccount,
-        tokenAAccount,
-        tokenBAccount,
-        tokenAVault,
-        tokenBVault,
-        tokenAMint,
-        tokenBMint,
-        tokenAProgram,
-        tokenBProgram,
-      });
-
-    const transaction = new Transaction();
-    transaction.add(
-      ...(preInstructions.length > 0 ? preInstructions : []),
-      claimPositionFeeInstruction,
-      ...(postInstructions.length > 0 ? postInstructions : [])
-    );
-
-    return transaction;
-  }
-
   async closePosition(params: ClosePositionParams): TxBuilder {
     const { owner, pool, position, positionNftMint, positionNftAccount } =
       params;
@@ -2147,14 +2178,15 @@ export class CpAmm {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      owner,
-      owner,
+    } = await this.prepareTokenAccounts({
+      payer: owner,
+      tokenAOwner: owner,
+      tokenBOwner: owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     const postInstructions: TransactionInstruction[] = [];
     if (
@@ -2259,14 +2291,15 @@ export class CpAmm {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
       instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      owner,
-      owner,
+    } = await this.prepareTokenAccounts({
+      payer: owner,
+      tokenAOwner: owner,
+      tokenBOwner: owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     let positionBLiquidityDelta = positionBState.unlockedLiquidity;
     // 1. refresh vesting position B if vesting account provided
@@ -2517,7 +2550,14 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
-    const { feePayer, partner, pool, maxAmountA, maxAmountB } = params;
+    const {
+      feePayer,
+      partner,
+      specifiedReceiver,
+      pool,
+      maxAmountA,
+      maxAmountB,
+    } = params;
     const poolState = await this.fetchPoolState(pool);
     const {
       tokenAVault,
@@ -2531,29 +2571,17 @@ export class CpAmm {
     const tokenAProgram = getTokenProgram(tokenAFlag);
     const tokenBProgram = getTokenProgram(tokenBFlag);
 
-    const {
-      tokenAAta: tokenAAccount,
-      tokenBAta: tokenBAccount,
-      instructions: preInstructions,
-    } = await this.prepareTokenAccounts(
-      feePayer ?? partner,
-      partner,
-      tokenAMint,
-      tokenBMint,
-      tokenAProgram,
-      tokenBProgram
-    );
-
-    const postInstructions: TransactionInstruction[] = [];
-    if (
-      [
-        poolState.tokenAMint.toBase58(),
-        poolState.tokenBMint.toBase58(),
-      ].includes(NATIVE_MINT.toBase58())
-    ) {
-      const closeWrappedSOLIx = await unwrapSOLInstruction(partner);
-      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
-    }
+    const payer = feePayer ?? partner;
+    const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
+      await this.setupFeeClaimAccounts({
+        payer,
+        owner: partner,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+        specifiedReceiver,
+      });
 
     return await this._program.methods
       .claimPartnerFee(maxAmountA, maxAmountB)
@@ -2573,6 +2601,65 @@ export class CpAmm {
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
       .transaction();
+  }
+
+  /**
+   * Builds a transaction to claim position fee rewards.
+   * @param {ClaimPositionFeeParams} params - Parameters for claiming position fee.
+   * @returns Transaction builder.
+   */
+  async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
+    const {
+      specifiedReceiver,
+      feePayer,
+      owner,
+      pool,
+      position,
+      positionNftAccount,
+      tokenAVault,
+      tokenBVault,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
+
+    const payer = feePayer ?? owner;
+    const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
+      await this.setupFeeClaimAccounts({
+        payer,
+        owner,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+        specifiedReceiver,
+      });
+    const claimPositionFeeInstruction =
+      await this.buildClaimPositionFeeInstruction({
+        owner,
+        poolAuthority: this.poolAuthority,
+        pool,
+        position,
+        positionNftAccount,
+        tokenAAccount,
+        tokenBAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+      });
+
+    const transaction = new Transaction();
+    transaction.add(
+      ...(preInstructions.length > 0 ? preInstructions : []),
+      claimPositionFeeInstruction,
+      ...(postInstructions.length > 0 ? postInstructions : [])
+    );
+
+    return transaction;
   }
 
   /**

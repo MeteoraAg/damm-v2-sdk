@@ -86,6 +86,16 @@ export type PoolFeesParams = {
   dynamicFee: DynamicFee | null;
 };
 
+export type PrepareTokenAccountParams = {
+  payer: PublicKey;
+  tokenAOwner: PublicKey;
+  tokenBOwner: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+};
+
 export type PrepareCustomizablePoolParams = {
   pool: PublicKey;
   tokenAMint: PublicKey;
@@ -400,6 +410,19 @@ export type LockPositionParams = {
   numberOfPeriod: number;
 };
 
+export type SetupFeeClaimAccountsParams = {
+  payer: PublicKey;
+  owner: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+  specifiedReceiver?: {
+    recipient: PublicKey;
+    tempWSolAccount: PublicKey;
+  };
+};
+
 export type ClaimPositionFeeInstructionParams = {
   owner: PublicKey;
   poolAuthority: PublicKey;
@@ -417,7 +440,6 @@ export type ClaimPositionFeeInstructionParams = {
 };
 
 export type ClaimPositionFeeParams = {
-  feePayer?: PublicKey;
   owner: PublicKey;
   position: PublicKey;
   pool: PublicKey;
@@ -428,6 +450,11 @@ export type ClaimPositionFeeParams = {
   tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
+  feePayer?: PublicKey;
+  specifiedReceiver?: {
+    recipient: PublicKey;
+    tempWSolAccount: PublicKey;
+  };
 };
 
 export type ClosePositionInstructionParams = {
@@ -476,21 +503,25 @@ export type WithdrawIneligibleRewardParams = {
 };
 
 export type ClaimPartnerFeeParams = {
-  feePayer?: PublicKey;
   partner: PublicKey;
   pool: PublicKey;
   maxAmountA: BN;
   maxAmountB: BN;
+  feePayer?: PublicKey;
+  specifiedReceiver?: {
+    recipient: PublicKey;
+    tempWSolAccount: PublicKey;
+  };
 };
 
 export type ClaimRewardParams = {
-  feePayer?: PublicKey;
   user: PublicKey;
   position: PublicKey;
   poolState: PoolState;
   positionState: PositionState;
   positionNftAccount: PublicKey;
   rewardIndex: number;
+  feePayer?: PublicKey;
 };
 
 export type RefreshVestingParams = {

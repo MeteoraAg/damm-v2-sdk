@@ -1353,7 +1353,9 @@ export class CpAmm {
       tokenAMint,
       tokenBMint,
       tokenAAmount,
-      tokenBAmount: max(tokenBAmount, new BN(1)),
+      tokenBAmount: tokenBMint.equals(NATIVE_MINT)
+        ? max(tokenBAmount, new BN(1))
+        : tokenBAmount,
       payer,
       positionNft,
       tokenAProgram,

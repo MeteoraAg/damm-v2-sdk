@@ -4,6 +4,7 @@
 - [Core Functions](#core-functions)
   - [createPool](#createpool)
   - [createCustomPool](#createcustompool)
+  - [createCustomPoolWithDynamicConfig](#createcustompoolwithdynamicconfig)
   - [createPosition](#createposition)
   - [getQuote](#getquote)
   - [getDepositQuote](#getdepositquote)
@@ -245,6 +246,102 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
 - Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
 
 ---
+
+## createCustomPoolWithDynamicConfig
+
+Creates a customizable pool with dynamic configuration, allowing for specific fee parameters with specified pool creator authority
+
+### Function
+```typescript
+async createCustomPoolWithDynamicConfig(params: InitializeCustomizeablePoolWithDynamicConfigParams): Promise<{
+  tx: Transaction;
+  pool: PublicKey;
+  position: PublicKey;
+}>
+```
+
+### Parameters
+```typescript
+interface InitializeCustomizeablePoolWithDynamicConfigParams {
+  payer: PublicKey;              // The wallet paying for the transaction
+  creator: PublicKey;            // The creator of the pool
+  positionNft: PublicKey;        // The mint for the initial position NFT
+  tokenAMint: PublicKey;         // The mint address for token A
+  tokenBMint: PublicKey;         // The mint address for token B
+  tokenAAmount: BN;              // Initial amount of token A to deposit
+  tokenBAmount: BN;              // Initial amount of token B to deposit
+  sqrtMinPrice: BN;              // Minimum sqrt price
+  sqrtMaxPrice: BN;              // Maximum sqrt price
+  initSqrtPrice: BN;             // Initial sqrt price in Q64 format
+  liquidityDelta: BN;            // Initial liquidity in Q64 format
+  poolFees: PoolFeesParams;      // Fee configuration
+  hasAlphaVault: boolean;        // Whether the pool has an alpha vault
+  collectFeeMode: number;        // How fees are collected (0: normal, 1: alpha)
+  activationPoint: BN | null;    // The slot or timestamp for activation (null for immediate)
+  activationType: number;        // 0: slot, 1: timestamp
+  tokenAProgram: PublicKey;      // Token program for token A
+  tokenBProgram: PublicKey;      // Token program for token B
+  config: PublicKey;             // dynamic config account
+  poolCreatorAuthority: PublicKey; // Authority allowed to create pools with this config
+}
+```
+
+### Returns
+An object containing:
+- `tx`: The transaction to sign and send
+- `pool`: The public key of the created pool
+- `position`: The public key of the initial position
+
+### Example
+```typescript
+// First, prepare the pool creation parameters
+const tokenAAmount = new BN(5_000_000_000);
+const tokenBAmount = new BN(20_000_000);
+const sqrtPrice = getSqrtPriceFromPrice("172", tokenADecimal, tokenBDecimal);
+const sqrtMinPrice = getSqrtPriceFromPrice("4", tokenADecimal, tokenBDecimal);
+const sqrtMaxPrice = getSqrtPriceFromPrice("400", tokenADecimal, tokenBDecimal);
+const { initSqrtPrice, liquidityDelta } = cpAmm.getLiquidityDelta({
+  maxAmountTokenA: tokenAAmount,
+  maxAmountTokenB: tokenBAmount,
+  sqrtMaxPrice,
+  sqrtMinPrice,
+  sqrtPrice,
+});
+
+const baseFeeParams = getBaseFeeParams(25, 25, FeeSchedulerMode.Linear, 0, 0); // base fee: 0.25%
+const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee 0.25%
+const poolFees: PoolFeesParams = {
+    baseFee: baseFeeParams,
+    protocolFeePercent: 20,
+    partnerFeePercent: 0,
+    referralFeePercent: 20,
+    dynamicFee: dynamicFeeParams,
+  };
+
+const { tx, pool, position } = await cpAmm.createCustomPoolWithDynamicConfig({
+  payer
+  creator,
+  config: dynamicConfigAddress,
+  poolCreatorAuthority: poolCreatorAuth.publicKey,
+  positionNft: positionNftMint,
+  tokenAMint: usdcMint,
+  tokenBMint: btcMint,
+  tokenAAmount,
+  tokenBAmount,
+  sqrtMinPrice,
+  sqrtMaxPrice,
+  initSqrtPrice,
+  liquidityDelta,
+  poolFees,
+  hasAlphaVault: false,
+  collectFeeMode: 0, // 0: Both tokens, 1: Only token B
+  activationPoint: null,
+  activationType: 1, // 0: slot, 1: timestamp
+  tokenAProgram: TOKEN_PROGRAM_ID,
+  tokenBProgram: TOKEN_PROGRAM_ID,
+});
+```
+
 
 ### createPosition
 

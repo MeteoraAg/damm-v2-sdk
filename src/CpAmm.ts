@@ -987,13 +987,11 @@ export class CpAmm {
     } = params;
 
     const actualAmountIn = inputTokenInfo
-      ? inAmount.sub(
-          calculateTransferFeeIncludedAmount(
-            inAmount,
-            inputTokenInfo.mint,
-            inputTokenInfo.currentEpoch
-          ).transferFee
-        )
+      ? calculateTransferFeeExcludedAmount(
+          inAmount,
+          inputTokenInfo.mint,
+          inputTokenInfo.currentEpoch
+        ).amount
       : inAmount;
 
     const { liquidityDelta, rawAmount } = isTokenA

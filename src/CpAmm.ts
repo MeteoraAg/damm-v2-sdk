@@ -607,12 +607,12 @@ export class CpAmm {
   }> {
     const {
       payer,
-      owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
       tokenBProgram,
-      specifiedReceiver,
+      receiver,
+      tempWSolAccount,
     } = params;
 
     const tokenAIsSOL = tokenAMint.equals(NATIVE_MINT);
@@ -624,53 +624,30 @@ export class CpAmm {
     let tokenAAccount: PublicKey;
     let tokenBAccount: PublicKey;
 
-    if (specifiedReceiver) {
-      const { tempWSolAccount, recipient } = specifiedReceiver;
-      const tokenAOwner = tokenAIsSOL ? tempWSolAccount : recipient;
-      const tokenBOwner = tokenBIsSOL ? tempWSolAccount : recipient;
+    const tokenAOwner = tokenAIsSOL ? tempWSolAccount : receiver;
+    const tokenBOwner = tokenBIsSOL ? tempWSolAccount : receiver;
 
-      const { tokenAAta, tokenBAta, instructions } =
-        await this.prepareTokenAccounts({
-          payer,
-          tokenAOwner,
-          tokenBOwner,
-          tokenAMint,
-          tokenBMint,
-          tokenAProgram,
-          tokenBProgram,
-        });
+    const { tokenAAta, tokenBAta, instructions } =
+      await this.prepareTokenAccounts({
+        payer,
+        tokenAOwner,
+        tokenBOwner,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+      });
 
-      tokenAAccount = tokenAAta;
-      tokenBAccount = tokenBAta;
-      preInstructions.push(...instructions);
+    tokenAAccount = tokenAAta;
+    tokenBAccount = tokenBAta;
+    preInstructions.push(...instructions);
 
-      if (hasSolToken) {
-        const closeWrappedSOLIx = await unwrapSOLInstruction(
-          tempWSolAccount,
-          recipient
-        );
-        closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
-      }
-    } else {
-      const { tokenAAta, tokenBAta, instructions } =
-        await this.prepareTokenAccounts({
-          payer,
-          tokenAOwner: owner,
-          tokenBOwner: owner,
-          tokenAMint,
-          tokenBMint,
-          tokenAProgram,
-          tokenBProgram,
-        });
-
-      tokenAAccount = tokenAAta;
-      tokenBAccount = tokenBAta;
-      preInstructions.push(...instructions);
-
-      if (hasSolToken) {
-        const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
-        closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
-      }
+    if (hasSolToken) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(
+        tempWSolAccount,
+        receiver
+      );
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
     return {
       tokenAAccount,
@@ -1965,7 +1942,6 @@ export class CpAmm {
    */
   async swap(params: SwapParams): TxBuilder {
     const {
-      feePayer,
       payer,
       pool,
       inputTokenMint,
@@ -1992,7 +1968,7 @@ export class CpAmm {
       tokenBAta: outputTokenAccount,
       instructions: preInstructions,
     } = await this.prepareTokenAccounts({
-      payer: feePayer ?? payer,
+      payer,
       tokenAOwner: payer,
       tokenBOwner: payer,
       tokenAMint: inputTokenMint,
@@ -2552,8 +2528,9 @@ export class CpAmm {
   async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
     const {
       feePayer,
+      receiver,
+      tempWSolAccount,
       partner,
-      specifiedReceiver,
       pool,
       maxAmountA,
       maxAmountB,
@@ -2575,12 +2552,12 @@ export class CpAmm {
     const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
       await this.setupFeeClaimAccounts({
         payer,
-        owner: partner,
         tokenAMint,
         tokenBMint,
         tokenAProgram,
         tokenBProgram,
-        specifiedReceiver,
+        receiver,
+        tempWSolAccount,
       });
 
     return await this._program.methods
@@ -2610,7 +2587,8 @@ export class CpAmm {
    */
   async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder {
     const {
-      specifiedReceiver,
+      receiver,
+      tempWSolAccount,
       feePayer,
       owner,
       pool,
@@ -2628,12 +2606,12 @@ export class CpAmm {
     const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
       await this.setupFeeClaimAccounts({
         payer,
-        owner,
         tokenAMint,
         tokenBMint,
         tokenAProgram,
         tokenBProgram,
-        specifiedReceiver,
+        receiver,
+        tempWSolAccount,
       });
     const claimPositionFeeInstruction =
       await this.buildClaimPositionFeeInstruction({

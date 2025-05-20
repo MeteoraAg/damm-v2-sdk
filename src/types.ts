@@ -380,7 +380,6 @@ export type SwapQuotes = {
 };
 
 export type SwapParams = {
-  feePayer?: PublicKey;
   payer: PublicKey;
   pool: PublicKey;
   inputTokenMint: PublicKey;
@@ -412,15 +411,12 @@ export type LockPositionParams = {
 
 export type SetupFeeClaimAccountsParams = {
   payer: PublicKey;
-  owner: PublicKey;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
-  specifiedReceiver?: {
-    recipient: PublicKey;
-    tempWSolAccount: PublicKey;
-  };
+  receiver: PublicKey;
+  tempWSolAccount?: PublicKey;
 };
 
 export type ClaimPositionFeeInstructionParams = {
@@ -450,11 +446,9 @@ export type ClaimPositionFeeParams = {
   tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
+  receiver: PublicKey;
   feePayer?: PublicKey;
-  specifiedReceiver?: {
-    recipient: PublicKey;
-    tempWSolAccount: PublicKey;
-  };
+  tempWSolAccount?: PublicKey;
 };
 
 export type ClosePositionInstructionParams = {
@@ -507,11 +501,9 @@ export type ClaimPartnerFeeParams = {
   pool: PublicKey;
   maxAmountA: BN;
   maxAmountB: BN;
+  receiver: PublicKey;
   feePayer?: PublicKey;
-  specifiedReceiver?: {
-    recipient: PublicKey;
-    tempWSolAccount: PublicKey;
-  };
+  tempWSolAccount?: PublicKey;
 };
 
 export type ClaimRewardParams = {

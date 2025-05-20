@@ -624,8 +624,10 @@ export class CpAmm {
     let tokenAAccount: PublicKey;
     let tokenBAccount: PublicKey;
 
-    const tokenAOwner = tokenAIsSOL ? tempWSolAccount : receiver;
-    const tokenBOwner = tokenBIsSOL ? tempWSolAccount : receiver;
+    const tokenAOwner =
+      tempWSolAccount && tokenAIsSOL ? tempWSolAccount : receiver;
+    const tokenBOwner =
+      tempWSolAccount && tokenBIsSOL ? tempWSolAccount : receiver;
 
     const { tokenAAta, tokenBAta, instructions } =
       await this.prepareTokenAccounts({
@@ -644,7 +646,7 @@ export class CpAmm {
 
     if (hasSolToken) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(
-        tempWSolAccount,
+        tempWSolAccount ?? receiver,
         receiver
       );
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);

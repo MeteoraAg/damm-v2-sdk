@@ -161,7 +161,7 @@ describe("Claim Fee", () => {
 
     // claim position fee
     const claimFeeTx = await ammInstance.claimPositionFee({
-      specifiedReceiver: undefined,
+      receiver: payer.publicKey,
       feePayer: payer.publicKey,
       owner: payer.publicKey,
       pool: poolAddress,
@@ -177,7 +177,7 @@ describe("Claim Fee", () => {
     executeTransaction(context.banksClient, claimFeeTx, [payer]);
   });
 
-  it("Claim position fee to specified receiver", async () => {
+  it("Claim position fee to receiver", async () => {
     // swap A -> B
     const swapAtoBTx = await ammInstance.swap({
       payer: payer.publicKey,
@@ -198,10 +198,8 @@ describe("Claim Fee", () => {
 
     // claim position fee
     const claimFeeReceiverTx = await ammInstance.claimPositionFee({
-      specifiedReceiver: {
-        tempWSolAccount: tempWSolAccountKP.publicKey,
-        recipient: recipientKP.publicKey,
-      },
+      tempWSolAccount: tempWSolAccountKP.publicKey,
+      receiver: recipientKP.publicKey,
       feePayer: payer.publicKey,
       owner: payer.publicKey,
       pool: poolAddress,

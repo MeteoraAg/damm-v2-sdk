@@ -127,6 +127,7 @@ export type InitializeCustomizeablePoolParams = {
   activationPoint: BN | null;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
+  isLockLiquidity?: boolean;
 };
 
 export type InitializeCustomizeablePoolWithDynamicConfigParams =
@@ -180,6 +181,7 @@ export type CreatePoolParams = {
   activationPoint: BN | null;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
+  isLockLiquidity?: boolean;
 };
 
 export type CreatePositionParams = {

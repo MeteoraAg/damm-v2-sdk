@@ -1301,6 +1301,7 @@ export class CpAmm {
       tokenBAmount,
       tokenAProgram,
       tokenBProgram,
+      isLockLiquidity,
     } = params;
 
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
@@ -1325,6 +1326,21 @@ export class CpAmm {
       tokenBProgram,
     });
 
+    const postInstruction: TransactionInstruction[] = [];
+
+    if (isLockLiquidity) {
+      const permanentLockIx = await this._program.methods
+        .permanentLockPosition(liquidityDelta)
+        .accountsPartial({
+          position,
+          positionNftAccount,
+          pool: pool,
+          owner: creator,
+        })
+        .instruction();
+      postInstruction.push(permanentLockIx);
+    }
+
     const tx = await this._program.methods
       .initializePool({
         liquidity: liquidityDelta,
@@ -1335,7 +1351,7 @@ export class CpAmm {
         creator,
         positionNftAccount,
         positionNftMint: positionNft,
-        payer: payer,
+        payer,
         config,
         poolAuthority: this.poolAuthority,
         pool,
@@ -1352,6 +1368,7 @@ export class CpAmm {
         systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions)
+      .postInstructions(postInstruction)
       .remainingAccounts(tokenBadgeAccounts)
       .transaction();
 
@@ -1387,6 +1404,7 @@ export class CpAmm {
       activationType,
       tokenAProgram,
       tokenBProgram,
+      isLockLiquidity,
     } = params;
     const pool = deriveCustomizablePoolAddress(tokenAMint, tokenBMint);
     const {
@@ -1411,6 +1429,21 @@ export class CpAmm {
       tokenAProgram,
       tokenBProgram,
     });
+
+    const postInstruction: TransactionInstruction[] = [];
+
+    if (isLockLiquidity) {
+      const permanentLockIx = await this._program.methods
+        .permanentLockPosition(liquidityDelta)
+        .accountsPartial({
+          position,
+          positionNftAccount,
+          pool: pool,
+          owner: creator,
+        })
+        .instruction();
+      postInstruction.push(permanentLockIx);
+    }
 
     const transaction = await this._program.methods
       .initializeCustomizablePool({
@@ -1444,6 +1477,7 @@ export class CpAmm {
         systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions)
+      .postInstructions(postInstruction)
       .remainingAccounts(tokenBadgeAccounts)
       .transaction();
 
@@ -1478,6 +1512,7 @@ export class CpAmm {
       activationType,
       tokenAProgram,
       tokenBProgram,
+      isLockLiquidity,
     } = params;
 
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
@@ -1501,6 +1536,21 @@ export class CpAmm {
       tokenAProgram,
       tokenBProgram,
     });
+
+    const postInstruction: TransactionInstruction[] = [];
+
+    if (isLockLiquidity) {
+      const permanentLockIx = await this._program.methods
+        .permanentLockPosition(liquidityDelta)
+        .accountsPartial({
+          position,
+          positionNftAccount,
+          pool: pool,
+          owner: creator,
+        })
+        .instruction();
+      postInstruction.push(permanentLockIx);
+    }
 
     const transaction = await this._program.methods
       .initializePoolWithDynamicConfig({
@@ -1536,6 +1586,7 @@ export class CpAmm {
         systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions)
+      .postInstructions(postInstruction)
       .remainingAccounts(tokenBadgeAccounts)
       .transaction();
 

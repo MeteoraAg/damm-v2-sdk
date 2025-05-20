@@ -1326,26 +1326,6 @@ export class CpAmm {
       tokenBProgram,
     });
 
-    if (tokenAMint.equals(NATIVE_MINT)) {
-      const wrapSOLIx = wrapSOLInstruction(
-        payer,
-        payerTokenA,
-        BigInt(tokenAAmount.toString())
-      );
-
-      preInstructions.push(...wrapSOLIx);
-    }
-
-    if (tokenBMint.equals(NATIVE_MINT)) {
-      const wrapSOLIx = wrapSOLInstruction(
-        payer,
-        payerTokenB,
-        BigInt(tokenBAmount.toString())
-      );
-
-      preInstructions.push(...wrapSOLIx);
-    }
-
     const postInstruction: TransactionInstruction[] = [];
 
     if (isLockLiquidity) {

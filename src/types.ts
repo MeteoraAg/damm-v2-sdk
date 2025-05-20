@@ -180,7 +180,7 @@ export type CreatePoolParams = {
   activationPoint: BN | null;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
-  lockLiquidity?: boolean;
+  isLockLiquidity?: boolean;
 };
 
 export type CreatePositionParams = {

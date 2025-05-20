@@ -1301,7 +1301,7 @@ export class CpAmm {
       tokenBAmount,
       tokenAProgram,
       tokenBProgram,
-      lockLiquidity,
+      isLockLiquidity,
     } = params;
 
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
@@ -1352,7 +1352,7 @@ export class CpAmm {
     );
     const postInstruction: TransactionInstruction[] = [];
 
-    if (lockLiquidity) {
+    if (isLockLiquidity) {
       const permanentLockIx = await this._program.methods
         .permanentLockPosition(liquidityDelta)
         .accountsPartial({

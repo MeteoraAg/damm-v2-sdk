@@ -1477,6 +1477,7 @@ export class CpAmm {
         systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions)
+      .postInstructions(postInstruction)
       .remainingAccounts(tokenBadgeAccounts)
       .transaction();
 
@@ -1585,6 +1586,7 @@ export class CpAmm {
         systemProgram: SystemProgram.programId,
       })
       .preInstructions(preInstructions)
+      .postInstructions(postInstruction)
       .remainingAccounts(tokenBadgeAccounts)
       .transaction();
 

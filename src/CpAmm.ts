@@ -1323,8 +1323,8 @@ export class CpAmm {
       payer,
       positionNft,
       tokenAProgram,
-      tokenBProgram
-    );
+      tokenBProgram,
+    });
 
     if (tokenAMint.equals(NATIVE_MINT)) {
       const wrapSOLIx = wrapSOLInstruction(
@@ -1346,10 +1346,6 @@ export class CpAmm {
       preInstructions.push(...wrapSOLIx);
     }
 
-    const tokenBadgeAccounts = this.getTokenBadgeAccounts(
-      tokenAMint,
-      tokenBMint
-    );
     const postInstruction: TransactionInstruction[] = [];
 
     if (isLockLiquidity) {
@@ -1428,6 +1424,7 @@ export class CpAmm {
       activationType,
       tokenAProgram,
       tokenBProgram,
+      isLockLiquidity,
     } = params;
     const pool = deriveCustomizablePoolAddress(tokenAMint, tokenBMint);
     const {
@@ -1452,6 +1449,21 @@ export class CpAmm {
       tokenAProgram,
       tokenBProgram,
     });
+
+    const postInstruction: TransactionInstruction[] = [];
+
+    if (isLockLiquidity) {
+      const permanentLockIx = await this._program.methods
+        .permanentLockPosition(liquidityDelta)
+        .accountsPartial({
+          position,
+          positionNftAccount,
+          pool: pool,
+          owner: creator,
+        })
+        .instruction();
+      postInstruction.push(permanentLockIx);
+    }
 
     const transaction = await this._program.methods
       .initializeCustomizablePool({
@@ -1519,6 +1531,7 @@ export class CpAmm {
       activationType,
       tokenAProgram,
       tokenBProgram,
+      isLockLiquidity,
     } = params;
 
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
@@ -1542,6 +1555,21 @@ export class CpAmm {
       tokenAProgram,
       tokenBProgram,
     });
+
+    const postInstruction: TransactionInstruction[] = [];
+
+    if (isLockLiquidity) {
+      const permanentLockIx = await this._program.methods
+        .permanentLockPosition(liquidityDelta)
+        .accountsPartial({
+          position,
+          positionNftAccount,
+          pool: pool,
+          owner: creator,
+        })
+        .instruction();
+      postInstruction.push(permanentLockIx);
+    }
 
     const transaction = await this._program.methods
       .initializePoolWithDynamicConfig({

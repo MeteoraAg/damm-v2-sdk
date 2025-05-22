@@ -1722,8 +1722,6 @@ export class CpAmm {
       tokenBAmountThreshold,
       tokenAMint,
       tokenBMint,
-      tokenAVault,
-      tokenBVault,
       tokenAProgram,
       tokenBProgram,
     } = params;
@@ -1741,6 +1739,9 @@ export class CpAmm {
       tokenAProgram,
       tokenBProgram,
     });
+
+    const tokenAVault = deriveTokenVaultAddress(tokenAMint, pool);
+    const tokenBVault = deriveTokenVaultAddress(tokenBMint, pool);
 
     if (tokenAMint.equals(NATIVE_MINT)) {
       const wrapSOLIx = wrapSOLInstruction(

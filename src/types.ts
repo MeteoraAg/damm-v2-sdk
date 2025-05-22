@@ -220,8 +220,6 @@ export type CreatePositionAndAddLiquidity = {
   tokenBAmountThreshold: BN;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
-  tokenAVault: PublicKey;
-  tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
 };

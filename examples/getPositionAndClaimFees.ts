@@ -9,7 +9,7 @@ import { CpAmm, getTokenProgram } from "../src";
 
 (async () => {
   const CONFIG = {
-    keypairPath: "/Users/minhdo/.config/solana/id.json",
+    keypairPath: "~/.config/solana/id.json",
     rpcUrl: clusterApiUrl("mainnet-beta"),
     poolAddress: new PublicKey("E1SHKcwAcjQjaWyCpCJHK24XWvGKdooCrhKhyG6uUzJ9"),
     userAddress: new PublicKey("4JTYKJAyS7eAXQRSxvMbmqgf6ajf3LR9JrAXpVEcww2q"),

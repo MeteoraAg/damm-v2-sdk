@@ -454,6 +454,8 @@ export class CpAmm {
 
     if (positionState.rewardInfos.length > 0) {
       for (let index = 0; index < positionState.rewardInfos.length; index++) {
+        if (positionState.rewardInfos[index].rewardPendings.isZero()) continue;
+
         const claimRewardTx = await this.claimReward({
           user: owner,
           position,

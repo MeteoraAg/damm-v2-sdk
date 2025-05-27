@@ -411,11 +411,12 @@ export type LockPositionParams = {
 
 export type SetupFeeClaimAccountsParams = {
   payer: PublicKey;
+  owner: PublicKey;
   tokenAMint: PublicKey;
   tokenBMint: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
-  receiver: PublicKey;
+  receiver?: PublicKey;
   tempWSolAccount?: PublicKey;
 };
 
@@ -446,7 +447,7 @@ export type ClaimPositionFeeParams = {
   tokenBVault: PublicKey;
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
-  receiver: PublicKey;
+  receiver?: PublicKey;
   feePayer?: PublicKey;
   tempWSolAccount?: PublicKey;
 };
@@ -501,7 +502,7 @@ export type ClaimPartnerFeeParams = {
   pool: PublicKey;
   maxAmountA: BN;
   maxAmountB: BN;
-  receiver: PublicKey;
+  receiver?: PublicKey;
   feePayer?: PublicKey;
   tempWSolAccount?: PublicKey;
 };

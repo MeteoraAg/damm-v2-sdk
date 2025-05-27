@@ -1183,6 +1183,8 @@ interface ClaimPositionFeeParams {
   tokenBMint: PublicKey;          // The mint of token B
   tokenAProgram: PublicKey;       // Token program for token A
   tokenBProgram: PublicKey;       // Token program for token B
+  receiver?: Pubkey;              // the wallet that will receive the fees (optional)
+  tempWSolAccount?: Pubkey;       // the temporary wallet that will receive the fees (optional)
 }
 ```
 

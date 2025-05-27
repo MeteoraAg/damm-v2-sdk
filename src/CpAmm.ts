@@ -607,6 +607,7 @@ export class CpAmm {
   }> {
     const {
       payer,
+      owner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,
@@ -624,10 +625,12 @@ export class CpAmm {
     let tokenAAccount: PublicKey;
     let tokenBAccount: PublicKey;
 
-    const tokenAOwner =
-      tempWSolAccount && tokenAIsSOL ? tempWSolAccount : receiver;
-    const tokenBOwner =
-      tempWSolAccount && tokenBIsSOL ? tempWSolAccount : receiver;
+    let tokenAOwner = owner;
+    let tokenBOwner = owner;
+    if (receiver) {
+      tokenAOwner = tokenAIsSOL ? tempWSolAccount : receiver;
+      tokenBOwner = tokenBIsSOL ? tempWSolAccount : receiver;
+    }
 
     const { tokenAAta, tokenBAta, instructions } =
       await this.prepareTokenAccounts({
@@ -646,8 +649,8 @@ export class CpAmm {
 
     if (hasSolToken) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(
-        tempWSolAccount ?? receiver,
-        receiver
+        tempWSolAccount ?? owner,
+        receiver ?? owner
       );
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
@@ -2604,6 +2607,7 @@ export class CpAmm {
     const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
       await this.setupFeeClaimAccounts({
         payer,
+        owner: partner,
         tokenAMint,
         tokenBMint,
         tokenAProgram,
@@ -2658,6 +2662,7 @@ export class CpAmm {
     const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
       await this.setupFeeClaimAccounts({
         payer,
+        owner,
         tokenAMint,
         tokenBMint,
         tokenAProgram,

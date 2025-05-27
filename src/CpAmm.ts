@@ -649,8 +649,8 @@ export class CpAmm {
 
     if (hasSolToken) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(
-        tempWSolAccount ?? receiver,
-        receiver
+        tempWSolAccount ?? owner,
+        receiver ?? owner
       );
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }

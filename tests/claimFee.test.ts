@@ -161,8 +161,8 @@ describe("Claim Fee", () => {
 
     // claim position fee
     const claimFeeTx = await ammInstance.claimPositionFee({
-      receiver: payer.publicKey,
-      feePayer: payer.publicKey,
+      receiver: null,
+      tempWSolAccount: null,
       owner: payer.publicKey,
       pool: poolAddress,
       position: positionAddress,

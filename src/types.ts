@@ -502,7 +502,7 @@ export type ClaimPartnerFeeParams = {
   pool: PublicKey;
   maxAmountA: BN;
   maxAmountB: BN;
-  receiver: PublicKey;
+  receiver?: PublicKey;
   feePayer?: PublicKey;
   tempWSolAccount?: PublicKey;
 };

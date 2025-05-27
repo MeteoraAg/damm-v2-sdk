@@ -4,16 +4,19 @@ import {
   Keypair,
   PublicKey,
   sendAndConfirmTransaction,
+  Transaction,
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import {
   CpAmm,
   derivePoolAddress,
   derivePositionAddress,
+  derivePositionNftAccount,
   getSqrtPriceFromPrice,
 } from "../src";
 import {
-  getMint,
+  AuthorityType,
+  createSetAuthorityInstruction,
   NATIVE_MINT,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
@@ -23,7 +26,8 @@ import {
   const CONFIG = {
     keypairPath: "~/.config/solana/id.json",
     rpcUrl: clusterApiUrl("devnet"),
-    tokenAMint: new PublicKey("9EpFqwBgu9JkxZYEaG1suWzVeA4YR14bkci2gJHU896y"),
+    creator: new PublicKey("C7sHUEk9AhiuBZU3cCDaguBcW5PCichpEzqyRHTUY5WZ"),
+    tokenAMint: new PublicKey("J2bs44Z5voXgD9SCimErU5KboaWXd9HPELEQgiW44vo9"),
     tokenBMint: NATIVE_MINT,
     config: new PublicKey("8CNy9goNQNLM4wtgRw528tUQGMKD3vSuFRZY2gLGLLvF"),
     tokenADecimals: 9,
@@ -33,7 +37,7 @@ import {
     initialPrice: 1, // 1 base token = 1 quote token
   };
 
-  const wallet = Keypair.fromSecretKey(
+  const payer = Keypair.fromSecretKey(
     Uint8Array.from(Uint8Array.from(require(CONFIG.keypairPath)))
   );
 
@@ -41,24 +45,6 @@ import {
   const cpAmm = new CpAmm(connection);
 
   const configState = await cpAmm.fetchConfigState(CONFIG.config);
-  const tokenAAccountInfo = await connection.getAccountInfo(CONFIG.tokenAMint);
-
-  let tokenAProgram = TOKEN_PROGRAM_ID;
-  let tokenAInfo = null;
-  if (tokenAAccountInfo.owner.equals(TOKEN_2022_PROGRAM_ID)) {
-    tokenAProgram = tokenAAccountInfo.owner;
-    const baseMint = await getMint(
-      connection,
-      CONFIG.tokenAMint,
-      connection.commitment,
-      tokenAProgram
-    );
-    const epochInfo = await connection.getEpochInfo();
-    tokenAInfo = {
-      mint: baseMint,
-      currentEpoch: epochInfo.epoch,
-    };
-  }
 
   const initialPoolTokenAAmount = new BN(CONFIG.tokenAAmount).mul(
     new BN(10 ** CONFIG.tokenADecimals)
@@ -77,15 +63,14 @@ import {
     sqrtPrice: initSqrtPrice,
     sqrtMinPrice: configState.sqrtMinPrice,
     sqrtMaxPrice: configState.sqrtMaxPrice,
-    tokenAInfo,
   });
 
-  // create pool (included create first position)
+  // create pool with payer is creator
   console.log("create pool");
   const positionNft = Keypair.generate();
   const initPoolTx = await cpAmm.createPool({
-    payer: wallet.publicKey,
-    creator: wallet.publicKey,
+    payer: payer.publicKey,
+    creator: payer.publicKey,
     config: CONFIG.config,
     positionNft: positionNft.publicKey,
     tokenAMint: CONFIG.tokenAMint,
@@ -95,15 +80,36 @@ import {
     liquidityDelta: liquidityDelta,
     initSqrtPrice: initSqrtPrice,
     activationPoint: null,
-    tokenAProgram,
+    tokenAProgram: TOKEN_PROGRAM_ID,
     tokenBProgram: TOKEN_PROGRAM_ID,
-    isLockLiquidity: true,
+    isLockLiquidity: true, // lock liquidity
   });
 
-  const signature = await sendAndConfirmTransaction(
+  const createPoolSig = await sendAndConfirmTransaction(
     connection,
     initPoolTx,
-    [wallet, positionNft],
+    [payer, positionNft],
+    {
+      commitment: "confirmed",
+    }
+  );
+
+  // transfer locked nft position from payer to creator
+  console.log("transfer position to creator");
+  const positionNftAccount = derivePositionNftAccount(positionNft.publicKey);
+  const setAuthorityIx = createSetAuthorityInstruction(
+    positionNftAccount,
+    payer.publicKey,
+    AuthorityType.AccountOwner,
+    CONFIG.creator,
+    [],
+    TOKEN_2022_PROGRAM_ID
+  );
+  const assignOwnerTx = new Transaction().add(setAuthorityIx);
+  const assignSig = await sendAndConfirmTransaction(
+    connection,
+    assignOwnerTx,
+    [payer],
     {
       commitment: "confirmed",
     }
@@ -117,6 +123,7 @@ import {
     ).toString(),
     position: derivePositionAddress(positionNft.publicKey).toString(),
     positionNft: positionNft.publicKey.toString(),
-    signature,
+    createPoolSig,
+    assignSig,
   });
 })();

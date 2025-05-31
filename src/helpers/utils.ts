@@ -38,9 +38,10 @@ export const getPriceImpact = (
   nextSqrtPrice: BN,
   currentSqrtPrice: BN
 ): number => {
-  const diff = nextSqrtPrice.sub(currentSqrtPrice);
+  const diff = nextSqrtPrice.sub(currentSqrtPrice).abs();
   return new Decimal(diff.toString())
     .div(new Decimal(currentSqrtPrice.toString()))
+    .pow(2)
     .mul(100)
     .toNumber();
 };

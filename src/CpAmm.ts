@@ -652,7 +652,7 @@ export class CpAmm {
 
     let tokenAOwner = owner;
     let tokenBOwner = owner;
-    if (receiver) {
+    if (receiver && !receiver.equals(owner)) {
       tokenAOwner = tokenAIsSOL ? tempWSolAccount : receiver;
       tokenBOwner = tokenBIsSOL ? tempWSolAccount : receiver;
     }

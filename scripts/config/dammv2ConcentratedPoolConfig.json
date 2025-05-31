@@ -1,0 +1,83 @@
+{
+    "rpcUrl": "https://api.devnet.solana.com",
+    "keypairFilePath": "/Users/minhdo/.config/solana/id.json",
+    "dryRun": true,
+    "configAccount": "4JTYKJAyS7eAXQRSxvMbmqgf6ajf3LR9JrAXpVEcww2q",
+    "poolList": [
+        {
+            "pair": "JUP_SOL",
+            "tokenAMint": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+            "tokenBMint": "So11111111111111111111111111111111111111112",
+            "maxTokenAAmount": 0,
+            "maxTokenBAmount": 0,
+            "baseFee": 25,
+            "initPrice": 0.003426,
+            "minPrice": 0.0008565,
+            "maxPrice": 0.0013704,
+            "tokenADecimal": 9,
+            "tokenBDecimal": 6,
+            "feeCollectionMode": 0,
+            "dynamicFee": true
+        },
+        {
+            "pair": "USDC_USDT",
+            "tokenAMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "tokenBMint": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+            "maxTokenAAmount": 0,
+            "maxTokenBAmount": 0,
+            "baseFee": 1,
+            "initPrice": 0.999698,
+            "minPrice": 0.98,
+            "maxPrice": 1.02,
+            "tokenADecimal": 6,
+            "tokenBDecimal": 6,
+            "feeCollectionMode": 0,
+            "dynamicFee": true
+        },
+        {
+            "pair": "WBTC_USDC",
+            "tokenAMint": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+            "tokenBMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "maxTokenAAmount": 0,
+            "maxTokenBAmount": 0,
+            "baseFee": 25,
+            "initPrice": 105.32,
+            "minPrice": 43454,
+            "maxPrice": 271592,
+            "tokenADecimal": 8,
+            "tokenBDecimal": 6,
+            "feeCollectionMode": 0,
+            "dynamicFee": true
+        },
+        {
+            "pair": "WBTC-SOL",
+            "tokenAMint": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+            "tokenBMint": "So11111111111111111111111111111111111111112",
+            "maxTokenAAmount": 0,
+            "maxTokenBAmount": 0,
+            "baseFee": 25,
+            "initPrice": 105,
+            "minPrice": 250,
+            "maxPrice": 1565,
+            "tokenADecimal": 8,
+            "tokenBDecimal": 9,
+            "feeCollectionMode": 0,
+            "dynamicFee": true
+        },
+        {
+            "pair": "EURC-USDC",
+            "tokenAMint": "A9kFH4yEqfYhbXmHkMJnBsKedbJ79Gr8d4jUKYWZcU8s",
+            "tokenBMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+            "maxTokenAAmount": 0,
+            "maxTokenBAmount": 0,
+            "baseFee": 1,
+            "initPrice": 105,
+            "minPrice": 0.75,
+            "maxPrice": 1.7,
+            "tokenADecimal": 6,
+            "tokenBDecimal": 6,
+            "feeCollectionMode": 0,
+            "dynamicFee": true
+        }
+    ]
+}

@@ -653,8 +653,10 @@ export class CpAmm {
     let tokenAOwner = owner;
     let tokenBOwner = owner;
     if (receiver) {
-      tokenAOwner = tokenAIsSOL ? tempWSolAccount : receiver;
-      tokenBOwner = tokenBIsSOL ? tempWSolAccount : receiver;
+      tokenAOwner =
+        !receiver.equals(owner) && tokenAIsSOL ? tempWSolAccount : receiver;
+      tokenBOwner =
+        !receiver.equals(owner) && tokenBIsSOL ? tempWSolAccount : receiver;
     }
 
     const { tokenAAta, tokenBAta, instructions } =

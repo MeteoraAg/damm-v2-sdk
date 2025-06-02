@@ -30,14 +30,27 @@ export const getMinAmountWithSlippage = (amount: BN, rate: number) => {
 
 /**
  * Calculate price impact as a percentage
- * @param actualAmount Amount after slippage in token units
- * @param idealAmount Theoretical amount without slippage in token units
+ * @param nextSqrtPrice sqrt price after swap
+ * @param currentSqrtPrice current pool sqrt price
  * @returns Price impact as a percentage (e.g., 1.5 means 1.5%)
  */
-export const getPriceImpact = (actualAmount: BN, idealAmount: BN): number => {
-  const diff = idealAmount.sub(actualAmount);
+export const getPriceImpact = (
+  nextSqrtPrice: BN,
+  currentSqrtPrice: BN
+): number => {
+  // price = (sqrtPrice)^2 * 10 ** (base_decimal - quote_decimal) / 2^128
+  // k = 10^(base_decimal - quote_decimal) / 2^128
+  // priceA = (sqrtPriceA)^2 * k
+  // priceB = (sqrtPriceB)^2 * k
+  // => price_impact = k * abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 /  (sqrtPriceB)^2 * k
+  // => price_impact = abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 / (sqrtPriceB)^2
+  const diff = nextSqrtPrice
+    .pow(new BN(2))
+    .sub(currentSqrtPrice.pow(new BN(2)))
+    .abs();
+
   return new Decimal(diff.toString())
-    .div(new Decimal(idealAmount.toString()))
+    .div(new Decimal(currentSqrtPrice.pow(new BN(2)).toString()))
     .mul(100)
     .toNumber();
 };

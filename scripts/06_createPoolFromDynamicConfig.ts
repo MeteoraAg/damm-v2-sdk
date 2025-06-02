@@ -34,15 +34,12 @@ import dammV2PoolConfig from "./config/dammv2ConcentratedPoolConfig.json";
   const result = [];
 
   for (const poolConfig of dammV2PoolConfig.poolList) {
-    console.log(">>>");
-
-    const maxAmountTokenA = new BN(poolConfig.maxTokenAAmount).mul(
-      new BN(10).pow(new BN(poolConfig.tokenADecimal))
+    const maxAmountTokenA = new BN(
+      poolConfig.maxTokenAAmount * 10 ** poolConfig.tokenADecimal
     );
-    const maxAmountTokenB = new BN(poolConfig.maxTokenBAmount).mul(
-      new BN(10).pow(new BN(poolConfig.tokenBDecimal))
+    const maxAmountTokenB = new BN(
+      poolConfig.maxTokenBAmount * 10 ** poolConfig.tokenBDecimal
     );
-
     const sqrtPrice = getSqrtPriceFromPrice(
       poolConfig.initPrice.toString(),
       poolConfig.tokenADecimal,
@@ -91,15 +88,6 @@ import dammV2PoolConfig from "./config/dammv2ConcentratedPoolConfig.json";
       sqrtMinPrice,
       Rounding.Up
     );
-    /////
-    console.log(`>> creating pool: ${poolConfig.pair}`, {
-      baseFeeParams,
-      dynamicFeeParams,
-      tokenADepositToPool,
-      tokenBDepositToPool,
-      maxAmountTokenA: maxAmountTokenA.toString(),
-      maxAmountTokenB: maxAmountTokenB.toString(),
-    });
 
     const poolFees: PoolFeesParams = {
       baseFee: baseFeeParams,
@@ -157,17 +145,23 @@ import dammV2PoolConfig from "./config/dammv2ConcentratedPoolConfig.json";
           commitment: "confirmed",
         }
       );
-      console.log(signature, poolAddress, position);
+      console.log(`>> creating pool: ${poolConfig.pair}`, {
+        signature,
+        poolAddress: poolAddress.toString(),
+        position: position.toString(),
+      });
       result.push({
         pair: poolConfig.pair,
         poolAddress: poolAddress.toString(),
         position: position.toString(),
-        tokenADepositToPool,
-        tokenBDepositToPool,
+        tokenADepositToPool: tokenADepositToPool.toString(),
+        tokenBDepositToPool: tokenBDepositToPool.toString(),
         maxAmountTokenA: maxAmountTokenA.toString(),
         maxAmountTokenB: maxAmountTokenB.toString(),
       });
     }
+
+    await new Promise((r) => setTimeout(r, 2000));
   }
 
   fs.writeFileSync(

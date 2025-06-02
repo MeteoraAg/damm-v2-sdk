@@ -1,0 +1,16 @@
+{
+    "dryRun": true,
+    "pair": "USDT_USDC",
+    "tokenAMint": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    "tokenBMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "maxTokenAAmount": 1000,
+    "maxTokenBAmount": 1000,
+    "baseFee": 1,
+    "initPrice": 0.999698,
+    "minPrice": 0.98,
+    "maxPrice": 1.02,
+    "tokenADecimal": 6,
+    "tokenBDecimal": 6,
+    "feeCollectionMode": 0,
+    "dynamicFee": true
+}

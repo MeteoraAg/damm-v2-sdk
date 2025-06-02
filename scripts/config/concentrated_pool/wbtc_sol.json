@@ -1,0 +1,16 @@
+{
+    "dryRun": true,
+    "pair": "WBTC-SOL",
+    "tokenAMint": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+    "tokenBMint": "So11111111111111111111111111111111111111112",
+    "maxTokenAAmount": 0.00949,
+    "maxTokenBAmount": 6.35,
+    "baseFee": 25,
+    "initPrice": 675.32,
+    "minPrice": 270.128,
+    "maxPrice": 1688.3,
+    "tokenADecimal": 8,
+    "tokenBDecimal": 9,
+    "feeCollectionMode": 0,
+    "dynamicFee": true
+}

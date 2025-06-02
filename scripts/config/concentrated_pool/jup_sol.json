@@ -1,0 +1,16 @@
+{
+    "dryRun": true,
+    "pair": "JUP_SOL",
+    "tokenAMint": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    "tokenBMint": "So11111111111111111111111111111111111111112",
+    "maxTokenAAmount": 1906,
+    "maxTokenBAmount": 6.35,
+    "baseFee": 25,
+    "initPrice": 0.00337,
+    "minPrice": 0.0008425,
+    "maxPrice": 0.01348,
+    "tokenADecimal": 6,
+    "tokenBDecimal": 9,
+    "feeCollectionMode": 0,
+    "dynamicFee": true
+}

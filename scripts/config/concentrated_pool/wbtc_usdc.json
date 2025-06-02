@@ -1,0 +1,16 @@
+{
+    "dryRun": true,
+    "pair": "WBTC_USDC",
+    "tokenAMint": "3NZ9JMVBmGAqocybic2c7LQCJScmgsAZ6vQqTDzcqmJh",
+    "tokenBMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "maxTokenAAmount": 0.00949,
+    "maxTokenBAmount": 1000,
+    "baseFee": 25,
+    "initPrice": 105470,
+    "minPrice": 42188,
+    "maxPrice": 263675,
+    "tokenADecimal": 8,
+    "tokenBDecimal": 6,
+    "feeCollectionMode": 0,
+    "dynamicFee": true
+}

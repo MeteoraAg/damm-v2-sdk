@@ -38,6 +38,12 @@ export const getPriceImpact = (
   nextSqrtPrice: BN,
   currentSqrtPrice: BN
 ): number => {
+  // price = (sqrtPrice)^2 * 10 ** (base_decimal - quote_decimal) / 2^128
+  // k = 10^(base_decimal - quote_decimal) / 2^128
+  // priceA = (sqrtPriceA)^2 * k
+  // priceB = (sqrtPriceB)^2 * k
+  // => price_impact = k * abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 /  (sqrtPriceB)^2 * k
+  // => price_impact = abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 / (sqrtPriceB)^2
   const diff = nextSqrtPrice
     .pow(new BN(2))
     .sub(currentSqrtPrice.pow(new BN(2)))

@@ -20,11 +20,11 @@ import {
 } from "../src";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import fs from "fs";
-import poolConfig from "./config/concentrated_pool/jup_sol.json";
+import poolConfig from "./config/concentrated_pool/eurc_usdc.json";
 
 (async () => {
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(require("/Users/minhdo/.config/solana/id.json"))
+    Uint8Array.from(require("~/.config/solana/id.json"))
   );
 
   const connection = new Connection(clusterApiUrl("mainnet-beta"));
@@ -33,8 +33,6 @@ import poolConfig from "./config/concentrated_pool/jup_sol.json";
   const confgAccount = new PublicKey(
     "3G5CDs8T8A7hyxJFvdgqmaAVN29TXJoL8ToEgQySeHgq"
   );
-
-  const result = [];
 
   const maxAmountTokenA = new BN(
     poolConfig.maxTokenAAmount * 10 ** poolConfig.tokenADecimal
@@ -66,6 +64,16 @@ import poolConfig from "./config/concentrated_pool/jup_sol.json";
     sqrtPrice,
   });
 
+  const { outputAmount } = cpAmm.getDepositQuote({
+    inAmount: maxAmountTokenA,
+    isTokenA: true,
+    minSqrtPrice: sqrtMinPrice,
+    maxSqrtPrice: sqrtMaxPrice,
+    sqrtPrice,
+  });
+
+  console.log({ outputAmount: outputAmount.toString() });
+
   const baseFeeParams = getBaseFeeParams(
     poolConfig.baseFee,
     poolConfig.baseFee,
@@ -73,10 +81,9 @@ import poolConfig from "./config/concentrated_pool/jup_sol.json";
     0,
     0
   );
-  let dynamicFeeParams = null;
-  if (poolConfig.dynamicFee) {
-    dynamicFeeParams = getDynamicFeeParams(poolConfig.baseFee);
-  }
+
+  const dynamicFeeParams = getDynamicFeeParams(poolConfig.baseFee);
+
   const tokenADepositToPool = getAmountAFromLiquidityDelta(
     liquidityDelta,
     sqrtPrice,
@@ -90,6 +97,11 @@ import poolConfig from "./config/concentrated_pool/jup_sol.json";
     sqrtMinPrice,
     Rounding.Up
   );
+
+  console.log({
+    tokenADepositToPool: tokenADepositToPool.toString(),
+    tokenBDepositToPool: tokenBDepositToPool.toString(),
+  });
 
   const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
@@ -151,21 +163,19 @@ import poolConfig from "./config/concentrated_pool/jup_sol.json";
       poolAddress: poolAddress.toString(),
       position: position.toString(),
     });
-    result.push({
-      pair: poolConfig.pair,
-      poolAddress: poolAddress.toString(),
-      position: position.toString(),
-      tokenADepositToPool: tokenADepositToPool.toString(),
-      tokenBDepositToPool: tokenBDepositToPool.toString(),
-      maxAmountTokenA: maxAmountTokenA.toString(),
-      maxAmountTokenB: maxAmountTokenB.toString(),
-    });
+    // result.push({
+    //   pair: poolConfig.pair,
+    //   signature,
+    //   poolAddress: poolAddress.toString(),
+    //   position: position.toString(),
+    //   tokenADepositToPool: tokenADepositToPool.toString(),
+    //   tokenBDepositToPool: tokenBDepositToPool.toString(),
+    //   maxAmountTokenA: maxAmountTokenA.toString(),
+    //   maxAmountTokenB: maxAmountTokenB.toString(),
+    // });
+    // fs.writeFileSync(
+    //   `./scripts/concentrated_pool/logs/${poolConfig.pair}_${Date.now()}.json`,
+    //   JSON.stringify(result, null, 4)
+    // );
   }
-
-  await new Promise((r) => setTimeout(r, 2000));
-
-  fs.writeFileSync(
-    `./scripts/create_pool_result_${Date.now()}.json`,
-    JSON.stringify(result, null, 4)
-  );
 })();

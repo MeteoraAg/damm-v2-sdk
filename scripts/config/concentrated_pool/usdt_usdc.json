@@ -1,5 +1,5 @@
 {
-    "dryRun": true,
+    "dryRun": false,
     "pair": "USDT_USDC",
     "tokenAMint": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
     "tokenBMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
@@ -12,5 +12,7 @@
     "tokenADecimal": 6,
     "tokenBDecimal": 6,
     "feeCollectionMode": 0,
-    "dynamicFee": true
+    "dynamicFee": true,
+    "poolAddress": "GW27NDmFXdro5y3XD7FGHcp2KqxdxR5TbjD9zMjLdVus",
+    "signature": "4x6MBVHaDSaBH7eDDsMJ4goCdd5b7sCoiNhkandSEk6zRQWf9dHcHMvc5jLhnWXLFoPeMYYTVoxeByzDQyzmwyX7"
 }

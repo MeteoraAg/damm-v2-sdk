@@ -2700,7 +2700,7 @@ export class CpAmm {
 
   /**
    * Builds a transaction to claim position fee rewards.
-   * @param {ClaimPositionFeeParams} params - Parameters for claiming position fee.
+   * @param {ClaimPositionFeeParams2} params - Parameters for claiming position fee.
    * @returns Transaction builder.
    */
   async claimPositionFee2(params: ClaimPositionFeeParams2): TxBuilder {
@@ -2720,14 +2720,26 @@ export class CpAmm {
     } = params;
 
     const payer = feePayer ?? owner;
+
+    let tokenAOwner = receiver;
+    let tokenBOwner = receiver;
+
+    if (tokenAMint.equals(NATIVE_MINT)) {
+      tokenAOwner = owner;
+    }
+
+    if (tokenBMint.equals(NATIVE_MINT)) {
+      tokenBOwner = owner;
+    }
+
     const {
       tokenAAta: tokenAAccount,
       tokenBAta: tokenBAccount,
       instructions: preInstruction,
     } = await this.prepareTokenAccounts({
       payer,
-      tokenAOwner: owner,
-      tokenBOwner: owner,
+      tokenAOwner,
+      tokenBOwner,
       tokenAMint,
       tokenBMint,
       tokenAProgram,

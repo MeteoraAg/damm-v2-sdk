@@ -452,6 +452,21 @@ export type ClaimPositionFeeParams = {
   tempWSolAccount?: PublicKey;
 };
 
+export type ClaimPositionFeeParams2 = {
+  owner: PublicKey;
+  position: PublicKey;
+  pool: PublicKey;
+  positionNftAccount: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+  receiver: PublicKey;
+  feePayer?: PublicKey;
+};
+
 export type ClosePositionInstructionParams = {
   owner: PublicKey;
   poolAuthority: PublicKey;

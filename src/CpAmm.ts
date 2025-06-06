@@ -21,6 +21,7 @@ import {
   ClaimPartnerFeeParams,
   ClaimPositionFeeInstructionParams,
   ClaimPositionFeeParams,
+  ClaimPositionFeeParams2,
   ClaimRewardParams,
   ClosePositionInstructionParams,
   ClosePositionParams,
@@ -2690,6 +2691,87 @@ export class CpAmm {
     const transaction = new Transaction();
     transaction.add(
       ...(preInstructions.length > 0 ? preInstructions : []),
+      claimPositionFeeInstruction,
+      ...(postInstructions.length > 0 ? postInstructions : [])
+    );
+
+    return transaction;
+  }
+
+  /**
+   * Builds a transaction to claim position fee rewards.
+   * @param {ClaimPositionFeeParams2} params - Parameters for claiming position fee.
+   * @returns Transaction builder.
+   */
+  async claimPositionFee2(params: ClaimPositionFeeParams2): TxBuilder {
+    const {
+      receiver,
+      feePayer,
+      owner,
+      pool,
+      position,
+      positionNftAccount,
+      tokenAVault,
+      tokenBVault,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+    } = params;
+
+    const payer = feePayer ?? owner;
+
+    let tokenAOwner = receiver;
+    let tokenBOwner = receiver;
+
+    if (tokenAMint.equals(NATIVE_MINT)) {
+      tokenAOwner = owner;
+    }
+
+    if (tokenBMint.equals(NATIVE_MINT)) {
+      tokenBOwner = owner;
+    }
+
+    const {
+      tokenAAta: tokenAAccount,
+      tokenBAta: tokenBAccount,
+      instructions: preInstruction,
+    } = await this.prepareTokenAccounts({
+      payer,
+      tokenAOwner,
+      tokenBOwner,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+    });
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (tokenAMint.equals(NATIVE_MINT) || tokenBMint.equals(NATIVE_MINT)) {
+      // unwarp sol to receiver
+      const closeWrappedSOLIx = await unwrapSOLInstruction(owner, receiver);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+    const claimPositionFeeInstruction =
+      await this.buildClaimPositionFeeInstruction({
+        owner,
+        poolAuthority: this.poolAuthority,
+        pool,
+        position,
+        positionNftAccount,
+        tokenAAccount,
+        tokenBAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+      });
+
+    const transaction = new Transaction();
+    transaction.add(
+      ...(preInstruction.length > 0 ? preInstruction : []),
       claimPositionFeeInstruction,
       ...(postInstructions.length > 0 ? postInstructions : [])
     );

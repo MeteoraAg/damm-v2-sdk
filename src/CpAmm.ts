@@ -35,6 +35,7 @@ import {
   GetDepositQuoteParams,
   GetQuoteParams,
   GetWithdrawQuoteParams,
+  InitializeAndFundReward,
   InitializeCustomizeablePoolParams,
   InitializeCustomizeablePoolWithDynamicConfigParams,
   InitializeRewardParams,
@@ -2457,7 +2458,7 @@ export class CpAmm {
     } = params;
 
     const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
-    
+
     const tokenProgram = rewardMintProgram
       ? rewardMintProgram
       : (await this._program.provider.connection.getAccountInfo(rewardMint))
@@ -2475,6 +2476,47 @@ export class CpAmm {
         tokenProgram,
       })
       .transaction();
+  }
+
+  /**
+   * Builds a transaction to initialize reward and fund reward
+   * @param {InitializeAndFundReward} params
+   * @returns Transaction builder.
+   */
+  async initializeAndFundReward(params: InitializeAndFundReward): TxBuilder {
+    const {
+      rewardIndex,
+      rewardDuration,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      carryForward,
+      amount,
+      rewardMintProgram,
+    } = params;
+
+    const initializeRewardTx = await this.initializeReward({
+      rewardIndex,
+      rewardDuration,
+      funder: payer,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      rewardMintProgram,
+    });
+
+    // fund reward
+    const fundRewardTx = await this.fundReward({
+      rewardIndex,
+      carryForward,
+      pool,
+      funder: payer,
+      amount,
+    });
+
+    return new Transaction().add(initializeRewardTx).add(fundRewardTx);
   }
 
   /**

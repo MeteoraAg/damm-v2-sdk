@@ -484,7 +484,19 @@ export type InitializeRewardParams = {
   funder: PublicKey;
   payer: PublicKey;
   creator: PublicKey;
-  rewardMintProgram?: PublicKey 
+  rewardMintProgram?: PublicKey;
+};
+
+export type InitializeAndFundReward = {
+  rewardIndex: number;
+  rewardDuration: BN;
+  pool: PublicKey;
+  creator: PublicKey;
+  payer: PublicKey;
+  rewardMint: PublicKey;
+  carryForward: boolean;
+  amount: BN;
+  rewardMintProgram: PublicKey;
 };
 
 export type UpdateRewardDurationParams = {

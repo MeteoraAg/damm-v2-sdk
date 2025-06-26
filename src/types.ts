@@ -481,19 +481,22 @@ export type InitializeRewardParams = {
   rewardDuration: BN;
   pool: PublicKey;
   rewardMint: PublicKey;
+  funder: PublicKey;
   payer: PublicKey;
+  creator: PublicKey;
+  rewardMintProgram?: PublicKey 
 };
 
 export type UpdateRewardDurationParams = {
   pool: PublicKey;
-  admin: PublicKey;
+  signer: PublicKey;
   rewardIndex: number;
   newDuration: BN;
 };
 
 export type UpdateRewardFunderParams = {
   pool: PublicKey;
-  admin: PublicKey;
+  signer: PublicKey;
   rewardIndex: number;
   newFunder: PublicKey;
 };
@@ -529,6 +532,7 @@ export type ClaimRewardParams = {
   positionState: PositionState;
   positionNftAccount: PublicKey;
   rewardIndex: number;
+  isSkipReward: boolean;
   feePayer?: PublicKey;
 };
 

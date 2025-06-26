@@ -37,6 +37,7 @@ import {
   GetWithdrawQuoteParams,
   InitializeCustomizeablePoolParams,
   InitializeCustomizeablePoolWithDynamicConfigParams,
+  InitializeRewardParams,
   LiquidityDeltaParams,
   LockPositionParams,
   MergePositionParams,
@@ -68,6 +69,7 @@ import {
   derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
+  deriveRewardVaultAddress,
   deriveTokenBadgeAddress,
   deriveTokenVaultAddress,
 } from "./pda";
@@ -2442,18 +2444,51 @@ export class CpAmm {
     return transaction;
   }
 
+  async initializeReward(params: InitializeRewardParams): TxBuilder {
+    const {
+      rewardIndex,
+      rewardDuration,
+      funder,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      rewardMintProgram,
+    } = params;
+
+    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+    
+    const tokenProgram = rewardMintProgram
+      ? rewardMintProgram
+      : (await this._program.provider.connection.getAccountInfo(rewardMint))
+          .owner;
+
+    return await this._program.methods
+      .initializeReward(rewardIndex, rewardDuration, funder)
+      .accountsPartial({
+        poolAuthority: this.poolAuthority,
+        pool,
+        rewardVault,
+        rewardMint,
+        signer: creator,
+        payer,
+        tokenProgram,
+      })
+      .transaction();
+  }
+
   /**
    * Builds a transaction to update reward duration.
    * @param {UpdateRewardDurationParams} params - Parameters including pool and new duration.
    * @returns Transaction builder.
    */
   async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
-    const { pool, admin, rewardIndex, newDuration } = params;
+    const { pool, signer, rewardIndex, newDuration } = params;
     return await this._program.methods
       .updateRewardDuration(rewardIndex, newDuration)
       .accountsPartial({
         pool,
-        admin: admin,
+        signer,
       })
       .transaction();
   }
@@ -2464,12 +2499,12 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder {
-    const { pool, admin, rewardIndex, newFunder } = params;
+    const { pool, signer, rewardIndex, newFunder } = params;
     return await this._program.methods
       .updateRewardFunder(rewardIndex, newFunder)
       .accountsPartial({
         pool,
-        admin: admin,
+        signer,
       })
       .transaction();
   }
@@ -2793,6 +2828,7 @@ export class CpAmm {
       rewardIndex,
       poolState,
       positionState,
+      isSkipReward,
     } = params;
 
     const rewardInfo = poolState.rewardInfos[rewardIndex];
@@ -2815,8 +2851,9 @@ export class CpAmm {
       const closeWrappedSOLIx = await unwrapSOLInstruction(user);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
+    const skipReward = isSkipReward ? 1 : 0;
     return await this._program.methods
-      .claimReward(rewardIndex)
+      .claimReward(rewardIndex, skipReward)
       .accountsPartial({
         pool: positionState.pool,
         positionNftAccount,

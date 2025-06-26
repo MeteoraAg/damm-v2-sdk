@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
+## damm_v2_sdk [1.0.10] [PR #56](https://github.com/MeteoraAg/damm-v2-sdk/pull/56)
+
+### Added
+- Permissionless reward
+
 ## damm_v2_sdk [1.0.9] [PR #54](https://github.com/MeteoraAg/damm-v2-sdk/pull/54)
 
 ### Added

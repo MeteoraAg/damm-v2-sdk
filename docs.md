@@ -22,7 +22,12 @@
   - [claimPositionFee](#claimpositionfee)
   - [claimPositionFee2](#claimpositionfee2)
   - [claimPartnerFee](#claimpartnerfee)
+  - [initializeReward](#initializereward)
+  - [updateRewardDuration](#updaterewardduration)
+  - [updateRewardFunder](#updaterewardfunder)
+  - [fundReward](#fundreward)
   - [claimReward](#claimreward)
+  - [withdrawIneligibleReward](#withdrawineligiblereward)
   - [closePosition](#closeposition)
 - [State Functions](#state-functions)
   - [fetchConfigState](#fetchconfigstate)
@@ -1328,6 +1333,72 @@ const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
 
 ---
 
+### initializeReward
+Initialize reward. The pool creator can only use reward index = 0
+
+#### Function
+```typescript
+async initializeReward(params: InitializeRewardParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+export type InitializeRewardParams = {
+  rewardIndex: number;
+  rewardDuration: BN;
+  pool: PublicKey;
+  rewardMint: PublicKey;
+  funder: PublicKey;
+  payer: PublicKey;
+  creator: PublicKey;
+  rewardMintProgram?: PublicKey 
+};
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+### updateRewardDuration
+Update new reward duration
+
+#### Function
+```typescript
+async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder
+```
+#### Parameters
+```typescript
+export type UpdateRewardDurationParams = {
+  pool: PublicKey;
+  signer: PublicKey;
+  rewardIndex: number;
+  newDuration: BN;
+};
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+
+### updateRewardFunder
+Update new reward funder
+
+#### Function
+```typescript
+async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder
+```
+#### Parameters
+```typescript
+export type UpdateRewardFunderParams = {
+  pool: PublicKey;
+  signer: PublicKey;
+  rewardIndex: number;
+  newFunder: PublicKey;
+};
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
 ### claimReward
 
 Claims reward tokens from a position.
@@ -1376,6 +1447,27 @@ const claimRewardTx = await cpAmm.claimReward({
 - The SDK handles wrapping/unwrapping of SOL automatically
 
 ---
+
+#### withdrawIneligibleReward
+withdraw ineligible reward
+
+### Function
+```typescript
+async withdrawIneligibleReward(params: WithdrawIneligibleRewardParams): TxBuilder
+```
+
+#### Parameters
+```typescript
+export type WithdrawIneligibleRewardParams = {
+  rewardIndex: number;
+  pool: PublicKey;
+  funder: PublicKey;
+};
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
 
 ### closePosition
 

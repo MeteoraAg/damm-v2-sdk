@@ -1399,6 +1399,27 @@ export type UpdateRewardFunderParams = {
 #### Returns
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
+### fundReward
+fund reward
+
+#### Function
+```typescript
+async fundReward(params: FundRewardParams): TxBuilder
+```
+#### Parameters
+```typescript
+export type FundRewardParams = {
+  funder: PublicKey;
+  rewardIndex: number;
+  pool: PublicKey;
+  carryForward: boolean;
+  amount: BN;
+};
+```
+
+#### Returns
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
 ### claimReward
 
 Claims reward tokens from a position.

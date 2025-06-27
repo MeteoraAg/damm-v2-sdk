@@ -23,3 +23,5 @@ export const BIN_STEP_BPS_DEFAULT = 1;
 //  bin_step << 64 / BASIS_POINT_MAX
 export const BIN_STEP_BPS_U128_DEFAULT = new BN("1844674407370955");
 export const MAX_PRICE_CHANGE_BPS_DEFAULT = 1500; // 15%
+
+export const U64_MAX = new BN("18446744073709551615");

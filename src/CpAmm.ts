@@ -1,5 +1,11 @@
 import { Program, BN } from "@coral-xyz/anchor";
-import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  getAssociatedTokenAddressSync,
+  NATIVE_MINT,
+  TOKEN_2022_PROGRAM_ID,
+  unpackAccount,
+} from "@solana/spl-token";
 import invariant from "invariant";
 
 import CpAmmIDL from "./idl/cp_amm.json";
@@ -22,6 +28,7 @@ import {
   ClaimPositionFeeInstructionParams,
   ClaimPositionFeeParams,
   ClaimPositionFeeParams2,
+  ClaimProtocolFeeParams,
   ClaimRewardParams,
   ClosePositionInstructionParams,
   ClosePositionParams,
@@ -64,6 +71,7 @@ import {
   WithdrawQuote,
 } from "./types";
 import {
+  deriveClaimFeeOperatorAddress,
   deriveCustomizablePoolAddress,
   derivePoolAddress,
   derivePoolAuthority,
@@ -97,6 +105,7 @@ import {
   getAllPositionNftAccountByOwner,
 } from "./helpers";
 import { min, max } from "bn.js";
+import { U64_MAX } from "./constants";
 
 /**
  * CpAmm SDK class to interact with the DAMM-V2
@@ -2457,7 +2466,7 @@ export class CpAmm {
     } = params;
 
     const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
-    
+
     const tokenProgram = rewardMintProgram
       ? rewardMintProgram
       : (await this._program.provider.connection.getAccountInfo(rewardMint))
@@ -2867,6 +2876,93 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  /**
+   * Builds a transaction to claim protocol fee from a pool.
+   * @param {ClaimProtocolFeeParams} params - Parameters for claiming protocol fee.
+   * @returns Transaction builder.
+   */
+  async claimProtocolFee(params: ClaimProtocolFeeParams): TxBuilder {
+    const { pool, operator, treasury } = params;
+
+    const poolState = await this.fetchPoolState(pool);
+    const accountsToFetch = [poolState.tokenAVault, poolState.tokenBVault];
+
+    const accounts =
+      await this._program.provider.connection.getMultipleAccountsInfo(
+        accountsToFetch
+      );
+
+    const tokenAVault = accounts[0];
+    const tokenBVault = accounts[1];
+
+    const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
+    const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
+
+    const tokenAVaultState = unpackAccount(
+      poolState.tokenAVault,
+      tokenAVault,
+      tokenAVault.owner
+    );
+    const tokenBVaultState = unpackAccount(
+      poolState.tokenBVault,
+      tokenBVault,
+      tokenBVault.owner
+    );
+
+    const maxAmountA = tokenAVaultState.isFrozen ? new BN(0) : U64_MAX;
+    const maxAmountB = tokenBVaultState.isFrozen ? new BN(0) : U64_MAX;
+
+    const treasuryTokenAKey = getAssociatedTokenAddressSync(
+      poolState.tokenAMint,
+      treasury,
+      true,
+      tokenAProgram
+    );
+    const treasuryTokenBKey = getAssociatedTokenAddressSync(
+      poolState.tokenBMint,
+      treasury,
+      true,
+      tokenBProgram
+    );
+
+    const preInstructions = [
+      createAssociatedTokenAccountIdempotentInstruction(
+        operator,
+        treasuryTokenAKey,
+        treasury,
+        poolState.tokenAMint,
+        tokenAProgram
+      ),
+      createAssociatedTokenAccountIdempotentInstruction(
+        operator,
+        treasuryTokenBKey,
+        treasury,
+        poolState.tokenBMint,
+        tokenBProgram
+      ),
+    ];
+
+    const claimFeeOperator = deriveClaimFeeOperatorAddress(operator);
+
+    return this._program.methods
+      .claimProtocolFee(maxAmountA, maxAmountB)
+      .accountsPartial({
+        pool,
+        poolAuthority: this.poolAuthority,
+        tokenAVault: poolState.tokenAVault,
+        tokenBVault: poolState.tokenBVault,
+        tokenAMint: poolState.tokenAMint,
+        tokenBMint: poolState.tokenBMint,
+        tokenAAccount: treasuryTokenAKey,
+        tokenBAccount: treasuryTokenBKey,
+        claimFeeOperator,
+        operator,
+        tokenAProgram,
+        tokenBProgram,
+      })
       .transaction();
   }
 }

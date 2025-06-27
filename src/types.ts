@@ -484,7 +484,7 @@ export type InitializeRewardParams = {
   funder: PublicKey;
   payer: PublicKey;
   creator: PublicKey;
-  rewardMintProgram?: PublicKey 
+  rewardMintProgram?: PublicKey;
 };
 
 export type UpdateRewardDurationParams = {
@@ -600,4 +600,10 @@ export type DynamicFeeParams = {
   volatilityAccumulator: BN;
   binStep: number;
   variableFeeControl: number;
+};
+
+export type ClaimProtocolFeeParams = {
+  pool: PublicKey;
+  operator: PublicKey;
+  treasury: PublicKey;
 };

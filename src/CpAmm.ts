@@ -2963,6 +2963,7 @@ export class CpAmm {
         tokenAProgram,
         tokenBProgram,
       })
+      .preInstructions(preInstructions)
       .transaction();
   }
 }

@@ -33,6 +33,7 @@ import {
   ClosePositionInstructionParams,
   ClosePositionParams,
   ConfigState,
+  CreateClaimFeeOperatorParams,
   CreatePoolParams,
   CreatePositionAndAddLiquidity,
   CreatePositionParams,
@@ -2876,6 +2877,25 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  /**
+   * Builds a transaction to claim protocol fee from a pool.
+   * @param {CreateClaimFeeOperatorParams} params - Parameters for creating claim fee operator.
+   * @returns Transaction builder.
+   */
+  async createClaimFeeOperator(
+    params: CreateClaimFeeOperatorParams
+  ): TxBuilder {
+    const { operator, admin } = params;
+    return await this._program.methods
+      .createClaimFeeOperator()
+      .accountsPartial({
+        claimFeeOperator: deriveClaimFeeOperatorAddress(operator),
+        operator,
+        admin,
+      })
       .transaction();
   }
 

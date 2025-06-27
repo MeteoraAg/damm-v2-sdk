@@ -52,7 +52,7 @@ async function claimAndConfirm(
   while (true) {
     try {
       const { blockhash, lastValidBlockHeight } =
-        await connection.getLatestBlockhash();
+        await connection.getLatestBlockhash("confirmed");
 
       const transaction = new Transaction({
         blockhash,
@@ -61,11 +61,14 @@ async function claimAndConfirm(
 
       transaction.sign(operator);
       const tx = await connection.sendRawTransaction(transaction.serialize());
-      await connection.confirmTransaction({
-        blockhash,
-        lastValidBlockHeight,
-        signature: tx,
-      });
+      await connection.confirmTransaction(
+        {
+          blockhash,
+          lastValidBlockHeight,
+          signature: tx,
+        },
+        "confirmed"
+      );
       return;
     } catch (error) {
       console.error(`Error: ${error}`);

@@ -607,3 +607,8 @@ export type ClaimProtocolFeeParams = {
   operator: PublicKey;
   treasury: PublicKey;
 };
+
+export type CreateClaimFeeOperatorParams = {
+  operator: PublicKey;
+  admin: PublicKey;
+};

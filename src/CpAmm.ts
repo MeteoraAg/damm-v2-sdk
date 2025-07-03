@@ -2459,11 +2459,6 @@ export class CpAmm {
 
     const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
 
-    const tokenProgram = rewardMintProgram
-      ? rewardMintProgram
-      : (await this._program.provider.connection.getAccountInfo(rewardMint))
-          .owner;
-
     return await this._program.methods
       .initializeReward(rewardIndex, rewardDuration, funder)
       .accountsPartial({
@@ -2473,7 +2468,7 @@ export class CpAmm {
         rewardMint,
         signer: creator,
         payer,
-        tokenProgram,
+        tokenProgram: rewardMintProgram,
       })
       .transaction();
   }
@@ -2496,6 +2491,8 @@ export class CpAmm {
       rewardMintProgram,
     } = params;
 
+    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+
     const initializeRewardTx = await this.initializeReward({
       rewardIndex,
       rewardDuration,
@@ -2514,6 +2511,9 @@ export class CpAmm {
       pool,
       funder: payer,
       amount,
+      rewardMint,
+      rewardVault,
+      rewardMintProgram
     });
 
     return new Transaction().add(initializeRewardTx).add(fundRewardTx);
@@ -2557,30 +2557,34 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async fundReward(params: FundRewardParams): TxBuilder {
-    const { rewardIndex, carryForward, pool, funder, amount } = params;
-
-    const poolState = await this.fetchPoolState(pool);
-    const rewardInfo = poolState.rewardInfos[rewardIndex];
-    const { vault, mint } = rewardInfo;
-    const tokenProgram = getTokenProgram(rewardIndex);
+    const {
+      rewardIndex,
+      carryForward,
+      pool,
+      funder,
+      amount,
+      rewardMint,
+      rewardVault,
+      rewardMintProgram,
+    } = params;
 
     const preInstructions: TransactionInstruction[] = [];
 
     const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
       await getOrCreateATAInstruction(
         this._program.provider.connection,
-        mint,
+        rewardMint,
         funder,
         funder,
         true,
-        tokenProgram
+        rewardMintProgram
       );
 
     createFunderTokenAccountIx &&
       preInstructions.push(createFunderTokenAccountIx);
 
     // TODO: check case reward mint is wSOL && carryForward is true => total amount > amount
-    if (mint.equals(NATIVE_MINT) && !amount.isZero()) {
+    if (rewardMint.equals(NATIVE_MINT) && !amount.isZero()) {
       const wrapSOLIx = wrapSOLInstruction(
         funder,
         funderTokenAccount,
@@ -2594,11 +2598,11 @@ export class CpAmm {
       .fundReward(rewardIndex, amount, carryForward)
       .accountsPartial({
         pool,
-        rewardVault: vault,
-        rewardMint: mint,
+        rewardVault,
+        rewardMint,
         funderTokenAccount,
         funder: funder,
-        tokenProgram,
+        tokenProgram: rewardMintProgram,
       })
       .transaction();
   }

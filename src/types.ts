@@ -59,6 +59,7 @@ export type TokenBadgeState = IdlAccounts<CpAmmTypes>["tokenBadge"];
 // export type InitCustomizePoolParams =
 //   IdlTypes<CpAmm>["InitializeCustomizablePoolParameters"];
 export type RewardInfo = IdlTypes<CpAmmTypes>["rewardInfo"];
+export type UserRewardInfo = IdlTypes<CpAmmTypes>["userRewardInfo"];
 
 export type DynamicFee = {
   binStep: number;
@@ -484,7 +485,7 @@ export type InitializeRewardParams = {
   funder: PublicKey;
   payer: PublicKey;
   creator: PublicKey;
-  rewardMintProgram?: PublicKey;
+  rewardMintProgram: PublicKey;
 };
 
 export type InitializeAndFundReward = {
@@ -519,6 +520,9 @@ export type FundRewardParams = {
   pool: PublicKey;
   carryForward: boolean;
   amount: BN;
+  rewardMint: PublicKey;
+  rewardVault: PublicKey;
+  rewardMintProgram: PublicKey;
 };
 
 export type WithdrawIneligibleRewardParams = {

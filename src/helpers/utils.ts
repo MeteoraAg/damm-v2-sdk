@@ -1,8 +1,26 @@
 import { BN } from "@coral-xyz/anchor";
 import { BASIS_POINT_MAX, LIQUIDITY_SCALE } from "../constants";
 import Decimal from "decimal.js";
-import { PoolState, PositionState } from "../types";
-import { PublicKey } from "@solana/web3.js";
+import { PoolState, PositionState, Rounding } from "../types";
+import {
+  Connection,
+  PublicKey,
+  SystemProgram,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import { CpAmm } from "../CpAmm";
+import { getOrCreateATAInstruction, getTokenProgram } from "./token";
+import {
+  derivePoolAuthority,
+  derivePositionAddress,
+  derivePositionNftAccount,
+} from "../pda";
+import {
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
+} from "./curve";
+import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
  * that slippage rate
@@ -128,3 +146,147 @@ export const getUnClaimReward = (
         : [],
   };
 };
+
+export async function splitLPPosition(
+  cpAmm: CpAmm,
+  poolAddress: PublicKey,
+  owner: PublicKey,
+  newPositionNft: PublicKey,
+  toleranceAmount: number
+): Promise<Transaction> {
+  const userPosition = (
+    await cpAmm.getUserPositionByPool(poolAddress, owner)
+  )[0];
+  let poolState = await cpAmm.fetchPoolState(poolAddress);
+  const positionState = userPosition.positionState;
+
+  const tokenAProgram = getTokenProgram(poolState.tokenAFlag);
+  const tokenBProgram = getTokenProgram(poolState.tokenBFlag);
+
+  const preInstructions: TransactionInstruction[] = [];
+  const [
+    { ataPubkey: tokenAAta, ix: createInputTokenAccountIx },
+    { ataPubkey: tokenBAta, ix: createOutputTokenAccountIx },
+  ] = await Promise.all([
+    getOrCreateATAInstruction(
+      cpAmm._program.provider.connection,
+      poolState.tokenAMint,
+      owner,
+      owner,
+      true,
+      tokenAProgram
+    ),
+    getOrCreateATAInstruction(
+      cpAmm._program.provider.connection,
+      poolState.tokenBMint,
+      owner,
+      owner,
+      true,
+      tokenBProgram
+    ),
+  ]);
+  createInputTokenAccountIx && preInstructions.push(createInputTokenAccountIx);
+  createOutputTokenAccountIx &&
+    preInstructions.push(createOutputTokenAccountIx);
+
+  // 1. withdraw 50% liquidity from position
+  const withdrawLiquidityDelta = positionState.unlockedLiquidity.div(new BN(2));
+  const removeLiquidityTx = await cpAmm._program.methods
+    .removeLiquidity({
+      liquidityDelta: withdrawLiquidityDelta,
+      tokenAAmountThreshold: new BN(0),
+      tokenBAmountThreshold: new BN(0),
+    })
+    .accountsPartial({
+      poolAuthority: this.poolAuthority,
+      pool: poolAddress,
+      position: userPosition.position,
+      positionNftAccount: derivePositionNftAccount(positionState.nftMint),
+      owner,
+      tokenAAccount: tokenAAta,
+      tokenBAccount: tokenBAta,
+      tokenAMint: poolState.tokenAMint,
+      tokenBMint: poolState.tokenBMint,
+      tokenAVault: poolState.tokenAVault,
+      tokenBVault: poolState.tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
+    })
+    .preInstructions(preInstructions)
+    .transaction();
+
+  // 2. create new position and add 50% liquidity into new position
+  const position = derivePositionAddress(newPositionNft);
+  const positionNftAccount = derivePositionNftAccount(newPositionNft);
+
+  const createNewPositionTx = await this._program.methods
+    .createPosition()
+    .accountsPartial({
+      owner,
+      positionNftMint: newPositionNft,
+      poolAuthority: derivePoolAuthority(),
+      positionNftAccount,
+      payer: owner,
+      pool: poolAddress,
+      position,
+      tokenProgram: TOKEN_2022_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  // 3. add liquidity to new position
+
+  // re-fetching pool state to get newest sqrtPrice
+  poolState = await cpAmm.fetchPoolState(poolAddress);
+  let tokenAWithdrawnAmount = getAmountAFromLiquidityDelta(
+    withdrawLiquidityDelta,
+    poolState.sqrtPrice,
+    poolState.sqrtMaxPrice,
+    Rounding.Down
+  );
+
+  let tokenBWithdrawnAmount = getAmountBFromLiquidityDelta(
+    withdrawLiquidityDelta,
+    poolState.sqrtPrice,
+    poolState.sqrtMinPrice,
+    Rounding.Down
+  );
+
+  tokenAWithdrawnAmount = tokenAWithdrawnAmount.sub(new BN(toleranceAmount));
+  tokenBWithdrawnAmount = tokenBWithdrawnAmount.sub(new BN(toleranceAmount));
+
+  // recalculate liquidity delta
+  const newLiquidityDelta = cpAmm.getLiquidityDelta({
+    maxAmountTokenA: tokenAWithdrawnAmount,
+    maxAmountTokenB: tokenBWithdrawnAmount,
+    sqrtMaxPrice: poolState.sqrtMaxPrice,
+    sqrtMinPrice: poolState.sqrtMinPrice,
+    sqrtPrice: poolState.sqrtPrice,
+  });
+  const addLiquidityTx = await cpAmm._program.methods
+    .addLiquidity({
+      liquidityDelta: newLiquidityDelta,
+      tokenAAmountThreshold: tokenAWithdrawnAmount,
+      tokenBAmountThreshold: tokenBWithdrawnAmount,
+    })
+    .accountsPartial({
+      pool: poolAddress,
+      position,
+      positionNftAccount,
+      owner,
+      tokenAAccount: tokenAAta,
+      tokenBAccount: tokenBAta,
+      tokenAMint: poolState.tokenAMint,
+      tokenBMint: poolState.tokenBMint,
+      tokenAVault: poolState.tokenAVault,
+      tokenBVault: poolState.tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
+    })
+    .instruction();
+
+  return new Transaction()
+    .add(removeLiquidityTx)
+    .add(createNewPositionTx)
+    .add(addLiquidityTx);
+}

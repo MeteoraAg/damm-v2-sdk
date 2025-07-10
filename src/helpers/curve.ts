@@ -27,6 +27,30 @@ export function getNextSqrtPrice(
   return result;
 }
 
+// aToB
+// √P' = √P - Δy / L
+// bToA
+// √P' = √P * L / (L - Δx*√P)
+export function getNextSqrtPriceFromOutput(
+  outAmount: BN,
+  sqrtPrice: BN,
+  liquidity: BN,
+  atoB: boolean
+): BN {
+  let result: BN;
+  if (atoB) {
+    const quotient = outAmount.shln(SCALE_OFFSET * 2).div(liquidity);
+    result = sqrtPrice.sub(quotient);
+  } else {
+    const product = outAmount.mul(sqrtPrice);
+    const denominator = liquidity.sub(product);
+    const numerator = liquidity.mul(sqrtPrice);
+    result = numerator.add(denominator.sub(new BN(1))).div(denominator);
+  }
+
+  return result;
+}
+
 // Δa = L * (1 / √P_lower - 1 / √P_upper)
 //
 // Δa = L * (√P_upper - √P_lower) / (√P_upper * √P_lower)

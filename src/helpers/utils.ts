@@ -92,13 +92,12 @@ export const getSqrtPriceFromPrice = (
 
 // fee = totalLiquidity * feePerTokenStore
 // precision: (totalLiquidity * feePerTokenStore) >> 128
-export const getUnClaimReward = (
+export const getUnClaimLpFee = (
   poolState: PoolState,
   positionState: PositionState
 ): {
   feeTokenA: BN;
   feeTokenB: BN;
-  rewards: BN[];
 } => {
   const totalPositionLiquidity = positionState.unlockedLiquidity
     .add(positionState.vestedLiquidity)
@@ -122,10 +121,6 @@ export const getUnClaimReward = (
   return {
     feeTokenA: positionState.feeAPending.add(feeA),
     feeTokenB: positionState.feeBPending.add(feeB),
-    rewards:
-      positionState.rewardInfos.length > 0
-        ? positionState.rewardInfos.map((item) => item.rewardPendings)
-        : [],
   };
 };
 
@@ -136,6 +131,9 @@ function getRewardPerTokenStore(
   poolLiquidity: BN,
   currentTime: BN
 ): BN {
+  if (poolLiquidity.eq(new BN(0))) {
+    return new BN(0)
+  }
   const lastTimeRewardApplicable = BN.min(
     currentTime,
     poolReward.rewardDurationEnd
@@ -180,8 +178,26 @@ export function getRewardInfo(
   rewardBalance: BN;
   totalRewardDistributed: BN;
 } {
+
   const poolReward = poolState.rewardInfos[rewardIndex];
 
+  const rewardPerPeriod = getRewardPerPeriod(
+    poolReward,
+    currentTime,
+    periodTime
+  );
+
+  const remainTime = poolReward.rewardDurationEnd.sub(currentTime);
+  const rewardBalance = poolReward.rewardRate.mul(remainTime).shrn(64);
+
+  if (poolState.liquidity.eq(new BN(0))){
+    return {
+      rewardPerPeriod,
+      rewardBalance,
+      totalRewardDistributed: new BN(0)
+    }
+  }
+  
   const rewardPerTokenStore = getRewardPerTokenStore(
     poolReward,
     poolState.liquidity,
@@ -193,18 +209,11 @@ export function getRewardInfo(
     .mul(poolState.liquidity)
     .shrn(192);
 
-  const rewardPerPeriod = getRewardPerPeriod(
-    poolReward,
-    currentTime,
-    periodTime
-  );
-
-  const remainTime = poolReward.rewardDurationEnd.sub(currentTime)
-  const rewardBalance = poolReward.rewardRate.mul(remainTime).shrn(64)
+  
   return {
     rewardPerPeriod: rewardPerPeriod.shrn(64),
     rewardBalance,
-    totalRewardDistributed
+    totalRewardDistributed,
   };
 }
 
@@ -217,6 +226,12 @@ export function getUserRewardPending(
   currentTime: BN,
   periodTime: BN
 ): { userRewardPerPeriod: BN; userPendingReward: BN } {
+  if (poolState.liquidity.eq(new BN(0))) {
+    return {
+      userRewardPerPeriod: new BN(0),
+      userPendingReward: new BN(0)
+    }
+  }
   const poolReward = poolState.rewardInfos[rewardIndex];
   const userRewardInfo = positionState.rewardInfos[rewardIndex];
 

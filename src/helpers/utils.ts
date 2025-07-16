@@ -132,7 +132,7 @@ function getRewardPerTokenStore(
   currentTime: BN
 ): BN {
   if (poolLiquidity.eq(new BN(0))) {
-    return new BN(0)
+    return new BN(0);
   }
   const lastTimeRewardApplicable = BN.min(
     currentTime,
@@ -178,26 +178,8 @@ export function getRewardInfo(
   rewardBalance: BN;
   totalRewardDistributed: BN;
 } {
-
   const poolReward = poolState.rewardInfos[rewardIndex];
 
-  const rewardPerPeriod = getRewardPerPeriod(
-    poolReward,
-    currentTime,
-    periodTime
-  );
-
-  const remainTime = poolReward.rewardDurationEnd.sub(currentTime);
-  const rewardBalance = poolReward.rewardRate.mul(remainTime).shrn(64);
-
-  if (poolState.liquidity.eq(new BN(0))){
-    return {
-      rewardPerPeriod,
-      rewardBalance,
-      totalRewardDistributed: new BN(0)
-    }
-  }
-  
   const rewardPerTokenStore = getRewardPerTokenStore(
     poolReward,
     poolState.liquidity,
@@ -209,7 +191,31 @@ export function getRewardInfo(
     .mul(poolState.liquidity)
     .shrn(192);
 
-  
+  if (poolReward.rewardDurationEnd <= currentTime) {
+    return {
+      rewardPerPeriod: new BN(0),
+      rewardBalance: new BN(0),
+      totalRewardDistributed,
+    };
+  }
+
+  const rewardPerPeriod = getRewardPerPeriod(
+    poolReward,
+    currentTime,
+    periodTime
+  );
+
+  const remainTime = poolReward.rewardDurationEnd.sub(currentTime);
+  const rewardBalance = poolReward.rewardRate.mul(remainTime).shrn(64);
+
+  if (poolState.liquidity.eq(new BN(0))) {
+    return {
+      rewardPerPeriod,
+      rewardBalance,
+      totalRewardDistributed: new BN(0),
+    };
+  }
+
   return {
     rewardPerPeriod: rewardPerPeriod.shrn(64),
     rewardBalance,
@@ -229,8 +235,8 @@ export function getUserRewardPending(
   if (poolState.liquidity.eq(new BN(0))) {
     return {
       userRewardPerPeriod: new BN(0),
-      userPendingReward: new BN(0)
-    }
+      userPendingReward: new BN(0),
+    };
   }
   const poolReward = poolState.rewardInfos[rewardIndex];
   const userRewardInfo = positionState.rewardInfos[rewardIndex];
@@ -251,6 +257,13 @@ export function getUserRewardPending(
   const newReward = totalPositionLiquidity
     .mul(rewardPerTokenStore.sub(userRewardPerTokenCheckPoint))
     .shrn(192);
+
+  if (poolReward.rewardDurationEnd <= currentTime) {
+    return {
+      userPendingReward: userRewardInfo.rewardPendings.add(newReward),
+      userRewardPerPeriod: new BN(0),
+    };
+  }
 
   const rewardPerPeriod = getRewardPerPeriod(
     poolReward,

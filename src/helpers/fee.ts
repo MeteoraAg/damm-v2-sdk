@@ -104,16 +104,16 @@ export function getFeeNumerator(
     variableFeeControl: number;
   }
 ): BN {
-  if (
-    Number(periodFrequency) == 0 ||
-    new BN(currentPoint).lt(activationPoint)
-  ) {
+  if (Number(periodFrequency) == 0) {
     return cliffFeeNumerator;
   }
-  const period = BN.min(
-    new BN(numberOfPeriod),
-    new BN(currentPoint).sub(activationPoint).div(periodFrequency)
-  );
+
+  const period = new BN(currentPoint).lt(activationPoint)
+    ? new BN(numberOfPeriod)
+    : BN.min(
+        new BN(numberOfPeriod),
+        new BN(currentPoint).sub(activationPoint).div(periodFrequency)
+      );
 
   let feeNumerator = getBaseFeeNumerator(
     feeSchedulerMode,

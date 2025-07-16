@@ -8,7 +8,7 @@ export type CpAmm = {
   address: "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG";
   metadata: {
     name: "cpAmm";
-    version: "0.1.1";
+    version: "0.1.2";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -653,7 +653,16 @@ export type CpAmm = {
           name: "program";
         }
       ];
-      args: [];
+      args: [
+        {
+          name: "maxAmountA";
+          type: "u64";
+        },
+        {
+          name: "maxAmountB";
+          type: "u64";
+        }
+      ];
     },
     {
       name: "claimReward";
@@ -754,6 +763,10 @@ export type CpAmm = {
       args: [
         {
           name: "rewardIndex";
+          type: "u8";
+        },
+        {
+          name: "skipReward";
           type: "u8";
         }
       ];
@@ -925,6 +938,58 @@ export type CpAmm = {
             "Program to create NFT mint/token account and transfer for token22 account"
           ];
           address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
+        },
+        {
+          name: "eventAuthority";
+          pda: {
+            seeds: [
+              {
+                kind: "const";
+                value: [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ];
+              }
+            ];
+          };
+        },
+        {
+          name: "program";
+        }
+      ];
+      args: [];
+    },
+    {
+      name: "closeTokenBadge";
+      discriminator: [108, 146, 86, 110, 179, 254, 10, 104];
+      accounts: [
+        {
+          name: "tokenBadge";
+          writable: true;
+        },
+        {
+          name: "admin";
+          writable: true;
+          signer: true;
+        },
+        {
+          name: "rentReceiver";
+          writable: true;
         },
         {
           name: "eventAuthority";
@@ -2239,7 +2304,11 @@ export type CpAmm = {
           name: "rewardMint";
         },
         {
-          name: "admin";
+          name: "signer";
+          signer: true;
+        },
+        {
+          name: "payer";
           writable: true;
           signer: true;
         },
@@ -2914,7 +2983,7 @@ export type CpAmm = {
           writable: true;
         },
         {
-          name: "admin";
+          name: "signer";
           signer: true;
         },
         {
@@ -2970,7 +3039,7 @@ export type CpAmm = {
           writable: true;
         },
         {
-          name: "admin";
+          name: "signer";
           signer: true;
         },
         {
@@ -3444,6 +3513,16 @@ export type CpAmm = {
       code: 6041;
       name: "invalidConfigType";
       msg: "Invalid config type";
+    },
+    {
+      code: 6042;
+      name: "invalidPoolCreator";
+      msg: "Invalid pool creator";
+    },
+    {
+      code: 6043;
+      name: "rewardVaultFrozenSkipRequired";
+      msg: "Reward vault is frozen, must skip reward to proceed";
     }
   ];
   types: [
@@ -4819,10 +4898,15 @@ export type CpAmm = {
             };
           },
           {
+            name: "creator";
+            docs: ["pool creator"];
+            type: "pubkey";
+          },
+          {
             name: "padding1";
             docs: ["Padding for further use"];
             type: {
-              array: ["u64", 10];
+              array: ["u64", 6];
             };
           },
           {

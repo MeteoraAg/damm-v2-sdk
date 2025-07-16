@@ -35,8 +35,10 @@ import {
   GetDepositQuoteParams,
   GetQuoteParams,
   GetWithdrawQuoteParams,
+  InitializeAndFundReward,
   InitializeCustomizeablePoolParams,
   InitializeCustomizeablePoolWithDynamicConfigParams,
+  InitializeRewardParams,
   LiquidityDeltaParams,
   LockPositionParams,
   MergePositionParams,
@@ -68,6 +70,7 @@ import {
   derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
+  deriveRewardVaultAddress,
   deriveTokenBadgeAddress,
   deriveTokenVaultAddress,
 } from "./pda";
@@ -2442,18 +2445,92 @@ export class CpAmm {
     return transaction;
   }
 
+  async initializeReward(params: InitializeRewardParams): TxBuilder {
+    const {
+      rewardIndex,
+      rewardDuration,
+      funder,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      rewardMintProgram,
+    } = params;
+
+    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+
+    return await this._program.methods
+      .initializeReward(rewardIndex, rewardDuration, funder)
+      .accountsPartial({
+        poolAuthority: this.poolAuthority,
+        pool,
+        rewardVault,
+        rewardMint,
+        signer: creator,
+        payer,
+        tokenProgram: rewardMintProgram,
+      })
+      .transaction();
+  }
+
+  /**
+   * Builds a transaction to initialize reward and fund reward
+   * @param {InitializeAndFundReward} params
+   * @returns Transaction builder.
+   */
+  async initializeAndFundReward(params: InitializeAndFundReward): TxBuilder {
+    const {
+      rewardIndex,
+      rewardDuration,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      carryForward,
+      amount,
+      rewardMintProgram,
+    } = params;
+
+    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+
+    const initializeRewardTx = await this.initializeReward({
+      rewardIndex,
+      rewardDuration,
+      funder: payer,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      rewardMintProgram,
+    });
+
+    // fund reward
+    const fundRewardTx = await this.fundReward({
+      rewardIndex,
+      carryForward,
+      pool,
+      funder: payer,
+      amount,
+      rewardMint,
+      rewardVault,
+      rewardMintProgram
+    });
+
+    return new Transaction().add(initializeRewardTx).add(fundRewardTx);
+  }
+
   /**
    * Builds a transaction to update reward duration.
    * @param {UpdateRewardDurationParams} params - Parameters including pool and new duration.
    * @returns Transaction builder.
    */
   async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
-    const { pool, admin, rewardIndex, newDuration } = params;
+    const { pool, signer, rewardIndex, newDuration } = params;
     return await this._program.methods
       .updateRewardDuration(rewardIndex, newDuration)
       .accountsPartial({
         pool,
-        admin: admin,
+        signer,
       })
       .transaction();
   }
@@ -2464,12 +2541,12 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder {
-    const { pool, admin, rewardIndex, newFunder } = params;
+    const { pool, signer, rewardIndex, newFunder } = params;
     return await this._program.methods
       .updateRewardFunder(rewardIndex, newFunder)
       .accountsPartial({
         pool,
-        admin: admin,
+        signer,
       })
       .transaction();
   }
@@ -2480,30 +2557,34 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async fundReward(params: FundRewardParams): TxBuilder {
-    const { rewardIndex, carryForward, pool, funder, amount } = params;
-
-    const poolState = await this.fetchPoolState(pool);
-    const rewardInfo = poolState.rewardInfos[rewardIndex];
-    const { vault, mint } = rewardInfo;
-    const tokenProgram = getTokenProgram(rewardIndex);
+    const {
+      rewardIndex,
+      carryForward,
+      pool,
+      funder,
+      amount,
+      rewardMint,
+      rewardVault,
+      rewardMintProgram,
+    } = params;
 
     const preInstructions: TransactionInstruction[] = [];
 
     const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
       await getOrCreateATAInstruction(
         this._program.provider.connection,
-        mint,
+        rewardMint,
         funder,
         funder,
         true,
-        tokenProgram
+        rewardMintProgram
       );
 
     createFunderTokenAccountIx &&
       preInstructions.push(createFunderTokenAccountIx);
 
     // TODO: check case reward mint is wSOL && carryForward is true => total amount > amount
-    if (mint.equals(NATIVE_MINT) && !amount.isZero()) {
+    if (rewardMint.equals(NATIVE_MINT) && !amount.isZero()) {
       const wrapSOLIx = wrapSOLInstruction(
         funder,
         funderTokenAccount,
@@ -2517,11 +2598,11 @@ export class CpAmm {
       .fundReward(rewardIndex, amount, carryForward)
       .accountsPartial({
         pool,
-        rewardVault: vault,
-        rewardMint: mint,
+        rewardVault,
+        rewardMint,
         funderTokenAccount,
         funder: funder,
-        tokenProgram,
+        tokenProgram: rewardMintProgram,
       })
       .transaction();
   }
@@ -2793,6 +2874,7 @@ export class CpAmm {
       rewardIndex,
       poolState,
       positionState,
+      isSkipReward,
     } = params;
 
     const rewardInfo = poolState.rewardInfos[rewardIndex];
@@ -2815,8 +2897,9 @@ export class CpAmm {
       const closeWrappedSOLIx = await unwrapSOLInstruction(user);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
+    const skipReward = isSkipReward ? 1 : 0;
     return await this._program.methods
-      .claimReward(rewardIndex)
+      .claimReward(rewardIndex, skipReward)
       .accountsPartial({
         pool: positionState.pool,
         positionNftAccount,

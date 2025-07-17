@@ -144,7 +144,6 @@ export function getNextSqrtPriceFromOutput(
     throw new Error("sqrt price must be greater than 0");
   }
 
-  // round to make sure that we don't pass the target price
   if (isB) {
     return getNextSqrtPriceFromAmountBRoundingUp(
       sqrtPrice,

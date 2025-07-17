@@ -460,7 +460,6 @@ export function getIncludedFeeAmount(
  * @returns The swap amount details
  */
 function getInAmountFromAToB(pool: PoolState, outAmount: BN): SwapAmount {
-  // Finding new target price
   const nextSqrtPrice = getNextSqrtPriceFromOutput(
     pool.sqrtPrice,
     pool.liquidity,
@@ -472,7 +471,6 @@ function getInAmountFromAToB(pool: PoolState, outAmount: BN): SwapAmount {
     throw new Error("Price range is violated");
   }
 
-  // Finding output amount
   const outputAmount = getAmountAFromLiquidityDelta(
     pool.liquidity,
     nextSqrtPrice,
@@ -540,7 +538,6 @@ export function getSwapResultFromOutAmount(
   let actualPartnerFee = new BN(0);
   let actualReferralFee = new BN(0);
 
-  // Get the trade fee numerator
   const tradeFeeNumerator = getFeeNumerator(
     currentPoint,
     pool.activationPoint,
@@ -563,10 +560,8 @@ export function getSwapResultFromOutAmount(
     includedFeeOutAmount = outAmount;
   } else {
     includedFeeOutAmount = getIncludedFeeAmount(tradeFeeNumerator, outAmount);
-    // Calculate fees on output
     const totalFee = getTotalFeeOnAmount(outAmount, tradeFeeNumerator);
 
-    // Calculate protocol fee
     actualProtocolFee = mulDiv(
       totalFee,
       new BN(pool.poolFees.protocolFeePercent),
@@ -574,7 +569,6 @@ export function getSwapResultFromOutAmount(
       Rounding.Down
     );
 
-    // Calculate referral fee if applicable
     if (feeMode.hasReferral) {
       actualReferralFee = mulDiv(
         actualProtocolFee,
@@ -584,7 +578,6 @@ export function getSwapResultFromOutAmount(
       );
     }
 
-    // Calculate partner fee
     const protocolFeeAfterReferral = actualProtocolFee.sub(actualReferralFee);
     actualPartnerFee = mulDiv(
       protocolFeeAfterReferral,
@@ -593,7 +586,6 @@ export function getSwapResultFromOutAmount(
       Rounding.Down
     );
 
-    // LP fee is the remaining amount
     actualLpFee = totalFee.sub(actualProtocolFee).sub(actualPartnerFee);
   }
 
@@ -608,13 +600,11 @@ export function getSwapResultFromOutAmount(
       tradeFeeNumerator,
       excludedFeeInAmount
     );
-    // Calculate fees on input
     const totalFee = getTotalFeeOnAmount(
       includedFeeInAmount,
       tradeFeeNumerator
     );
 
-    // Calculate protocol fee
     actualProtocolFee = mulDiv(
       totalFee,
       new BN(pool.poolFees.protocolFeePercent),
@@ -622,7 +612,6 @@ export function getSwapResultFromOutAmount(
       Rounding.Down
     );
 
-    // Calculate referral fee if applicable
     if (feeMode.hasReferral) {
       actualReferralFee = mulDiv(
         actualProtocolFee,
@@ -632,7 +621,6 @@ export function getSwapResultFromOutAmount(
       );
     }
 
-    // Calculate partner fee
     const protocolFeeAfterReferral = actualProtocolFee.sub(actualReferralFee);
     actualPartnerFee = mulDiv(
       protocolFeeAfterReferral,
@@ -641,7 +629,6 @@ export function getSwapResultFromOutAmount(
       Rounding.Down
     );
 
-    // LP fee is the remaining amount
     actualLpFee = totalFee.sub(actualProtocolFee).sub(actualPartnerFee);
   } else {
     includedFeeInAmount = excludedFeeInAmount;

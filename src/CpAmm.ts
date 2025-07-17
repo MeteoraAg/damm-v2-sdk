@@ -1067,24 +1067,13 @@ export class CpAmm {
     } = params;
     const {
       sqrtPrice: sqrtPriceQ64,
-      liquidity: liquidityQ64,
       activationType,
-      activationPoint,
       collectFeeMode,
       poolFees,
-      tokenAMint,
-      tokenBMint,
     } = poolState;
-    const {
-      feeSchedulerMode,
-      cliffFeeNumerator,
-      numberOfPeriod,
-      reductionFactor,
-      periodFrequency,
-    } = poolFees.baseFee;
+
     const dynamicFee = poolFees.dynamicFee;
 
-    // Determine trade direction
     const bToA = poolState.tokenAMint.equals(outputTokenMint);
     const tradeDirection = bToA ? TradeDirection.BtoA : TradeDirection.AtoB;
 
@@ -1096,18 +1085,6 @@ export class CpAmm {
       dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
     }
 
-    const tradeFeeNumerator = getFeeNumerator(
-      currentPoint,
-      activationPoint,
-      numberOfPeriod,
-      periodFrequency,
-      feeSchedulerMode,
-      cliffFeeNumerator,
-      reductionFactor,
-      dynamicFeeParams
-    );
-
-    // Adjust output amount for transfer fees if needed
     let actualAmountOut = outAmount;
     if (outputTokenInfo) {
       actualAmountOut = calculateTransferFeeIncludedAmount(
@@ -1117,10 +1094,8 @@ export class CpAmm {
       ).amount;
     }
 
-    // Get fee mode
     const feeMode = getFeeMode(collectFeeMode, bToA);
 
-    // Calculate swap result from output amount
     const { swapResult, inputAmount } = getSwapResultFromOutAmount(
       poolState,
       actualAmountOut,
@@ -1129,7 +1104,6 @@ export class CpAmm {
       currentPoint
     );
 
-    // Adjust input amount for transfer fees if needed
     let actualInputAmount = inputAmount;
     if (inputTokenInfo) {
       actualInputAmount = calculateTransferFeeIncludedAmount(
@@ -1139,12 +1113,10 @@ export class CpAmm {
       ).amount;
     }
 
-    // Calculate max input amount with slippage
     const maxInputAmount = new BN(
       Math.ceil(actualInputAmount.toNumber() * (1 + slippage / 100))
     );
 
-    // Calculate price impact
     const priceImpact = getPriceImpact(swapResult.nextSqrtPrice, sqrtPriceQ64);
 
     return {

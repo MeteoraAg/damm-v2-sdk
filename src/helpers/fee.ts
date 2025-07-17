@@ -6,6 +6,10 @@ import {
   FeeMode,
   FeeSchedulerMode,
   Rounding,
+  PoolState,
+  SwapResult,
+  TradeDirection,
+  SwapAmount,
 } from "../types";
 import {
   BASIS_POINT_MAX,
@@ -25,6 +29,7 @@ import {
   getAmountAFromLiquidityDelta,
   getAmountBFromLiquidityDelta,
   getNextSqrtPrice,
+  getNextSqrtPriceFromOutput,
 } from "./curve";
 import Decimal from "decimal.js";
 
@@ -144,7 +149,10 @@ export function getFeeNumerator(
  * @param btoA - Boolean indicating if the swap is from token B to token A
  * @returns { feeOnInput, feesOnTokenA }
  */
-function getFeeMode(collectFeeMode: CollectFeeMode, btoA: boolean): FeeMode {
+export function getFeeMode(
+  collectFeeMode: CollectFeeMode,
+  btoA: boolean
+): FeeMode {
   const feeOnInput = btoA && collectFeeMode === CollectFeeMode.OnlyB;
   const feesOnTokenA = btoA && collectFeeMode === CollectFeeMode.BothToken;
 
@@ -386,5 +394,268 @@ export function getDynamicFeeParams(
     reductionFactor: DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
     maxVolatilityAccumulator: maxVolatilityAccumulator.toNumber(),
     variableFeeControl: variableFeeControl.toNumber(),
+  };
+}
+
+/**
+ * Calculates the excluded fee amount and trading fee from an included fee amount
+ * @param tradeFeeNumerator - The fee numerator
+ * @param includedFeeAmount - The amount that includes the fee
+ * @returns Tuple of [excluded_fee_amount, trading_fee]
+ */
+export function getExcludedFeeAmount(
+  tradeFeeNumerator: BN,
+  includedFeeAmount: BN
+): { excludedFeeAmount: BN; tradingFee: BN } {
+  const tradingFee = mulDiv(
+    includedFeeAmount,
+    tradeFeeNumerator,
+    new BN(FEE_DENOMINATOR),
+    Rounding.Up
+  );
+  const excludedFeeAmount = includedFeeAmount.sub(tradingFee);
+
+  return { excludedFeeAmount, tradingFee };
+}
+
+/**
+ * Calculates the included fee amount from an excluded fee amount
+ * @param tradeFeeNumerator - The fee numerator
+ * @param excludedFeeAmount - The amount that excludes the fee
+ * @returns The amount including the fee
+ */
+export function getIncludedFeeAmount(
+  tradeFeeNumerator: BN,
+  excludedFeeAmount: BN
+): BN {
+  const denominator = new BN(FEE_DENOMINATOR).sub(tradeFeeNumerator);
+  if (denominator.isZero() || denominator.isNeg()) {
+    throw new Error("Invalid fee numerator");
+  }
+
+  const includedFeeAmount = mulDiv(
+    excludedFeeAmount,
+    new BN(FEE_DENOMINATOR),
+    denominator,
+    Rounding.Up
+  );
+
+  // Sanity check
+  const { excludedFeeAmount: inverseAmount } = getExcludedFeeAmount(
+    tradeFeeNumerator,
+    includedFeeAmount
+  );
+
+  if (inverseAmount.lt(excludedFeeAmount)) {
+    throw new Error("Inverse amount is less than excluded_fee_amount");
+  }
+
+  return includedFeeAmount;
+}
+
+/**
+ * Calculates the input amount required from A to B for a given output amount
+ * @param pool - The pool state
+ * @param outAmount - The desired output amount (quote amount)
+ * @returns The swap amount details
+ */
+function getInAmountFromAToB(pool: PoolState, outAmount: BN): SwapAmount {
+  // Finding new target price
+  const nextSqrtPrice = getNextSqrtPriceFromOutput(
+    pool.sqrtPrice,
+    pool.liquidity,
+    outAmount,
+    true
+  );
+
+  if (nextSqrtPrice.lt(pool.sqrtMinPrice)) {
+    throw new Error("Price range is violated");
+  }
+
+  // Finding output amount
+  const outputAmount = getAmountAFromLiquidityDelta(
+    pool.liquidity,
+    nextSqrtPrice,
+    pool.sqrtPrice,
+    Rounding.Up
+  );
+
+  return {
+    outputAmount,
+    nextSqrtPrice,
+  };
+}
+
+/**
+ * Calculates the input amount required from B to A for a given output amount
+ * @param pool - The pool state
+ * @param outAmount - The desired output amount (base amount)
+ * @returns The swap amount details
+ */
+function getInAmountFromBToA(pool: PoolState, outAmount: BN): SwapAmount {
+  // Finding new target price
+  const nextSqrtPrice = getNextSqrtPriceFromOutput(
+    pool.sqrtPrice,
+    pool.liquidity,
+    outAmount,
+    false
+  );
+
+  if (nextSqrtPrice.gt(pool.sqrtMaxPrice)) {
+    throw new Error("Price range is violated");
+  }
+
+  // Finding output amount
+  const outputAmount = getAmountBFromLiquidityDelta(
+    pool.liquidity,
+    pool.sqrtPrice,
+    nextSqrtPrice,
+    Rounding.Up
+  );
+
+  return {
+    outputAmount,
+    nextSqrtPrice,
+  };
+}
+
+/**
+ * Calculates the swap result from a given output amount
+ * @param pool - The pool state
+ * @param outAmount - The desired output amount
+ * @param feeMode - The fee mode configuration
+ * @param tradeDirection - The direction of the trade
+ * @param currentPoint - The current time/slot point
+ * @returns Tuple of [SwapResult, input_amount]
+ */
+export function getSwapResultFromOutAmount(
+  pool: PoolState,
+  outAmount: BN,
+  feeMode: FeeMode & { hasReferral?: boolean },
+  tradeDirection: TradeDirection,
+  currentPoint: number
+): { swapResult: SwapResult; inputAmount: BN } {
+  let actualProtocolFee = new BN(0);
+  let actualLpFee = new BN(0);
+  let actualPartnerFee = new BN(0);
+  let actualReferralFee = new BN(0);
+
+  // Get the trade fee numerator
+  const tradeFeeNumerator = getFeeNumerator(
+    currentPoint,
+    pool.activationPoint,
+    pool.poolFees.baseFee.numberOfPeriod,
+    pool.poolFees.baseFee.periodFrequency,
+    pool.poolFees.baseFee.feeSchedulerMode,
+    pool.poolFees.baseFee.cliffFeeNumerator,
+    pool.poolFees.baseFee.reductionFactor,
+    pool.poolFees.dynamicFee.initialized === 1
+      ? {
+          volatilityAccumulator: pool.poolFees.dynamicFee.volatilityAccumulator,
+          binStep: pool.poolFees.dynamicFee.binStep,
+          variableFeeControl: pool.poolFees.dynamicFee.variableFeeControl,
+        }
+      : undefined
+  );
+
+  let includedFeeOutAmount: BN;
+  if (feeMode.feeOnInput) {
+    includedFeeOutAmount = outAmount;
+  } else {
+    includedFeeOutAmount = getIncludedFeeAmount(tradeFeeNumerator, outAmount);
+    // Calculate fees on output
+    const totalFee = getTotalFeeOnAmount(outAmount, tradeFeeNumerator);
+
+    // Calculate protocol fee
+    actualProtocolFee = mulDiv(
+      totalFee,
+      new BN(pool.poolFees.protocolFeePercent),
+      new BN(100),
+      Rounding.Down
+    );
+
+    // Calculate referral fee if applicable
+    if (feeMode.hasReferral) {
+      actualReferralFee = mulDiv(
+        actualProtocolFee,
+        new BN(pool.poolFees.referralFeePercent),
+        new BN(100),
+        Rounding.Down
+      );
+    }
+
+    // Calculate partner fee
+    const protocolFeeAfterReferral = actualProtocolFee.sub(actualReferralFee);
+    actualPartnerFee = mulDiv(
+      protocolFeeAfterReferral,
+      new BN(pool.poolFees.partnerFeePercent),
+      new BN(100),
+      Rounding.Down
+    );
+
+    // LP fee is the remaining amount
+    actualLpFee = totalFee.sub(actualProtocolFee).sub(actualPartnerFee);
+  }
+
+  const { outputAmount: excludedFeeInAmount, nextSqrtPrice } =
+    tradeDirection === TradeDirection.AtoB
+      ? getInAmountFromAToB(pool, includedFeeOutAmount)
+      : getInAmountFromBToA(pool, includedFeeOutAmount);
+
+  let includedFeeInAmount: BN;
+  if (feeMode.feeOnInput) {
+    includedFeeInAmount = getIncludedFeeAmount(
+      tradeFeeNumerator,
+      excludedFeeInAmount
+    );
+    // Calculate fees on input
+    const totalFee = getTotalFeeOnAmount(
+      includedFeeInAmount,
+      tradeFeeNumerator
+    );
+
+    // Calculate protocol fee
+    actualProtocolFee = mulDiv(
+      totalFee,
+      new BN(pool.poolFees.protocolFeePercent),
+      new BN(100),
+      Rounding.Down
+    );
+
+    // Calculate referral fee if applicable
+    if (feeMode.hasReferral) {
+      actualReferralFee = mulDiv(
+        actualProtocolFee,
+        new BN(pool.poolFees.referralFeePercent),
+        new BN(100),
+        Rounding.Down
+      );
+    }
+
+    // Calculate partner fee
+    const protocolFeeAfterReferral = actualProtocolFee.sub(actualReferralFee);
+    actualPartnerFee = mulDiv(
+      protocolFeeAfterReferral,
+      new BN(pool.poolFees.partnerFeePercent),
+      new BN(100),
+      Rounding.Down
+    );
+
+    // LP fee is the remaining amount
+    actualLpFee = totalFee.sub(actualProtocolFee).sub(actualPartnerFee);
+  } else {
+    includedFeeInAmount = excludedFeeInAmount;
+  }
+
+  return {
+    swapResult: {
+      outputAmount: outAmount,
+      nextSqrtPrice,
+      lpFee: actualLpFee,
+      protocolFee: actualProtocolFee,
+      referralFee: actualReferralFee,
+      partnerFee: actualPartnerFee,
+    },
+    inputAmount: includedFeeInAmount,
   };
 }

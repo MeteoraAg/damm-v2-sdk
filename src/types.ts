@@ -373,6 +373,44 @@ export type GetQuoteParams = {
   };
 };
 
+export type SwapAmount = {
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+};
+
+export type GetQuoteExactOutParams = {
+  outAmount: BN;
+  outputTokenMint: PublicKey;
+  slippage: number;
+  poolState: PoolState;
+  currentTime: number;
+  currentSlot: number;
+  inputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+  outputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+};
+
+export type SwapResult = {
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  lpFee: BN;
+  protocolFee: BN;
+  referralFee: BN;
+  partnerFee: BN;
+};
+
+export type QuoteExactOutResult = {
+  swapResult: SwapResult;
+  inputAmount: BN;
+  maxInputAmount: BN;
+  priceImpact: number;
+};
+
 export type SwapQuotes = {
   totalFee: BN;
   minOutAmount: BN;

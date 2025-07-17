@@ -34,6 +34,7 @@ import {
   FundRewardParams,
   GetDepositQuoteParams,
   GetQuoteParams,
+  GetQuoteExactOutParams,
   GetWithdrawQuoteParams,
   InitializeCustomizeablePoolParams,
   InitializeCustomizeablePoolWithDynamicConfigParams,
@@ -48,6 +49,7 @@ import {
   PreparePoolCreationParams,
   PreparePoolCreationSingleSide,
   PrepareTokenAccountParams,
+  QuoteExactOutResult,
   RefreshVestingParams,
   RemoveAllLiquidityAndClosePositionParams,
   RemoveAllLiquidityParams,
@@ -55,6 +57,7 @@ import {
   Rounding,
   SetupFeeClaimAccountsParams,
   SwapParams,
+  TradeDirection,
   TxBuilder,
   UpdateRewardDurationParams,
   UpdateRewardFunderParams,
@@ -93,6 +96,8 @@ import {
   getAvailableVestingLiquidity,
   isVestingComplete,
   getAllPositionNftAccountByOwner,
+  getFeeMode,
+  getSwapResultFromOutAmount,
 } from "./helpers";
 import { min, max } from "bn.js";
 
@@ -1041,6 +1046,112 @@ export class CpAmm {
       minSwapOutAmount,
       totalFee,
       priceImpact: getPriceImpact(nextSqrtPrice, sqrtPriceQ64),
+    };
+  }
+
+  /**
+   * Calculates swap quote based on desired output amount and pool state.
+   * @param params - Swap parameters including output amount, pool state, slippage, etc.
+   * @returns Swap quote including required input amount, fees, and price impact.
+   */
+  getQuoteExactOut(params: GetQuoteExactOutParams): QuoteExactOutResult {
+    const {
+      outAmount,
+      outputTokenMint,
+      slippage,
+      poolState,
+      currentTime,
+      currentSlot,
+      inputTokenInfo,
+      outputTokenInfo,
+    } = params;
+    const {
+      sqrtPrice: sqrtPriceQ64,
+      liquidity: liquidityQ64,
+      activationType,
+      activationPoint,
+      collectFeeMode,
+      poolFees,
+      tokenAMint,
+      tokenBMint,
+    } = poolState;
+    const {
+      feeSchedulerMode,
+      cliffFeeNumerator,
+      numberOfPeriod,
+      reductionFactor,
+      periodFrequency,
+    } = poolFees.baseFee;
+    const dynamicFee = poolFees.dynamicFee;
+
+    // Determine trade direction
+    const bToA = poolState.tokenAMint.equals(outputTokenMint);
+    const tradeDirection = bToA ? TradeDirection.BtoA : TradeDirection.AtoB;
+
+    const currentPoint = activationType ? currentTime : currentSlot;
+
+    let dynamicFeeParams: DynamicFeeParams;
+    if (dynamicFee.initialized) {
+      const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
+      dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
+    }
+
+    const tradeFeeNumerator = getFeeNumerator(
+      currentPoint,
+      activationPoint,
+      numberOfPeriod,
+      periodFrequency,
+      feeSchedulerMode,
+      cliffFeeNumerator,
+      reductionFactor,
+      dynamicFeeParams
+    );
+
+    // Adjust output amount for transfer fees if needed
+    let actualAmountOut = outAmount;
+    if (outputTokenInfo) {
+      actualAmountOut = calculateTransferFeeIncludedAmount(
+        outAmount,
+        outputTokenInfo.mint,
+        outputTokenInfo.currentEpoch
+      ).amount;
+    }
+
+    // Get fee mode
+    const feeMode = getFeeMode(collectFeeMode, bToA);
+
+    // Calculate swap result from output amount
+    const { swapResult, inputAmount } = getSwapResultFromOutAmount(
+      poolState,
+      actualAmountOut,
+      feeMode,
+      tradeDirection,
+      currentPoint
+    );
+
+    // Adjust input amount for transfer fees if needed
+    let actualInputAmount = inputAmount;
+    if (inputTokenInfo) {
+      actualInputAmount = calculateTransferFeeIncludedAmount(
+        inputAmount,
+        inputTokenInfo.mint,
+        inputTokenInfo.currentEpoch
+      ).amount;
+    }
+
+    // Calculate max input amount with slippage
+    const maxInputAmount = new BN(
+      Math.ceil(actualInputAmount.toNumber() * (1 + slippage / 100))
+    );
+
+    // Calculate price impact
+    const priceImpact = getPriceImpact(swapResult.nextSqrtPrice, sqrtPriceQ64);
+
+    return {
+      swapResult,
+      inputAmount: actualInputAmount,
+      maxInputAmount,
+      priceImpact,
     };
   }
 

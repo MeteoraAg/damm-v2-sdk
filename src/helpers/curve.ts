@@ -91,3 +91,70 @@ export function getAmountBFromLiquidityDelta(
   }
   return result.shrn(128);
 }
+
+// * `√P' = √P - Δy / L`
+export function getNextSqrtPriceFromAmountBRoundingUp(
+  sqrtPrice: BN,
+  liquidity: BN,
+  amount: BN
+): BN {
+  const quotient = amount
+    .shln(128)
+    .add(liquidity)
+    .sub(new BN(1))
+    .div(liquidity);
+
+  const result = sqrtPrice.sub(quotient);
+  if (result.isNeg()) {
+    throw new Error("sqrt price cannot be negative");
+  }
+  return result;
+}
+
+//  √P' = √P * L / (L - Δx * √P)
+export function getNextSqrtPriceFromAmountARoundingDown(
+  sqrtPrice: BN,
+  liquidity: BN,
+  amount: BN
+): BN {
+  if (amount.isZero()) {
+    return sqrtPrice;
+  }
+
+  const product = amount.mul(sqrtPrice);
+  const denominator = liquidity.sub(product);
+
+  if (denominator.isNeg() || denominator.isZero()) {
+    throw new Error("Invalid denominator in sqrt price calculation");
+  }
+
+  const numerator = liquidity.mul(sqrtPrice);
+  const result = numerator.div(denominator);
+
+  return result;
+}
+
+export function getNextSqrtPriceFromOutput(
+  sqrtPrice: BN,
+  liquidity: BN,
+  outAmount: BN,
+  isB: boolean
+): BN {
+  if (sqrtPrice.isZero()) {
+    throw new Error("sqrt price must be greater than 0");
+  }
+
+  if (isB) {
+    return getNextSqrtPriceFromAmountBRoundingUp(
+      sqrtPrice,
+      liquidity,
+      outAmount
+    );
+  } else {
+    return getNextSqrtPriceFromAmountARoundingDown(
+      sqrtPrice,
+      liquidity,
+      outAmount
+    );
+  }
+}

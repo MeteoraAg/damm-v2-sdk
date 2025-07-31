@@ -26,6 +26,7 @@
   - [claimPartnerFee](#claimpartnerfee)
   - [claimReward](#claimreward)
   - [closePosition](#closeposition)
+  - [splitPosition](#splitposition)
 - [State Functions](#state-functions)
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
@@ -342,9 +343,7 @@ const baseFeeParams = getBaseFeeParams(25, 25, FeeSchedulerMode.Linear, 0, 0); /
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee 0.25%
 const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
-    protocolFeePercent: 20,
-    partnerFeePercent: 0,
-    referralFeePercent: 20,
+    padding: [],
     dynamicFee: dynamicFeeParams,
   };
 
@@ -1538,6 +1537,7 @@ interface ClaimRewardParams {
   position: PublicKey; // The position address
   positionNftAccount: PublicKey; // The position NFT account
   rewardIndex: number; // Index of the reward to claim
+  skipReward: number; // Skip reward transfer (0: transfer reward, 1: skip reward)
   poolState: PoolState; // The current pool state
   positionState: PositionState; // The current position state
 }
@@ -1559,6 +1559,7 @@ const claimRewardTx = await cpAmm.claimReward({
   position: positionAddress,
   positionNftAccount: positionNftAccount,
   rewardIndex: 0,
+  skipReward: 0,
   poolState: poolState,
   positionState: positionState,
 });
@@ -1631,6 +1632,97 @@ const closePositionTx = await cpAmm.closePosition({
 - Closing a position returns the rent to the owner
 - This function only closes the position account, not the NFT
 - For a full cleanup, use `removeAllLiquidityAndClosePosition` instead
+
+---
+
+### splitPosition
+
+Splits a position into two positions.
+
+#### Function
+
+```typescript
+async splitPosition(params: SplitPositionParams): TxBuilder
+```
+
+#### Parameters
+
+```typescript
+interface SplitPositionParams {
+  firstPositionOwner: PublicKey; // The owner of the first position
+  secondPositionOwner: PublicKey; // The owner of the second position
+  pool: PublicKey; // The pool address
+  firstPosition: PublicKey; // The first position address
+  firstPositionNftAccount: PublicKey; // The first position NFT account
+  secondPosition: PublicKey; // The second position address
+  secondPositionNftAccount: PublicKey; // The second position NFT account
+  unlockedLiquidityPercentage: number; // The percentage of unlocked liquidity to split
+  permanentLockedLiquidityPercentage: number; // The percentage of permanent locked liquidity to split
+  feeAPercentage: number; // The percentage of fee A to split
+  feeBPercentage: number; // The percentage of fee B to split
+  reward0Percentage: number; // The percentage of reward 0 to split
+  reward1Percentage: number; // The percentage of reward 1 to split
+}
+```
+
+#### Returns
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+#### Example
+
+```typescript
+const firstPosition = await client.getUserPositionByPool(
+  poolAddress,
+  firstUser.publicKey
+);
+
+const secondPositionKP = Keypair.generate();
+
+const createSecondPositionTx = await client.createPosition({
+  owner: secondUser.publicKey,
+  payer: secondUser.publicKey,
+  pool: poolAddress,
+  positionNft: secondPositionKP.publicKey,
+});
+
+const createSignature = await sendAndConfirmTransaction(
+  connection,
+  createSecondPositionTx,
+  [secondUser, secondPositionKP],
+  {
+    commitment: "confirmed",
+    skipPreflight: true,
+  }
+);
+console.log("Second position created:", createSignature);
+
+const secondPosition = await client.getUserPositionByPool(
+  poolAddress,
+  secondUser.publicKey
+);
+
+const splitPositionTx = await client.splitPosition({
+  firstPositionOwner: firstUser.publicKey,
+  secondPositionOwner: secondUser.publicKey,
+  pool: poolAddress,
+  firstPosition: firstPosition[0].position,
+  firstPositionNftAccount: firstPosition[0].positionNftAccount,
+  secondPosition: secondPosition[0].position,
+  secondPositionNftAccount: secondPosition[0].positionNftAccount,
+  unlockedLiquidityPercentage: 50,
+  permanentLockedLiquidityPercentage: 0,
+  feeAPercentage: 50,
+  feeBPercentage: 50,
+  reward0Percentage: 50,
+  reward1Percentage: 50,
+});
+```
+
+#### Notes
+
+- The first position must already exist for that pool
+- The second position can be a new empty position for that same pool
 
 ---
 

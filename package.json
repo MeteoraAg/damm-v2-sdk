@@ -19,6 +19,7 @@
 	},
 	"devDependencies": {
 		"@types/invariant": "^2.2.35",
+		"tsx": "^4.20.3",
 		"typescript": "^5.8.2"
 	},
 	"dependencies": {

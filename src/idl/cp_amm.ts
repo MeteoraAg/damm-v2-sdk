@@ -8,7 +8,7 @@ export type CpAmm = {
   address: "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG";
   metadata: {
     name: "cpAmm";
-    version: "0.1.1";
+    version: "0.1.3";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -125,29 +125,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -248,29 +226,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -370,29 +326,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -653,7 +587,16 @@ export type CpAmm = {
           name: "program";
         }
       ];
-      args: [];
+      args: [
+        {
+          name: "maxAmountA";
+          type: "u64";
+        },
+        {
+          name: "maxAmountB";
+          type: "u64";
+        }
+      ];
     },
     {
       name: "claimReward";
@@ -661,29 +604,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -754,6 +675,10 @@ export type CpAmm = {
       args: [
         {
           name: "rewardIndex";
+          type: "u8";
+        },
+        {
+          name: "skipReward";
           type: "u8";
         }
       ];
@@ -886,29 +811,7 @@ export type CpAmm = {
         },
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "rentReceiver";
@@ -925,6 +828,58 @@ export type CpAmm = {
             "Program to create NFT mint/token account and transfer for token22 account"
           ];
           address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
+        },
+        {
+          name: "eventAuthority";
+          pda: {
+            seeds: [
+              {
+                kind: "const";
+                value: [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ];
+              }
+            ];
+          };
+        },
+        {
+          name: "program";
+        }
+      ];
+      args: [];
+    },
+    {
+      name: "closeTokenBadge";
+      discriminator: [108, 146, 86, 110, 179, 254, 10, 104];
+      accounts: [
+        {
+          name: "tokenBadge";
+          writable: true;
+        },
+        {
+          name: "admin";
+          writable: true;
+          signer: true;
+        },
+        {
+          name: "rentReceiver";
+          writable: true;
         },
         {
           name: "eventAuthority";
@@ -1256,29 +1211,7 @@ export type CpAmm = {
         },
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "payer";
@@ -1532,29 +1465,7 @@ export type CpAmm = {
         },
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -1764,29 +1675,7 @@ export type CpAmm = {
         },
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -2000,29 +1889,7 @@ export type CpAmm = {
         },
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -2174,29 +2041,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -2239,7 +2084,11 @@ export type CpAmm = {
           name: "rewardMint";
         },
         {
-          name: "admin";
+          name: "signer";
+          signer: true;
+        },
+        {
+          name: "payer";
           writable: true;
           signer: true;
         },
@@ -2467,29 +2316,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -2599,29 +2426,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -2778,20 +2583,56 @@ export type CpAmm = {
       ];
     },
     {
-      name: "swap";
-      discriminator: [248, 198, 158, 145, 225, 117, 135, 200];
+      name: "splitPosition";
+      discriminator: [172, 241, 221, 138, 161, 29, 253, 42];
       accounts: [
         {
-          name: "poolAuthority";
+          name: "pool";
+          writable: true;
+          relations: ["firstPosition", "secondPosition"];
+        },
+        {
+          name: "firstPosition";
+          docs: ["The first position"];
+          writable: true;
+        },
+        {
+          name: "firstPositionNftAccount";
+          docs: ["The token account for position nft"];
+        },
+        {
+          name: "secondPosition";
+          docs: ["The second position"];
+          writable: true;
+        },
+        {
+          name: "secondPositionNftAccount";
+          docs: ["The token account for position nft"];
+        },
+        {
+          name: "firstOwner";
+          docs: ["Owner of first position"];
+          signer: true;
+        },
+        {
+          name: "secondOwner";
+          docs: ["Owner of second position"];
+          signer: true;
+        },
+        {
+          name: "eventAuthority";
           pda: {
             seeds: [
               {
                 kind: "const";
                 value: [
-                  112,
-                  111,
-                  111,
-                  108,
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
                   95,
                   97,
                   117,
@@ -2806,6 +2647,29 @@ export type CpAmm = {
               }
             ];
           };
+        },
+        {
+          name: "program";
+        }
+      ];
+      args: [
+        {
+          name: "params";
+          type: {
+            defined: {
+              name: "splitPositionParameters";
+            };
+          };
+        }
+      ];
+    },
+    {
+      name: "swap";
+      discriminator: [248, 198, 158, 145, 225, 117, 135, 200];
+      accounts: [
+        {
+          name: "poolAuthority";
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -2914,7 +2778,7 @@ export type CpAmm = {
           writable: true;
         },
         {
-          name: "admin";
+          name: "signer";
           signer: true;
         },
         {
@@ -2970,7 +2834,7 @@ export type CpAmm = {
           writable: true;
         },
         {
-          name: "admin";
+          name: "signer";
           signer: true;
         },
         {
@@ -3023,29 +2887,7 @@ export type CpAmm = {
       accounts: [
         {
           name: "poolAuthority";
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  112,
-                  111,
-                  111,
-                  108,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ];
-              }
-            ];
-          };
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
         },
         {
           name: "pool";
@@ -3216,6 +3058,10 @@ export type CpAmm = {
     {
       name: "evtSetPoolStatus";
       discriminator: [100, 213, 74, 3, 95, 91, 228, 146];
+    },
+    {
+      name: "evtSplitPosition";
+      discriminator: [182, 138, 42, 254, 27, 94, 82, 221];
     },
     {
       name: "evtSwap";
@@ -3444,6 +3290,31 @@ export type CpAmm = {
       code: 6041;
       name: "invalidConfigType";
       msg: "Invalid config type";
+    },
+    {
+      code: 6042;
+      name: "invalidPoolCreator";
+      msg: "Invalid pool creator";
+    },
+    {
+      code: 6043;
+      name: "rewardVaultFrozenSkipRequired";
+      msg: "Reward vault is frozen, must skip reward to proceed";
+    },
+    {
+      code: 6044;
+      name: "invalidSplitPositionParameters";
+      msg: "Invalid parameters for split position";
+    },
+    {
+      code: 6045;
+      name: "unsupportPositionHasVestingLock";
+      msg: "Unsupported split position has vesting lock";
+    },
+    {
+      code: 6046;
+      name: "samePosition";
+      msg: "Same position";
     }
   ];
   types: [
@@ -4202,6 +4073,18 @@ export type CpAmm = {
           {
             name: "transferFeeExcludedAmountIn";
             type: "u64";
+          },
+          {
+            name: "rewardDurationEnd";
+            type: "u64";
+          },
+          {
+            name: "preRewardRate";
+            type: "u128";
+          },
+          {
+            name: "postRewardRate";
+            type: "u128";
           }
         ];
       };
@@ -4317,6 +4200,10 @@ export type CpAmm = {
           },
           {
             name: "funder";
+            type: "pubkey";
+          },
+          {
+            name: "creator";
             type: "pubkey";
           },
           {
@@ -4446,6 +4333,70 @@ export type CpAmm = {
           {
             name: "status";
             type: "u8";
+          }
+        ];
+      };
+    },
+    {
+      name: "evtSplitPosition";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "pool";
+            type: "pubkey";
+          },
+          {
+            name: "firstOwner";
+            type: "pubkey";
+          },
+          {
+            name: "secondOwner";
+            type: "pubkey";
+          },
+          {
+            name: "firstPosition";
+            type: "pubkey";
+          },
+          {
+            name: "secondPosition";
+            type: "pubkey";
+          },
+          {
+            name: "currentSqrtPrice";
+            type: "u128";
+          },
+          {
+            name: "amountSplits";
+            type: {
+              defined: {
+                name: "splitAmountInfo";
+              };
+            };
+          },
+          {
+            name: "firstPositionInfo";
+            type: {
+              defined: {
+                name: "splitPositionInfo";
+              };
+            };
+          },
+          {
+            name: "secondPositionInfo";
+            type: {
+              defined: {
+                name: "splitPositionInfo";
+              };
+            };
+          },
+          {
+            name: "splitPositionParameters";
+            type: {
+              defined: {
+                name: "splitPositionParameters";
+              };
+            };
           }
         ];
       };
@@ -4819,10 +4770,15 @@ export type CpAmm = {
             };
           },
           {
+            name: "creator";
+            docs: ["pool creator"];
+            type: "pubkey";
+          },
+          {
             name: "padding1";
             docs: ["Padding for further use"];
             type: {
-              array: ["u64", 10];
+              array: ["u64", 6];
             };
           },
           {
@@ -4858,19 +4814,11 @@ export type CpAmm = {
             };
           },
           {
-            name: "protocolFeePercent";
-            docs: ["Protocol trade fee percent"];
-            type: "u8";
-          },
-          {
-            name: "partnerFeePercent";
-            docs: ["partner fee percent"];
-            type: "u8";
-          },
-          {
-            name: "referralFeePercent";
-            docs: ["referral fee percent"];
-            type: "u8";
+            name: "padding";
+            docs: ["padding"];
+            type: {
+              array: ["u8", 3];
+            };
           },
           {
             name: "dynamicFee";
@@ -5273,6 +5221,123 @@ export type CpAmm = {
               "These rewards will be carried over to the next reward time window."
             ];
             type: "u64";
+          }
+        ];
+      };
+    },
+    {
+      name: "splitAmountInfo";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "permanentLockedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "unlockedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "feeA";
+            type: "u64";
+          },
+          {
+            name: "feeB";
+            type: "u64";
+          },
+          {
+            name: "reward0";
+            type: "u64";
+          },
+          {
+            name: "reward1";
+            type: "u64";
+          }
+        ];
+      };
+    },
+    {
+      name: "splitPositionInfo";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "liquidity";
+            type: "u128";
+          },
+          {
+            name: "feeA";
+            type: "u64";
+          },
+          {
+            name: "feeB";
+            type: "u64";
+          },
+          {
+            name: "reward0";
+            type: "u64";
+          },
+          {
+            name: "reward1";
+            type: "u64";
+          }
+        ];
+      };
+    },
+    {
+      name: "splitPositionParameters";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "unlockedLiquidityPercentage";
+            docs: [
+              "Percentage of unlocked liquidity to split to the second position"
+            ];
+            type: "u8";
+          },
+          {
+            name: "permanentLockedLiquidityPercentage";
+            docs: [
+              "Percentage of permanent locked liquidity to split to the second position"
+            ];
+            type: "u8";
+          },
+          {
+            name: "feeAPercentage";
+            docs: [
+              "Percentage of fee A pending to split to the second position"
+            ];
+            type: "u8";
+          },
+          {
+            name: "feeBPercentage";
+            docs: [
+              "Percentage of fee B pending to split to the second position"
+            ];
+            type: "u8";
+          },
+          {
+            name: "reward0Percentage";
+            docs: [
+              "Percentage of reward 0 pending to split to the second position"
+            ];
+            type: "u8";
+          },
+          {
+            name: "reward1Percentage";
+            docs: [
+              "Percentage of reward 1 pending to split to the second position"
+            ];
+            type: "u8";
+          },
+          {
+            name: "padding";
+            docs: ["padding for future"];
+            type: {
+              array: ["u8", 16];
+            };
           }
         ];
       };

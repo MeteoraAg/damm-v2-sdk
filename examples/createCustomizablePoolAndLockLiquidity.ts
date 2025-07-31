@@ -98,9 +98,7 @@ import {
 
   const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
-    protocolFeePercent: 20,
-    partnerFeePercent: 0,
-    referralFeePercent: 20,
+    padding: [],
     dynamicFee: dynamicFeeParams,
   };
   const positionNft = Keypair.generate();

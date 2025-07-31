@@ -80,9 +80,7 @@ export type BaseFee = {
 
 export type PoolFeesParams = {
   baseFee: BaseFee;
-  protocolFeePercent: number;
-  partnerFeePercent: number;
-  referralFeePercent: number;
+  padding: number[];
   dynamicFee: DynamicFee | null;
 };
 
@@ -567,6 +565,7 @@ export type ClaimRewardParams = {
   positionState: PositionState;
   positionNftAccount: PublicKey;
   rewardIndex: number;
+  skipReward: number;
   feePayer?: PublicKey;
 };
 
@@ -634,4 +633,20 @@ export type DynamicFeeParams = {
   volatilityAccumulator: BN;
   binStep: number;
   variableFeeControl: number;
+};
+
+export type SplitPositionParams = {
+  firstPositionOwner: PublicKey;
+  secondPositionOwner: PublicKey;
+  pool: PublicKey;
+  firstPosition: PublicKey;
+  firstPositionNftAccount: PublicKey;
+  secondPosition: PublicKey;
+  secondPositionNftAccount: PublicKey;
+  permanentLockedLiquidityPercentage: number;
+  unlockedLiquidityPercentage: number;
+  feeAPercentage: number;
+  feeBPercentage: number;
+  reward0Percentage: number;
+  reward1Percentage: number;
 };

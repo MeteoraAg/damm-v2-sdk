@@ -82,9 +82,7 @@ describe("Claim Fee 2", () => {
     };
     const poolFees: PoolFeesParams = {
       baseFee,
-      protocolFeePercent: 20,
-      partnerFeePercent: 0,
-      referralFeePercent: 20,
+      padding: [],
       dynamicFee: null,
     };
 

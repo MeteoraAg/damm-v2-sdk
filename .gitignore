@@ -9,3 +9,5 @@ test-ledger
 dist
 .env
 example
+
+scripts/

@@ -64,6 +64,7 @@ import {
   VestingState,
   WithdrawIneligibleRewardParams,
   WithdrawQuote,
+  SplitPositionParams,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -2536,7 +2537,7 @@ export class CpAmm {
       .updateRewardDuration(rewardIndex, newDuration)
       .accountsPartial({
         pool,
-        admin: admin,
+        signer: admin,
       })
       .transaction();
   }
@@ -2552,7 +2553,7 @@ export class CpAmm {
       .updateRewardFunder(rewardIndex, newFunder)
       .accountsPartial({
         pool,
-        admin: admin,
+        signer: admin,
       })
       .transaction();
   }
@@ -2874,6 +2875,7 @@ export class CpAmm {
       position,
       positionNftAccount,
       rewardIndex,
+      skipReward,
       poolState,
       positionState,
     } = params;
@@ -2899,7 +2901,7 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
     return await this._program.methods
-      .claimReward(rewardIndex)
+      .claimReward(rewardIndex, skipReward)
       .accountsPartial({
         pool: positionState.pool,
         positionNftAccount,
@@ -2913,6 +2915,45 @@ export class CpAmm {
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  async splitPosition(params: SplitPositionParams): TxBuilder {
+    const {
+      firstPositionOwner,
+      secondPositionOwner,
+      pool,
+      firstPosition,
+      firstPositionNftAccount,
+      secondPosition,
+      secondPositionNftAccount,
+      permanentLockedLiquidityPercentage,
+      unlockedLiquidityPercentage,
+      feeAPercentage,
+      feeBPercentage,
+      reward0Percentage,
+      reward1Percentage,
+    } = params;
+
+    return await this._program.methods
+      .splitPosition({
+        permanentLockedLiquidityPercentage,
+        unlockedLiquidityPercentage,
+        feeAPercentage,
+        feeBPercentage,
+        reward0Percentage,
+        reward1Percentage,
+        padding: new Array(16).fill(0),
+      })
+      .accountsPartial({
+        pool,
+        firstPosition,
+        firstPositionNftAccount,
+        secondPosition,
+        secondPositionNftAccount,
+        firstOwner: firstPositionOwner,
+        secondOwner: secondPositionOwner,
+      })
       .transaction();
   }
 }

@@ -37,7 +37,7 @@ export const getMinAmountWithSlippage = (amount: BN, rate: number) => {
  * @param aToB - Direction of swap: true for token A to token B, false for token B to token A
  * @param tokenADecimal - Decimal places for token A
  * @param tokenBDecimal - Decimal places for token B
- * @returns Price impact as a percentage (e.g., 1.5 means 1.5% worse than spot price)
+ * @returns Price impact as a percentage
  */
 export const getPriceImpact = (
   amountIn: BN,
@@ -80,7 +80,7 @@ export const getPriceImpact = (
  * This measures the percentage change in pool price after a swap
  * @param nextSqrtPrice sqrt price after swap
  * @param currentSqrtPrice current pool sqrt price
- * @returns Price change as a percentage (e.g., 1.5 means 1.5% change)
+ * @returns Price change as a percentage
  */
 export const getPriceChange = (
   nextSqrtPrice: BN,

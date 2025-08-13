@@ -37,7 +37,7 @@ export const getMinAmountWithSlippage = (amount: BN, rate: number) => {
  * @param aToB - Direction of swap: true for token A to token B, false for token B to token A
  * @param tokenADecimal - Decimal places for token A
  * @param tokenBDecimal - Decimal places for token B
- * @returns Price impact as a percentage
+ * @returns Price impact as a percentage (e.g., 1.5 means 1.5% worse than spot price)
  */
 export const getPriceImpact = (
   amountIn: BN,
@@ -54,9 +54,7 @@ export const getPriceImpact = (
     tokenBDecimal
   );
 
-  console.log("spotPrice", spotPrice.toString());
-
-  // average execution price: amountIn / amountOut
+  // execution price: amountIn / amountOut
   const executionPrice = new Decimal(amountIn.toString())
     .div(new Decimal(amountOut.toString()))
     .mul(
@@ -66,21 +64,28 @@ export const getPriceImpact = (
       )
     );
 
-  // price difference (%) = (execution_price - spot_price) / spot_price * 100%
-  const priceDifference = spotPrice.sub(executionPrice).div(spotPrice).mul(100);
-
-  // price impact (%) = 100% - price difference (%)
-  const priceImpact = new Decimal(100).sub(priceDifference);
+  let priceImpact: Decimal;
+  let actualExecutionPrice: Decimal;
+  if (aToB) {
+    actualExecutionPrice = new Decimal(1).div(executionPrice);
+  } else {
+    actualExecutionPrice = executionPrice;
+  }
+  // price impact = (execution_price - spot_price) / execution_price * 100%
+  priceImpact = actualExecutionPrice
+    .sub(spotPrice)
+    .div(actualExecutionPrice)
+    .mul(100);
 
   return priceImpact.toNumber();
 };
 
 /**
- * Calculate price change as a percentage
+ * Calculate price change as a percentage (old implementation)
  * This measures the percentage change in pool price after a swap
  * @param nextSqrtPrice sqrt price after swap
  * @param currentSqrtPrice current pool sqrt price
- * @returns Price change as a percentage
+ * @returns Price change as a percentage (e.g., 1.5 means 1.5% change)
  */
 export const getPriceChange = (
   nextSqrtPrice: BN,

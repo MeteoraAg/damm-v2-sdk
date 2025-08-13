@@ -30,11 +30,59 @@ export const getMinAmountWithSlippage = (amount: BN, rate: number) => {
 
 /**
  * Calculate price impact as a percentage
- * @param nextSqrtPrice sqrt price after swap
- * @param currentSqrtPrice current pool sqrt price
- * @returns Price impact as a percentage (e.g., 1.5 means 1.5%)
+ * Price impact measures how much worse the user's execution was compared to the current market price
+ * @param amountIn - Input amount (in base units)
+ * @param amountOut - Output amount (in base units)
+ * @param currentSqrtPrice - Current pool sqrt price (spot price)
+ * @param aToB - Direction of swap: true for token A to token B, false for token B to token A
+ * @param tokenADecimal - Decimal places for token A
+ * @param tokenBDecimal - Decimal places for token B
+ * @returns Price impact as a percentage (e.g., 1.5 means 1.5% worse than spot price)
  */
 export const getPriceImpact = (
+  amountIn: BN,
+  amountOut: BN,
+  currentSqrtPrice: BN,
+  aToB: boolean,
+  tokenADecimal: number,
+  tokenBDecimal: number
+): number => {
+  // spot price: (sqrtPrice)^2 * 10^(base_decimal - quote_decimal) / 2^128
+  const spotPrice = getPriceFromSqrtPrice(
+    currentSqrtPrice,
+    tokenADecimal,
+    tokenBDecimal
+  );
+
+  console.log("spotPrice", spotPrice.toString());
+
+  // average execution price: amountIn / amountOut
+  const executionPrice = new Decimal(amountIn.toString())
+    .div(new Decimal(amountOut.toString()))
+    .mul(
+      Decimal.pow(
+        10,
+        aToB ? tokenBDecimal - tokenADecimal : tokenADecimal - tokenBDecimal
+      )
+    );
+
+  // price difference (%) = (execution_price - spot_price) / spot_price * 100%
+  const priceDifference = spotPrice.sub(executionPrice).div(spotPrice).mul(100);
+
+  // price impact (%) = 100% - price difference (%)
+  const priceImpact = new Decimal(100).sub(priceDifference);
+
+  return priceImpact.toNumber();
+};
+
+/**
+ * Calculate price change as a percentage
+ * This measures the percentage change in pool price after a swap
+ * @param nextSqrtPrice sqrt price after swap
+ * @param currentSqrtPrice current pool sqrt price
+ * @returns Price change as a percentage (e.g., 1.5 means 1.5% change)
+ */
+export const getPriceChange = (
   nextSqrtPrice: BN,
   currentSqrtPrice: BN
 ): number => {
@@ -42,8 +90,8 @@ export const getPriceImpact = (
   // k = 10^(base_decimal - quote_decimal) / 2^128
   // priceA = (sqrtPriceA)^2 * k
   // priceB = (sqrtPriceB)^2 * k
-  // => price_impact = k * abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 /  (sqrtPriceB)^2 * k
-  // => price_impact = abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 / (sqrtPriceB)^2
+  // => price_change = k * abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 /  (sqrtPriceB)^2 * k
+  // => price_change = abs ( (sqrtPriceA)^2 - (sqrtPriceB)^2  )  * 100 / (sqrtPriceB)^2
   const diff = nextSqrtPrice
     .pow(new BN(2))
     .sub(currentSqrtPrice.pow(new BN(2)))
@@ -60,13 +108,12 @@ export const getPriceFromSqrtPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
   tokenBDecimal: number
-): string => {
+): Decimal => {
   const decimalSqrtPrice = new Decimal(sqrtPrice.toString());
   const price = decimalSqrtPrice
     .mul(decimalSqrtPrice)
     .mul(new Decimal(10 ** (tokenADecimal - tokenBDecimal)))
-    .div(Decimal.pow(2, 128))
-    .toString();
+    .div(Decimal.pow(2, 128));
 
   return price;
 };

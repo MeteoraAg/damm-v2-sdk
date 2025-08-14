@@ -71,10 +71,11 @@ export const getPriceImpact = (
   } else {
     actualExecutionPrice = executionPrice;
   }
-  // price impact = (execution_price - spot_price) / execution_price * 100%
+  // price impact = abs(execution_price - spot_price) / spot_price * 100%
   priceImpact = actualExecutionPrice
     .sub(spotPrice)
-    .div(actualExecutionPrice)
+    .abs()
+    .div(spotPrice)
     .mul(100);
 
   return priceImpact.toNumber();

@@ -48,7 +48,7 @@ export const getPriceImpact = (
   tokenBDecimal: number
 ): Decimal => {
   if (amountIn.lte(new BN(0))) {
-    throw new Error("Amount in must be greater than 0");
+    return new Decimal(0);
   }
   if (amountOut.lte(new BN(0))) {
     throw new Error("Amount out must be greater than 0");

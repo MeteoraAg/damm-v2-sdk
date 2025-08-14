@@ -460,7 +460,7 @@ async getQuote(params: GetQuoteParams): Promise<{
   swapOutAmount: BN;
   minSwapOutAmount: BN;
   totalFee: BN;
-  priceImpact: number;
+  priceImpact: Decimal;
 }>
 ```
 

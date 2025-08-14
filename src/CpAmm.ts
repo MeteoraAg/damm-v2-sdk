@@ -101,6 +101,7 @@ import {
   getSwapResultFromOutAmount,
 } from "./helpers";
 import { min, max } from "bn.js";
+import Decimal from "decimal.js";
 
 /**
  * CpAmm SDK class to interact with the DAMM-V2
@@ -960,7 +961,7 @@ export class CpAmm {
     swapOutAmount: BN;
     minSwapOutAmount: BN;
     totalFee: BN;
-    priceImpact: number;
+    priceImpact: Decimal;
   } {
     const {
       inAmount,
@@ -1132,7 +1133,7 @@ export class CpAmm {
       !bToA, // aToB is the opposite of bToA
       params.tokenADecimal,
       params.tokenBDecimal
-    );
+    ).toNumber();
 
     return {
       swapResult,

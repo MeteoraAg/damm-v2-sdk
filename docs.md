@@ -27,6 +27,7 @@
   - [claimReward](#claimreward)
   - [closePosition](#closeposition)
   - [splitPosition](#splitposition)
+
 - [State Functions](#state-functions)
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
@@ -40,6 +41,7 @@
   - [getAllVestingsByPosition](#getallvestingsbyposition)
   - [isLockedPosition](#islockedposition)
   - [isPoolExist](#ispoolexist)
+
 - [Helper Functions](#helper-functions)
   - [preparePoolCreationParams](#preparepoolcreationparams)
   - [getProgram](#getprogram)
@@ -49,6 +51,7 @@
   - [getMaxAmountWithSlippage](#getmaxamountwithslippage)
   - [getMinAmountWithSlippage](#getminamountwithslippage)
   - [getPriceImpact](#getpriceimpact)
+  - [getPriceChange](#getpricechange)
   - [getPriceFromSqrtPrice](#getpricefromsqrtprice)
   - [getSqrtPriceFromPrice](#getsqrtpricefromprice)
   - [getUnClaimReward](#getunclaimreward)
@@ -506,6 +509,8 @@ const quote = await cpAmm.getQuote({
   poolState,
   currentTime: blockTime,
   currentSlot,
+  tokenADecimal: 6, // USDC has 6 decimals
+  tokenBDecimal: 9, // SOL has 9 decimals
 });
 
 console.log(`Expected output: ${quote.swapOutAmount.toString()}`);
@@ -595,6 +600,8 @@ const quote = await cpAmm.getQuoteExactOut({
   poolState,
   currentTime: blockTime,
   currentSlot,
+  tokenADecimal: 6, // USDC has 6 decimals
+  tokenBDecimal: 9, // SOL has 9 decimals
 });
 
 console.log(`Required input: ${quote.inputAmount.toString()}`);
@@ -789,6 +796,8 @@ const quote = await cpAmm.getQuote({
   poolState,
   currentTime: blockTime,
   currentSlot,
+  tokenADecimal: 6, // USDC has 6 decimals
+  tokenBDecimal: 9, // SOL has 9 decimals
 });
 
 // Execute swap
@@ -2334,37 +2343,90 @@ console.log(`Minimum amount with slippage: ${minAmount.toString()}`);
 ### getPriceImpact
 
 Calculates the price impact as a percentage.
+Price impact measures how much worse the user's execution was compared to the current market price.
 
 #### Function
 
 ```typescript
-function getPriceImpact(actualAmount: BN, idealAmount: BN): number;
+function getPriceImpact(
+  amountIn: BN,
+  amountOut: BN,
+  currentSqrtPrice: BN,
+  aToB: boolean,
+  tokenADecimal: number,
+  tokenBDecimal: number
+): number;
 ```
 
 #### Parameters
 
-- `actualAmount`: The actual amount after slippage in token units
-- `idealAmount`: The theoretical amount without slippage in token units
+- `amountIn`: Input amount (in base units)
+- `amountOut`: Output amount (in base units)
+- `currentSqrtPrice`: Current pool sqrt price (spot price)
+- `aToB`: Direction of swap: true for token A to token B, false for token B to token A
+- `tokenADecimal`: Decimal places for token A
+- `tokenBDecimal`: Decimal places for token B
 
 #### Returns
 
-The price impact as a percentage (e.g., 1.5 means 1.5%).
+The price impact as a percentage (e.g., 1.5 means 1.5% worse than spot price).
 
 #### Example
 
 ```typescript
-const idealAmount = new BN(1_000_000_000); // 1,000 tokens (theoretical)
-const actualAmount = new BN(990_000_000); // 990 tokens (actual)
-const impact = getPriceImpact(actualAmount, idealAmount);
-console.log(`Price impact: ${impact.toFixed(2)}%`);
+const priceImpact = getPriceImpact(
+  amountIn,
+  amountOut,
+  poolState.sqrtPrice,
+  true, // A to B swap
+  6, // USDC has 6 decimals
+  9 // SOL has 9 decimals
+);
+console.log(`Price impact: ${priceImpact.toFixed(2)}%`);
 ```
 
 #### Notes
 
-- Used to express how much a transaction will affect the price
-- Formula: ((idealAmount - actualAmount) / idealAmount) \* 100
-- Higher price impact indicates a greater effect on the market price
-- Common use case: Showing users the effect of their swap on the pool
+- Price impact measures execution quality, not price movement
+- Formula: (execution_price - spot_price) / spot_price × 100%
+- Higher price impact means worse execution compared to market price
+- Common use case: Showing users how much worse their swap execution was compared to current market price
+
+---
+
+## getPriceChange
+
+Calculates the price change as a percentage.
+This measures the percentage change in pool price after a swap.
+
+#### Function
+
+```typescript
+function getPriceChange(nextSqrtPrice: BN, currentSqrtPrice: BN): number;
+```
+
+#### Parameters
+
+- `nextSqrtPrice`: Sqrt price after swap
+- `currentSqrtPrice`: Current pool sqrt price
+
+#### Returns
+
+The price change as a percentage (e.g., 1.5 means 1.5% change).
+
+#### Example
+
+```typescript
+const priceChange = getPriceChange(nextSqrtPrice, currentSqrtPrice);
+console.log(`Price change: ${priceChange.toFixed(2)}%`);
+```
+
+#### Notes
+
+- Used to express how much a transaction will affect the pool price
+- Formula: abs((nextSqrtPrice)² - (currentSqrtPrice)²) \* 100 / (currentSqrtPrice)²
+- Higher price change indicates a greater effect on the market price
+- Common use case: Showing users the effect of their swap on the pool price
 
 ---
 
@@ -2392,7 +2454,7 @@ function getPriceFromSqrtPrice(
 
 #### Returns
 
-The price as a string in human-readable format.
+The price as a Decimal object for precise calculations.
 
 #### Example
 

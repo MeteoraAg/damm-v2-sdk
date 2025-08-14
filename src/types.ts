@@ -369,6 +369,8 @@ export type GetQuoteParams = {
     mint: Mint;
     currentEpoch: number;
   };
+  tokenADecimal: number;
+  tokenBDecimal: number;
 };
 
 export type SwapAmount = {
@@ -391,6 +393,8 @@ export type GetQuoteExactOutParams = {
     mint: Mint;
     currentEpoch: number;
   };
+  tokenADecimal: number;
+  tokenBDecimal: number;
 };
 
 export type SwapResult = {

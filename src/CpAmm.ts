@@ -1046,7 +1046,14 @@ export class CpAmm {
       swapOutAmount: actualAmountOut,
       minSwapOutAmount,
       totalFee,
-      priceImpact: getPriceImpact(nextSqrtPrice, sqrtPriceQ64),
+      priceImpact: getPriceImpact(
+        actualAmountIn,
+        actualAmountOut,
+        sqrtPriceQ64,
+        aToB,
+        params.tokenADecimal,
+        params.tokenBDecimal
+      ),
     };
   }
 
@@ -1118,7 +1125,14 @@ export class CpAmm {
       Math.ceil(actualInputAmount.toNumber() * (1 + slippage / 100))
     );
 
-    const priceImpact = getPriceImpact(swapResult.nextSqrtPrice, sqrtPriceQ64);
+    const priceImpact = getPriceImpact(
+      actualInputAmount,
+      actualAmountOut,
+      sqrtPriceQ64,
+      !bToA, // aToB is the opposite of bToA
+      params.tokenADecimal,
+      params.tokenBDecimal
+    );
 
     return {
       swapResult,

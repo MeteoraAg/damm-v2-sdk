@@ -46,7 +46,14 @@ export const getPriceImpact = (
   aToB: boolean,
   tokenADecimal: number,
   tokenBDecimal: number
-): number => {
+): Decimal => {
+  if (amountIn.lte(new BN(0))) {
+    throw new Error("Amount in must be greater than 0");
+  }
+  if (amountOut.lte(new BN(0))) {
+    throw new Error("Amount out must be greater than 0");
+  }
+
   // spot price: (sqrtPrice)^2 * 10^(base_decimal - quote_decimal) / 2^128
   const spotPrice = getPriceFromSqrtPrice(
     currentSqrtPrice,
@@ -71,7 +78,7 @@ export const getPriceImpact = (
   } else {
     actualExecutionPrice = executionPrice;
   }
-  
+
   // price impact = abs(execution_price - spot_price) / spot_price * 100%
   priceImpact = actualExecutionPrice
     .sub(spotPrice)
@@ -79,7 +86,7 @@ export const getPriceImpact = (
     .div(spotPrice)
     .mul(100);
 
-  return priceImpact.toNumber();
+  return priceImpact;
 };
 
 /**

@@ -1,0 +1,13 @@
+export const DEFAULT_TARGET_TOKENS = [
+  "So11111111111111111111111111111111111111112", // Wrapped SOL (WSOL)
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+  "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
+];
+
+export const BLACKLISTED_TOKENS = [
+  'Bo9jh3wsmcC2AjakLWzNmKJ3SgtZmXEcSaW7L2FAvUsU',
+];
+
+export const DEFAULT_CONCURRENCY = 4;
+export const DEFAULT_CLAIMS_PER_TX = 2;
+export const DEFAULT_TREASURY = "4EWqcx3aNZmMetCnxwLYwyNjan6XLGp3Ca2W316vrSjv";

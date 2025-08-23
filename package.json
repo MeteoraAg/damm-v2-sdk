@@ -15,7 +15,8 @@
 		"lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
 		"build": "tsup",
 		"start": "npm run build -- --watch",
-		"test": "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.test.ts"
+		"test": "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/*.test.ts",
+		"get-protocol-fees": "ts-node scripts/getProtocolFeesByTokenMints.ts"
 	},
 	"devDependencies": {
 		"@types/invariant": "^2.2.35",
@@ -28,6 +29,7 @@
 		"@types/bn.js": "^5.1.0",
 		"@types/chai": "^4.3.0",
 		"@types/mocha": "^9.0.0",
+		"bs58": "^6.0.0",
 		"chai": "^4.3.4",
 		"chain": "^0.4.0",
 		"decimal.js": "^10.4.2",

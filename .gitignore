@@ -9,3 +9,6 @@ test-ledger
 dist
 .env
 example
+keys/
+outputs/
+*.csv

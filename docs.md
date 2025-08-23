@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Core Functions](#core-functions)
+
   - [createPool](#createpool)
   - [createCustomPool](#createcustompool)
   - [createCustomPoolWithDynamicConfig](#createcustompoolwithdynamicconfig)
@@ -29,6 +30,7 @@
   - [splitPosition](#splitposition)
 
 - [State Functions](#state-functions)
+
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
   - [fetchPositionState](#fetchpositionstate)
@@ -70,13 +72,13 @@
 
 Creates a new standard pool according to a predefined configuration.
 
-#### Function
+**Function**
 
 ```typescript
 async createPool(params: CreatePoolParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface CreatePoolParams {
@@ -97,11 +99,11 @@ interface CreatePoolParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 // First, prepare the pool creation parameters
@@ -134,7 +136,7 @@ const createPoolTx = await cpAmm.createPool({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Both token amounts must be greater than zero
 - If using native SOL, it will be automatically wrapped to wSOL
@@ -148,7 +150,7 @@ const createPoolTx = await cpAmm.createPool({
 
 Creates a customizable pool with specific fee parameters, reward settings, and activation conditions.
 
-#### Function
+**Function**
 
 ```typescript
 async createCustomPool(params: InitializeCustomizeablePoolParams): Promise<{
@@ -158,7 +160,7 @@ async createCustomPool(params: InitializeCustomizeablePoolParams): Promise<{
 }>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface InitializeCustomizeablePoolParams {
@@ -204,7 +206,7 @@ interface PoolFees {
 }
 ```
 
-#### Returns
+**Returns**
 
 An object containing:
 
@@ -212,7 +214,7 @@ An object containing:
 - `pool`: The public key of the created pool
 - `position`: The public key of the initial position
 
-#### Example
+**Example**
 
 ```typescript
 // First, prepare the pool creation parameters
@@ -268,18 +270,18 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Use this function instead of `createPool` when you need custom fee structures
 - Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
 
 ---
 
-## createCustomPoolWithDynamicConfig
+### createCustomPoolWithDynamicConfig
 
 Creates a customizable pool with dynamic configuration, allowing for specific fee parameters with specified pool creator authority
 
-### Function
+**Function**
 
 ```typescript
 async createCustomPoolWithDynamicConfig(params: InitializeCustomizeablePoolWithDynamicConfigParams): Promise<{
@@ -289,7 +291,7 @@ async createCustomPoolWithDynamicConfig(params: InitializeCustomizeablePoolWithD
 }>
 ```
 
-### Parameters
+**Parameters**
 
 ```typescript
 interface InitializeCustomizeablePoolWithDynamicConfigParams {
@@ -317,7 +319,7 @@ interface InitializeCustomizeablePoolWithDynamicConfigParams {
 }
 ```
 
-### Returns
+**Returns**
 
 An object containing:
 
@@ -325,7 +327,7 @@ An object containing:
 - `pool`: The public key of the created pool
 - `position`: The public key of the initial position
 
-### Example
+**Example**
 
 ```typescript
 // First, prepare the pool creation parameters
@@ -378,13 +380,13 @@ const { tx, pool, position } = await cpAmm.createCustomPoolWithDynamicConfig({
 
 Creates a new position in an existing pool.
 
-#### Function
+**Function**
 
 ```typescript
 async createPosition(params: CreatePositionParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface CreatePositionParams {
@@ -395,11 +397,11 @@ interface CreatePositionParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const createPositionTx = await cpAmm.createPosition({
@@ -413,7 +415,7 @@ const tx = await createPositionTx.transaction();
 const result = await wallet.sendTransaction(tx, connection);
 ```
 
-#### Notes
+**Notes**
 
 - The `positionNft` should be a new mint that doesn't already have a position
 - Creating a position doesn't automatically add liquidity
@@ -425,13 +427,13 @@ const result = await wallet.sendTransaction(tx, connection);
 
 Calculates the liquidity delta based on the provided token amounts and price ranges.
 
-#### Function
+**Function**
 
 ```typescript
 async getLiquidityDelta(params: LiquidityDeltaParams): Promise<BN>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface LiquidityDeltaParams {
@@ -443,7 +445,7 @@ interface LiquidityDeltaParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A BN representing the liquidity delta in Q64 format.
 
@@ -451,7 +453,7 @@ A BN representing the liquidity delta in Q64 format.
 
 Calculates the expected output amount for a swap, including fees and slippage protection.
 
-#### Function
+**Function**
 
 ```typescript
 async getQuote(params: GetQuoteParams): Promise<{
@@ -460,11 +462,11 @@ async getQuote(params: GetQuoteParams): Promise<{
   swapOutAmount: BN;
   minSwapOutAmount: BN;
   totalFee: BN;
-  priceImpact: Decimal;
+  priceImpact: number;
 }>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface GetQuoteParams {
@@ -485,7 +487,7 @@ interface GetQuoteParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 An object containing:
 
@@ -496,7 +498,7 @@ An object containing:
 - `totalFee`: The total fee to be paid
 - `priceImpact`: The price impact of the swap as a percentage
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -509,8 +511,6 @@ const quote = await cpAmm.getQuote({
   poolState,
   currentTime: blockTime,
   currentSlot,
-  tokenADecimal: 6, // USDC has 6 decimals
-  tokenBDecimal: 9, // SOL has 9 decimals
 });
 
 console.log(`Expected output: ${quote.swapOutAmount.toString()}`);
@@ -519,7 +519,7 @@ console.log(`Fee: ${quote.totalFee.toString()}`);
 console.log(`Price impact: ${quote.priceImpact.toFixed(2)}%`);
 ```
 
-#### Notes
+**Notes**
 
 - Always check the price impact before executing a swap
 - The `slippage` parameter protects users from price movements
@@ -532,7 +532,7 @@ console.log(`Price impact: ${quote.priceImpact.toFixed(2)}%`);
 
 Calculates the expected input amount for a swap based on an exact output amount, including fees and slippage protection.
 
-#### Function
+**Function**
 
 ```typescript
 async getQuoteExactOut(params: GetQuoteExactOutParams): Promise<{
@@ -553,7 +553,7 @@ async getQuoteExactOut(params: GetQuoteExactOutParams): Promise<{
 }>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface GetQuoteExactOutParams {
@@ -574,7 +574,7 @@ interface GetQuoteExactOutParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 An object containing:
 
@@ -587,7 +587,7 @@ An object containing:
 - `inputTokenInfo`: Token info for Token2022 transfer fee calculations
 - `outputTokenInfo`: Token info for Token2022 transfer fee calculations
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -600,8 +600,6 @@ const quote = await cpAmm.getQuoteExactOut({
   poolState,
   currentTime: blockTime,
   currentSlot,
-  tokenADecimal: 6, // USDC has 6 decimals
-  tokenBDecimal: 9, // SOL has 9 decimals
 });
 
 console.log(`Required input: ${quote.inputAmount.toString()}`);
@@ -610,7 +608,7 @@ console.log(`Price impact: ${quote.priceImpact.toFixed(2)}%`);
 console.log(`Output amount: ${quote.swapResult.outputAmount.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - Always check the price impact before executing a swap
 - The `slippage` parameter protects users from price movements
@@ -623,13 +621,13 @@ console.log(`Output amount: ${quote.swapResult.outputAmount.toString()}`);
 
 Calculates the deposit quote for adding liquidity to a pool based on a single token input.
 
-#### Function
+**Function**
 
 ```typescript
 async getDepositQuote(params: GetDepositQuoteParams): Promise<DepositQuote>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface GetDepositQuoteParams {
@@ -649,7 +647,7 @@ interface GetDepositQuoteParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 An object containing:
 
@@ -658,7 +656,7 @@ An object containing:
 - `liquidityDelta`: The amount of liquidity that will be added
 - `outputAmount`: The calculated amount of the other token to be paired
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -675,7 +673,7 @@ console.log(`Liquidity delta: ${depositQuote.liquidityDelta.toString()}`);
 console.log(`Required token B: ${depositQuote.outputAmount.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - Use this to calculate how much of token B is needed when adding token A (or vice versa)
 - Particularly useful for single-sided liquidity provision
@@ -687,13 +685,13 @@ console.log(`Required token B: ${depositQuote.outputAmount.toString()}`);
 
 Calculates the withdrawal quote for removing liquidity from a pool.
 
-#### Function
+**Function**
 
 ```typescript
 async getWithdrawQuote(params: GetWithdrawQuoteParams): Promise<WithdrawQuote>
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface GetWithdrawQuoteParams {
@@ -712,7 +710,7 @@ interface GetWithdrawQuoteParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 An object containing:
 
@@ -720,7 +718,7 @@ An object containing:
 - `outAmountA`: The calculated amount of token A to receive
 - `outAmountB`: The calculated amount of token B to receive
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -740,7 +738,7 @@ console.log(`Expected token A: ${withdrawQuote.outAmountA.toString()}`);
 console.log(`Expected token B: ${withdrawQuote.outAmountB.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - Use this to estimate the tokens you'll receive when removing liquidity
 - The function handles Token2022 transfer fees if token info is provided
@@ -752,13 +750,13 @@ console.log(`Expected token B: ${withdrawQuote.outAmountB.toString()}`);
 
 Executes a token swap in the pool.
 
-#### Function
+**Function**
 
 ```typescript
 async swap(params: SwapParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface SwapParams {
@@ -778,11 +776,11 @@ interface SwapParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -796,8 +794,6 @@ const quote = await cpAmm.getQuote({
   poolState,
   currentTime: blockTime,
   currentSlot,
-  tokenADecimal: 6, // USDC has 6 decimals
-  tokenBDecimal: 9, // SOL has 9 decimals
 });
 
 // Execute swap
@@ -817,7 +813,7 @@ const swapTx = await cpAmm.swap({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Get a quote first using `getQuote` to determine the `minimumAmountOut`
 - The SDK handles wrapping/unwrapping of SOL automatically
@@ -831,13 +827,13 @@ const swapTx = await cpAmm.swap({
 
 Adds liquidity to an existing position.
 
-#### Function
+**Function**
 
 ```typescript
 async addLiquidity(params: AddLiquidityParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface AddLiquidityParams {
@@ -859,11 +855,11 @@ interface AddLiquidityParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -898,7 +894,7 @@ const addLiquidityTx = await cpAmm.addLiquidity({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Calculate the liquidity delta first using `getDepositQuote`
 - The SDK handles wrapping/unwrapping of SOL automatically
@@ -911,13 +907,13 @@ const addLiquidityTx = await cpAmm.addLiquidity({
 
 Removes a specific amount of liquidity from an existing position.
 
-#### Function
+**Function**
 
 ```typescript
 async removeLiquidity(params: RemoveLiquidityParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface RemoveLiquidityParams {
@@ -938,11 +934,11 @@ interface RemoveLiquidityParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -974,7 +970,7 @@ const removeLiquidityTx = await cpAmm.removeLiquidity({
 });
 ```
 
-#### Notes
+**Notes**
 
 - You can only remove unlocked liquidity
 - The SDK handles wrapping/unwrapping of SOL automatically
@@ -988,13 +984,13 @@ const removeLiquidityTx = await cpAmm.removeLiquidity({
 
 Removes all available liquidity from a position.
 
-#### Function
+**Function**
 
 ```typescript
 async removeAllLiquidity(params: RemoveAllLiquidityParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface RemoveAllLiquidityParams {
@@ -1014,11 +1010,11 @@ interface RemoveAllLiquidityParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1040,7 +1036,7 @@ const removeAllLiquidityTx = await cpAmm.removeAllLiquidity({
 });
 ```
 
-#### Notes
+**Notes**
 
 - This removes all unlocked liquidity in one transaction
 - The position remains open after removing all liquidity
@@ -1053,13 +1049,13 @@ const removeAllLiquidityTx = await cpAmm.removeAllLiquidity({
 
 Removes all liquidity from a position and closes it in a single transaction.
 
-#### Function
+**Function**
 
 ```typescript
 async removeAllLiquidityAndClosePosition(params: RemoveAllLiquidityAndClosePositionParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface RemoveAllLiquidityAndClosePositionParams {
@@ -1075,11 +1071,11 @@ interface RemoveAllLiquidityAndClosePositionParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1103,7 +1099,7 @@ const tx = await cpAmm.removeAllLiquidityAndClosePosition({
 });
 ```
 
-#### Notes
+**Notes**
 
 - This combines multiple operations in a single transaction:
   1. Claims any accumulated fees
@@ -1120,13 +1116,13 @@ const tx = await cpAmm.removeAllLiquidityAndClosePosition({
 
 Merges liquidity from one position into another in a single transaction.
 
-#### Function
+**Function**
 
 ```typescript
 async mergePosition(params: MergePositionParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface MergePositionParams {
@@ -1146,11 +1142,11 @@ interface MergePositionParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1179,7 +1175,7 @@ const tx = await cpAmm.mergePosition({
 });
 ```
 
-#### Notes
+**Notes**
 
 - This function combines multiple operations:
   1. Claims any accumulated fees from the source position
@@ -1197,13 +1193,13 @@ const tx = await cpAmm.mergePosition({
 
 Builds a transaction to lock a position with vesting schedule.
 
-#### Function
+**Function**
 
 ```typescript
 async lockPosition(params: LockPositionParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface LockPositionParams {
@@ -1221,11 +1217,11 @@ interface LockPositionParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const vestingAccount = Keypair.generate();
@@ -1245,7 +1241,7 @@ const lockPositionTx = await cpAmm.lockPosition({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Locking positions is useful for creating various incentive mechanisms
 - The vesting schedule controls how quickly liquidity unlocks over time
@@ -1259,13 +1255,13 @@ const lockPositionTx = await cpAmm.lockPosition({
 
 Permanently locks a portion of liquidity in a position.
 
-#### Function
+**Function**
 
 ```typescript
 async permanentLockPosition(params: PermanentLockParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface PermanentLockParams {
@@ -1277,11 +1273,11 @@ interface PermanentLockParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const positionState = await cpAmm.fetchPositionState(positionAddress);
@@ -1298,7 +1294,7 @@ const lockTx = await cpAmm.permanentLockPosition({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Permanently locked liquidity can never be withdrawn
 - This is useful for deep liquidity protocols or governance mechanisms
@@ -1311,13 +1307,13 @@ const lockTx = await cpAmm.permanentLockPosition({
 
 Refreshes vesting status of a position to unlock available liquidity.
 
-#### Function
+**Function**
 
 ```typescript
 async refreshVesting(params: RefreshVestingParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface RefreshVestingParams {
@@ -1329,11 +1325,11 @@ interface RefreshVestingParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 // Get all vesting accounts for the position
@@ -1348,7 +1344,7 @@ const refreshVestingTx = await cpAmm.refreshVesting({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Call this function to update the vesting state and unlock available liquidity
 - Should be called periodically to ensure liquidity is properly unlocked
@@ -1361,13 +1357,13 @@ const refreshVestingTx = await cpAmm.refreshVesting({
 
 Claims accumulated fees for a position.
 
-#### Function
+**Function**
 
 ```typescript
 async claimPositionFee(params: ClaimPositionFeeParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface ClaimPositionFeeParams {
@@ -1386,11 +1382,11 @@ interface ClaimPositionFeeParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1409,7 +1405,7 @@ const claimFeeTx = await cpAmm.claimPositionFee({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Fees are collected when trades occur in the pool
 - Only the position owner can claim fees
@@ -1421,13 +1417,13 @@ const claimFeeTx = await cpAmm.claimPositionFee({
 
 Claims accumulated fees for a position.
 
-#### Function
+**Function**
 
 ```typescript
 async claimPositionFee2(params: ClaimPositionFeeParams2): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface ClaimPositionFeeParams {
@@ -1446,11 +1442,11 @@ interface ClaimPositionFeeParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1470,7 +1466,7 @@ const claimFeeTx = await cpAmm.claimPositionFee2({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Fees are collected when trades occur in the pool
 - Only the position owner can claim fees
@@ -1484,13 +1480,13 @@ const claimFeeTx = await cpAmm.claimPositionFee2({
 
 Claims partner fee rewards.
 
-#### Function
+**Function**
 
 ```typescript
 async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface ClaimPartnerFeeParams {
@@ -1501,11 +1497,11 @@ interface ClaimPartnerFeeParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1518,7 +1514,7 @@ const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Partner fees are a portion of trading fees directed to a specific account
 - Only the configured partner address can claim these fees
@@ -1532,13 +1528,13 @@ const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
 
 Claims reward tokens from a position.
 
-#### Function
+**Function**
 
 ```typescript
 async claimReward(params: ClaimRewardParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface ClaimRewardParams {
@@ -1552,11 +1548,11 @@ interface ClaimRewardParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1574,7 +1570,7 @@ const claimRewardTx = await cpAmm.claimReward({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Pools can have multiple reward tokens configured
 - The rewardIndex parameter specifies which reward token to claim
@@ -1588,13 +1584,13 @@ const claimRewardTx = await cpAmm.claimReward({
 
 Closes a position with no liquidity.
 
-#### Function
+**Function**
 
 ```typescript
 async closePosition(params: ClosePositionParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface ClosePositionParams {
@@ -1606,11 +1602,11 @@ interface ClosePositionParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const positionState = await cpAmm.fetchPositionState(positionAddress);
@@ -1634,7 +1630,7 @@ const closePositionTx = await cpAmm.closePosition({
 });
 ```
 
-#### Notes
+**Notes**
 
 - Position must have zero liquidity before closing
 - Use `removeAllLiquidity` first if the position still has liquidity
@@ -1648,13 +1644,13 @@ const closePositionTx = await cpAmm.closePosition({
 
 Splits a position into two positions.
 
-#### Function
+**Function**
 
 ```typescript
 async splitPosition(params: SplitPositionParams): TxBuilder
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface SplitPositionParams {
@@ -1674,11 +1670,11 @@ interface SplitPositionParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
-#### Example
+**Example**
 
 ```typescript
 const firstPosition = await client.getUserPositionByPool(
@@ -1728,7 +1724,7 @@ const splitPositionTx = await client.splitPosition({
 });
 ```
 
-#### Notes
+**Notes**
 
 - The first position must already exist for that pool
 - The second position can be a new empty position for that same pool
@@ -1741,28 +1737,28 @@ const splitPositionTx = await client.splitPosition({
 
 Fetches the Config state of the program.
 
-#### Function
+**Function**
 
 ```typescript
 async fetchConfigState(config: PublicKey): Promise<ConfigState>
 ```
 
-#### Parameters
+**Parameters**
 
 - `config`: Public key of the config account.
 
-#### Returns
+**Returns**
 
 Parsed ConfigState.
 
-#### Example
+**Example**
 
 ```typescript
 const configState = await cpAmm.fetchConfigState(configAddress);
 console.log(configState);
 ```
 
-#### Notes
+**Notes**
 
 - Throws an error if the config account does not exist
 
@@ -1772,21 +1768,21 @@ console.log(configState);
 
 Fetches the Pool state.
 
-#### Function
+**Function**
 
 ```typescript
 async fetchPoolState(pool: PublicKey): Promise<PoolState>
 ```
 
-#### Parameters
+**Parameters**
 
 - `pool`: Public key of the pool.
 
-#### Returns
+**Returns**
 
 Parsed PoolState.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -1794,7 +1790,7 @@ console.log(`Current Price: ${poolState.sqrtPrice.toString()}`);
 console.log(`Liquidity: ${poolState.liquidity.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - Throws an error if the pool account does not exist
 - Contains all essential information about the pool including prices, liquidity, and fees
@@ -1805,21 +1801,21 @@ console.log(`Liquidity: ${poolState.liquidity.toString()}`);
 
 Fetches the Position state.
 
-#### Function
+**Function**
 
 ```typescript
 async fetchPositionState(position: PublicKey): Promise<PositionState>
 ```
 
-#### Parameters
+**Parameters**
 
 - `position`: Public key of the position.
 
-#### Returns
+**Returns**
 
 Parsed PositionState.
 
-#### Example
+**Example**
 
 ```typescript
 const positionState = await cpAmm.fetchPositionState(positionAddress);
@@ -1832,7 +1828,7 @@ console.log(
 );
 ```
 
-#### Notes
+**Notes**
 
 - Throws an error if the position account does not exist
 - Contains information about liquidity amounts, fee collection, and rewards
@@ -1843,17 +1839,17 @@ console.log(
 
 Retrieves all config accounts.
 
-#### Function
+**Function**
 
 ```typescript
 async getAllConfigs(): Promise<Array<{ publicKey: PublicKey; account: ConfigState }>>
 ```
 
-#### Returns
+**Returns**
 
 Array of config public keys and their states.
 
-#### Example
+**Example**
 
 ```typescript
 const configs = await cpAmm.getAllConfigs();
@@ -1869,17 +1865,17 @@ configs.forEach((config, i) => {
 
 Retrieves all pool accounts.
 
-#### Function
+**Function**
 
 ```typescript
 async getAllPools(): Promise<Array<{ publicKey: PublicKey; account: PoolState }>>
 ```
 
-#### Returns
+**Returns**
 
 Array of pool public keys and their states.
 
-#### Example
+**Example**
 
 ```typescript
 const pools = await cpAmm.getAllPools();
@@ -1897,17 +1893,17 @@ pools.forEach((pool, i) => {
 
 Retrieves all position accounts.
 
-#### Function
+**Function**
 
 ```typescript
 async getAllPositions(): Promise<Array<{ publicKey: PublicKey; account: PositionState }>>
 ```
 
-#### Returns
+**Returns**
 
 Array of position public keys and their states.
 
-#### Example
+**Example**
 
 ```typescript
 const positions = await cpAmm.getAllPositions();
@@ -1920,21 +1916,21 @@ console.log(`Found ${positions.length} positions`);
 
 Gets all positions for a specific pool.
 
-#### Function
+**Function**
 
 ```typescript
 async getAllPositionsByPool(pool: PublicKey): Promise<Array<{ publicKey: PublicKey; account: PositionState }>>
 ```
 
-#### Parameters
+**Parameters**
 
 - `pool`: Public key of the pool.
 
-#### Returns
+**Returns**
 
 List of positions for the pool.
 
-#### Example
+**Example**
 
 ```typescript
 const poolPositions = await cpAmm.getAllPositionsByPool(poolAddress);
@@ -1947,22 +1943,22 @@ console.log(`Pool has ${poolPositions.length} positions`);
 
 Gets all positions of a user for a specific pool.
 
-#### Function
+**Function**
 
 ```typescript
 async getUserPositionByPool(pool: PublicKey, user: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState }>>
 ```
 
-#### Parameters
+**Parameters**
 
 - `pool`: Public key of the pool.
 - `user`: Public key of the user.
 
-#### Returns
+**Returns**
 
 List of user positions for the pool.
 
-#### Example
+**Example**
 
 ```typescript
 const userPoolPositions = await cpAmm.getUserPositionByPool(
@@ -1978,28 +1974,28 @@ console.log(`User has ${userPoolPositions.length} positions in this pool`);
 
 Gets all positions of a user across all pools.
 
-#### Function
+**Function**
 
 ```typescript
 async getPositionsByUser(user: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState }>>
 ```
 
-#### Parameters
+**Parameters**
 
 - `user`: Public key of the user.
 
-#### Returns
+**Returns**
 
 Array of user positions already sorted by liquidity.
 
-#### Example
+**Example**
 
 ```typescript
 const userPositions = await cpAmm.getPositionsByUser(wallet.publicKey);
 console.log(`User has ${userPositions.length} total positions`);
 ```
 
-#### Notes
+**Notes**
 
 - Positions are sorted by total liquidity in descending order
 - Returns position NFT accounts, position addresses, and full position states
@@ -2010,21 +2006,21 @@ console.log(`User has ${userPositions.length} total positions`);
 
 Retrieves all vesting accounts associated with a position.
 
-#### Function
+**Function**
 
 ```typescript
 async getAllVestingsByPosition(position: PublicKey): Promise<Array<{ publicKey: PublicKey; account: VestingState }>>
 ```
 
-#### Parameters
+**Parameters**
 
 - `position`: Public key of the position.
 
-#### Returns
+**Returns**
 
 Array of vesting account public keys and their states.
 
-#### Example
+**Example**
 
 ```typescript
 const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
@@ -2037,21 +2033,21 @@ console.log(`Position has ${vestings.length} vesting accounts`);
 
 Checks if a position has any locked liquidity.
 
-#### Function
+**Function**
 
 ```typescript
 isLockedPosition(position: PositionState): boolean
 ```
 
-#### Parameters
+**Parameters**
 
 - `position`: The position state.
 
-#### Returns
+**Returns**
 
 Boolean indicating whether the position has locked liquidity.
 
-#### Example
+**Example**
 
 ```typescript
 const positionState = await cpAmm.fetchPositionState(positionAddress);
@@ -2068,21 +2064,21 @@ if (cpAmm.isLockedPosition(positionState)) {
 
 Checks if a pool exists.
 
-#### Function
+**Function**
 
 ```typescript
 async isPoolExist(pool: PublicKey): Promise<boolean>
 ```
 
-#### Parameters
+**Parameters**
 
 - `pool`: Public key of the pool.
 
-#### Returns
+**Returns**
 
 Boolean indicating whether the pool exists.
 
-#### Example
+**Example**
 
 ```typescript
 const exists = await cpAmm.isPoolExist(poolAddress);
@@ -2101,13 +2097,13 @@ if (exists) {
 
 Prepares parameters required for pool creation, including initial sqrt price and liquidity.
 
-#### Function
+**Function**
 
 ```typescript
 preparePoolCreationParams(params: PreparePoolCreationParams): PreparedPoolCreation
 ```
 
-#### Parameters
+**Parameters**
 
 ```typescript
 interface PreparePoolCreationParams {
@@ -2120,14 +2116,14 @@ interface PreparePoolCreationParams {
 }
 ```
 
-#### Returns
+**Returns**
 
 An object containing:
 
 - `initSqrtPrice`: The initial sqrt price in Q64 format
 - `liquidityDelta`: The initial liquidity in Q64 format
 
-#### Example
+**Example**
 
 ```typescript
 const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
@@ -2141,7 +2137,7 @@ console.log(`Initial sqrt price: ${initSqrtPrice.toString()}`);
 console.log(`Initial liquidity: ${liquidityDelta.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - This function calculates the correct initial price and liquidity based on the token amounts
 - Both token amounts must be greater than zero
@@ -2151,7 +2147,7 @@ console.log(`Initial liquidity: ${liquidityDelta.toString()}`);
 
 Checks if a vesting schedule is ready for full release.
 
-#### Function
+**Function**
 
 ```typescript
 function isVestingComplete(
@@ -2160,16 +2156,16 @@ function isVestingComplete(
 ): boolean;
 ```
 
-#### Parameters
+**Parameters**
 
 - `vestingData`: The vesting account state data
 - `currentPoint`: Current timestamp or slot number
 
-#### Returns
+**Returns**
 
 Boolean indicating whether the vesting schedule is complete and all liquidity can be released.
 
-#### Example
+**Example**
 
 ```typescript
 const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
@@ -2183,7 +2179,7 @@ if (vestings.length > 0) {
 }
 ```
 
-#### Notes
+**Notes**
 
 - This function checks if the current point (timestamp or slot) has passed the end of the vesting schedule
 - The end point is calculated as: cliffPoint + (periodFrequency \* numberOfPeriods)
@@ -2196,21 +2192,21 @@ if (vestings.length > 0) {
 
 Gets the total amount of liquidity in the vesting schedule.
 
-#### Function
+**Function**
 
 ```typescript
 function getTotalLockedLiquidity(vestingData: VestingState): BN;
 ```
 
-#### Parameters
+**Parameters**
 
 - `vestingData`: The vesting account state data
 
-#### Returns
+**Returns**
 
 The total locked liquidity amount as a BN.
 
-#### Example
+**Example**
 
 ```typescript
 const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
@@ -2220,7 +2216,7 @@ if (vestings.length > 0) {
 }
 ```
 
-#### Notes
+**Notes**
 
 - Calculates the sum of cliff unlock liquidity and periodic unlock liquidity
 - Formula: cliffUnlockLiquidity + (liquidityPerPeriod \* numberOfPeriod)
@@ -2233,7 +2229,7 @@ if (vestings.length > 0) {
 
 Calculates the available liquidity to withdraw based on vesting schedule.
 
-#### Function
+**Function**
 
 ```typescript
 function getAvailableVestingLiquidity(
@@ -2242,16 +2238,16 @@ function getAvailableVestingLiquidity(
 ): BN;
 ```
 
-#### Parameters
+**Parameters**
 
 - `vestingData`: The vesting account state data
 - `currentPoint`: Current timestamp or slot number
 
-#### Returns
+**Returns**
 
 The amount of liquidity available to withdraw as a BN.
 
-#### Example
+**Example**
 
 ```typescript
 const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
@@ -2270,22 +2266,22 @@ if (vestings.length > 0) {
 
 Calculates the maximum amount after applying a slippage rate.
 
-#### Function
+**Function**
 
 ```typescript
 function getMaxAmountWithSlippage(amount: BN, rate: number): BN;
 ```
 
-#### Parameters
+**Parameters**
 
 - `amount`: The base amount as a BN
 - `rate`: The slippage rate as a percentage (e.g., 0.5 for 0.5%)
 
-#### Returns
+**Returns**
 
 The maximum amount after applying slippage as a BN.
 
-#### Example
+**Example**
 
 ```typescript
 const tokenAmount = new BN(1_000_000_000); // 1,000 tokens
@@ -2294,7 +2290,7 @@ const maxAmount = getMaxAmountWithSlippage(tokenAmount, slippageRate);
 console.log(`Maximum amount with slippage: ${maxAmount.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - Used when you need to calculate the upper bound of an amount with slippage tolerance
 - Formula: amount \* (100 + rate) / 100
@@ -2307,22 +2303,22 @@ console.log(`Maximum amount with slippage: ${maxAmount.toString()}`);
 
 Calculates the minimum amount after applying a slippage rate.
 
-#### Function
+**Function**
 
 ```typescript
 function getMinAmountWithSlippage(amount: BN, rate: number): BN;
 ```
 
-#### Parameters
+**Parameters**
 
 - `amount`: The base amount as a BN
 - `rate`: The slippage rate as a percentage (e.g., 0.5 for 0.5%)
 
-#### Returns
+**Returns**
 
 The minimum amount after applying slippage as a BN.
 
-#### Example
+**Example**
 
 ```typescript
 const expectedOutput = new BN(1_000_000_000); // 1,000 tokens
@@ -2331,7 +2327,7 @@ const minAmount = getMinAmountWithSlippage(expectedOutput, slippageRate);
 console.log(`Minimum amount with slippage: ${minAmount.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - Used when you need to calculate the lower bound of an amount with slippage tolerance
 - Formula: amount \* (100 - rate) / 100
@@ -2343,90 +2339,37 @@ console.log(`Minimum amount with slippage: ${minAmount.toString()}`);
 ### getPriceImpact
 
 Calculates the price impact as a percentage.
-Price impact measures how much worse the user's execution was compared to the current market price.
 
-#### Function
-
-```typescript
-function getPriceImpact(
-  amountIn: BN,
-  amountOut: BN,
-  currentSqrtPrice: BN,
-  aToB: boolean,
-  tokenADecimal: number,
-  tokenBDecimal: number
-): number;
-```
-
-#### Parameters
-
-- `amountIn`: Input amount (in base units)
-- `amountOut`: Output amount (in base units)
-- `currentSqrtPrice`: Current pool sqrt price (spot price)
-- `aToB`: Direction of swap: true for token A to token B, false for token B to token A
-- `tokenADecimal`: Decimal places for token A
-- `tokenBDecimal`: Decimal places for token B
-
-#### Returns
-
-The price impact as a percentage (e.g., 1.5 means 1.5% worse than spot price).
-
-#### Example
+**Function**
 
 ```typescript
-const priceImpact = getPriceImpact(
-  amountIn,
-  amountOut,
-  poolState.sqrtPrice,
-  true, // A to B swap
-  6, // USDC has 6 decimals
-  9 // SOL has 9 decimals
-);
-console.log(`Price impact: ${priceImpact.toFixed(2)}%`);
+function getPriceImpact(actualAmount: BN, idealAmount: BN): number;
 ```
 
-#### Notes
+**Parameters**
 
-- Price impact measures execution quality, not price movement
-- Formula: (execution_price - spot_price) / spot_price × 100%
-- Higher price impact means worse execution compared to market price
-- Common use case: Showing users how much worse their swap execution was compared to current market price
+- `actualAmount`: The actual amount after slippage in token units
+- `idealAmount`: The theoretical amount without slippage in token units
 
----
+**Returns**
 
-## getPriceChange
+The price impact as a percentage (e.g., 1.5 means 1.5%).
 
-Calculates the price change as a percentage.
-This measures the percentage change in pool price after a swap.
-
-#### Function
+**Example**
 
 ```typescript
-function getPriceChange(nextSqrtPrice: BN, currentSqrtPrice: BN): number;
+const idealAmount = new BN(1_000_000_000); // 1,000 tokens (theoretical)
+const actualAmount = new BN(990_000_000); // 990 tokens (actual)
+const impact = getPriceImpact(actualAmount, idealAmount);
+console.log(`Price impact: ${impact.toFixed(2)}%`);
 ```
 
-#### Parameters
+**Notes**
 
-- `nextSqrtPrice`: Sqrt price after swap
-- `currentSqrtPrice`: Current pool sqrt price
-
-#### Returns
-
-The price change as a percentage (e.g., 1.5 means 1.5% change).
-
-#### Example
-
-```typescript
-const priceChange = getPriceChange(nextSqrtPrice, currentSqrtPrice);
-console.log(`Price change: ${priceChange.toFixed(2)}%`);
-```
-
-#### Notes
-
-- Used to express how much a transaction will affect the pool price
-- Formula: abs((nextSqrtPrice)² - (currentSqrtPrice)²) \* 100 / (currentSqrtPrice)²
-- Higher price change indicates a greater effect on the market price
-- Common use case: Showing users the effect of their swap on the pool price
+- Used to express how much a transaction will affect the price
+- Formula: ((idealAmount - actualAmount) / idealAmount) \* 100
+- Higher price impact indicates a greater effect on the market price
+- Common use case: Showing users the effect of their swap on the pool
 
 ---
 
@@ -2436,7 +2379,7 @@ console.log(`Price change: ${priceChange.toFixed(2)}%`);
 
 Converts a sqrt price in Q64 format to a human-readable price.
 
-#### Function
+**Function**
 
 ```typescript
 function getPriceFromSqrtPrice(
@@ -2446,17 +2389,17 @@ function getPriceFromSqrtPrice(
 ): string;
 ```
 
-#### Parameters
+**Parameters**
 
 - `sqrtPrice`: The sqrt price in Q64 format
 - `tokenADecimal`: The number of decimals for token A
 - `tokenBDecimal`: The number of decimals for token B
 
-#### Returns
+**Returns**
 
-The price as a Decimal object for precise calculations.
+The price as a string in human-readable format.
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -2468,7 +2411,7 @@ const price = getPriceFromSqrtPrice(
 console.log(`Current price: ${price} USDC per SOL`);
 ```
 
-#### Notes
+**Notes**
 
 - Converts the internal sqrt price representation to a human-readable price
 - Formula: (sqrtPrice >> 64)^2 \* 10^(tokenADecimal - tokenBDecimal)
@@ -2481,7 +2424,7 @@ console.log(`Current price: ${price} USDC per SOL`);
 
 Converts a human-readable price to a sqrt price in Q64 format.
 
-#### Function
+**Function**
 
 ```typescript
 function getSqrtPriceFromPrice(
@@ -2491,17 +2434,17 @@ function getSqrtPriceFromPrice(
 ): BN;
 ```
 
-#### Parameters
+**Parameters**
 
 - `price`: The price as a string in human-readable format
 - `tokenADecimal`: The number of decimals for token A
 - `tokenBDecimal`: The number of decimals for token B
 
-#### Returns
+**Returns**
 
 The sqrt price as a BN in Q64 format.
 
-#### Example
+**Example**
 
 ```typescript
 const price = "0.05"; // 0.05 USDC per SOL
@@ -2513,10 +2456,10 @@ const sqrtPrice = getSqrtPriceFromPrice(
 console.log(`Sqrt price in Q64 format: ${sqrtPrice.toString()}`);
 ```
 
-#### Notes
+**Notes**
 
 - Converts a human-readable price to the internal sqrt price representation
-- Formula: sqrt(price / 10^(tokenADecimal - tokenBDecimal)) << 64
+- Formula: `sqrt(price / 10^(tokenADecimal - tokenBDecimal)) << 64`
 - Useful when creating pools with a specific initial price
 - Can be used to define price boundaries for concentrated liquidity positions
 
@@ -2528,7 +2471,7 @@ console.log(`Sqrt price in Q64 format: ${sqrtPrice.toString()}`);
 
 Calculates unclaimed fees and rewards for a position.
 
-#### Function
+**Function**
 
 ```typescript
 function getUnClaimReward(
@@ -2541,12 +2484,12 @@ function getUnClaimReward(
 };
 ```
 
-#### Parameters
+**Parameters**
 
 - `poolState`: The current state of the pool
 - `positionState`: The current state of the position
 
-#### Returns
+**Returns**
 
 An object containing:
 
@@ -2554,7 +2497,7 @@ An object containing:
 - `feeTokenB`: Unclaimed fees in token B
 - `rewards`: Array of unclaimed reward amounts for each reward token
 
-#### Example
+**Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
@@ -2572,7 +2515,7 @@ unclaimed.rewards.forEach((reward, i) => {
 
 Calculates the current base fee numerator based on the configured fee scheduler mode and elapsed periods.
 
-#### Function
+**Function**
 
 ```typescript
 function getBaseFeeNumerator(
@@ -2583,14 +2526,14 @@ function getBaseFeeNumerator(
 ): BN;
 ```
 
-#### Parameters
+**Parameters**
 
 - `feeSchedulerMode`: The fee reduction mode (Linear or Exponential)
 - `cliffFeeNumerator`: The initial maximum fee numerator (starting point)
 - `period`: The number of elapsed periods since fee reduction began
 - `reductionFactor`: The rate of fee reduction per period
 
-#### Mathematical Formulas
+**Mathematical Formula**
 
 **Linear Mode:**
 
@@ -2604,7 +2547,7 @@ fee = cliffFeeNumerator - (period × reductionFactor)
 fee = cliffFeeNumerator × (1 - reductionFactor/BASIS_POINT_MAX)^period
 ```
 
-#### Returns
+**Returns**
 
 - `BN`: The calculated base fee numerator for the current period
 
@@ -2612,7 +2555,7 @@ fee = cliffFeeNumerator × (1 - reductionFactor/BASIS_POINT_MAX)^period
 
 Calculates a dynamic fee component based on market volatility
 
-#### Function
+**Function**
 
 ```typescript
 function getDynamicFeeNumerator(
@@ -2622,13 +2565,13 @@ function getDynamicFeeNumerator(
 ): BN;
 ```
 
-#### Parameters
+**Parameters**
 
 - `volatilityAccumulator`: Accumulated measure of market volatility over time
 - `binStep`: The price bin step size used in the liquidity distribution system
 - `variableFeeControl`: Control parameter that determines how much volatility affects fees
 
-#### Mathematical Formula
+**Mathematical Formula**
 
 ```
 squareVfaBin = (volatilityAccumulator × binStep)²
@@ -2636,7 +2579,7 @@ vFee = variableFeeControl × squareVfaBin
 dynamicFee = (vFee + 99,999,999,999) ÷ 100,000,000,000
 ```
 
-#### Returns
+**Returns**
 
 - `BN`: The calculated dynamic fee numerator
 - Returns `0` if `variableFeeControl` is zero (dynamic fees disabled)
@@ -2645,7 +2588,7 @@ dynamicFee = (vFee + 99,999,999,999) ÷ 100,000,000,000
 
 Converts basis points to fee numerator format.
 
-#### Formula
+**Mathematical Formula**
 
 ```
 feeNumerator = (bps × FEE_DENOMINATOR) ÷ BASIS_POINT_MAX
@@ -2655,7 +2598,7 @@ feeNumerator = (bps × FEE_DENOMINATOR) ÷ BASIS_POINT_MAX
 
 Converts fee numerator back to basis points.
 
-#### Formula
+**Mathematical Formula**
 
 ```
 bps = (feeNumerator × BASIS_POINT_MAX) ÷ FEE_DENOMINATOR
@@ -2665,7 +2608,7 @@ bps = (feeNumerator × BASIS_POINT_MAX) ÷ FEE_DENOMINATOR
 
 Calculates the initial parameters for a base fee
 
-#### Key Features
+**Key Features**
 
 - Supports both linear and exponential fee reduction
 - Validates parameter consistency
@@ -2675,7 +2618,7 @@ Calculates the initial parameters for a base fee
 
 Calculates the parameters needed for dynamic fee.
 
-#### Key Features
+**Key Features**
 
 - Configures volatility-based fee parameters
 - Sets maximum price change thresholds

@@ -1,4 +1,4 @@
-import { Connection, Keypair, PublicKey, Transaction } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, Transaction, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { CpAmm } from "../src";
 
 const RPC = process.env.RPC;
@@ -18,6 +18,10 @@ async function claimPoolProtocolFee(
   const wallet = Keypair.fromSecretKey(Uint8Array.from(require(walletPath)));
 
   console.log(`Connected using wallet ${wallet.publicKey.toBase58()}`);
+
+  // Log starting SOL balance
+  const startBalance = await connection.getBalance(wallet.publicKey);
+  console.log(`🏁 Starting SOL balance: ${startBalance} lamports (${(startBalance / LAMPORTS_PER_SOL).toFixed(9)} SOL)`);
 
   const cpAmm = new CpAmm(connection);
   const claimTx = await cpAmm.claimProtocolFee({
@@ -39,6 +43,12 @@ async function claimPoolProtocolFee(
     signature,
     ...latestBlockhash,
   });
+
+  // Log ending SOL balance and total spent
+  const endBalance = await connection.getBalance(wallet.publicKey);
+  const totalSpent = startBalance - endBalance;
+  console.log(`🏁 Ending SOL balance: ${endBalance} lamports (${(endBalance / LAMPORTS_PER_SOL).toFixed(9)} SOL)`);
+  console.log(`💸 Total SOL spent: ${totalSpent} lamports (${(totalSpent / LAMPORTS_PER_SOL).toFixed(9)} SOL)`);
 }
 
 claimPoolProtocolFee(RPC, WALLET_PATH, new PublicKey(TREASURY), POOL)

@@ -40,13 +40,8 @@ export function getBaseFeeNumerator(
   feeSchedulerMode: FeeSchedulerMode,
   cliffFeeNumerator: BN,
   period: BN,
-  reductionFactor: BN,
-  periodFrequency: BN
+  reductionFactor: BN
 ): BN {
-  if (periodFrequency.eq(new BN(0)) || period.eq(new BN(0))) {
-    return cliffFeeNumerator;
-  }
-
   let feeNumerator: BN;
   if (feeSchedulerMode == FeeSchedulerMode.Linear) {
     feeNumerator = cliffFeeNumerator.sub(period.mul(reductionFactor));
@@ -129,8 +124,7 @@ export function getFeeNumerator(
     feeSchedulerMode,
     cliffFeeNumerator,
     period,
-    reductionFactor,
-    periodFrequency
+    reductionFactor
   );
 
   if (dynamicFeeParams) {

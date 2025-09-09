@@ -10,52 +10,22 @@ import {
 import { expect } from "chai";
 
 describe("fee helpers function", () => {
-  it("get base fee params with Linear Fee Scheduler with 0 period frequency", async () => {
-    const maxBaseFee = 4000; // 40%
-    const periodFrequency = 0;
-
-    const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
-    const baseFeeNumerator = getBaseFeeNumerator(
-      FeeSchedulerMode.Linear,
-      cliffFeeNumerator,
-      new BN(120),
-      new BN(1833333),
-      new BN(periodFrequency)
-    );
-    expect(cliffFeeNumerator.toNumber()).equal(baseFeeNumerator.toNumber());
-  });
-  it("get base fee params with Exponential Fee Scheduler with 0 period frequency", async () => {
-    const maxBaseFee = 4000; // 40%
-    const periodFrequency = 0;
-
-    const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
-    const baseFeeNumerator = getBaseFeeNumerator(
-      FeeSchedulerMode.Exponential,
-      cliffFeeNumerator,
-      new BN(120),
-      new BN(1833333),
-      new BN(periodFrequency)
-    );
-    expect(cliffFeeNumerator.toNumber()).equal(baseFeeNumerator.toNumber());
-  });
   it("get base fee params with Linear Fee Scheduler", async () => {
     const maxBaseFee = 4000; // 40%
     const minBaseFee = 100; // 1%
-    const periodFrequency = 60;
     const baseFeeParams = getBaseFeeParams(
       maxBaseFee,
       minBaseFee,
       FeeSchedulerMode.Linear,
       120,
-      periodFrequency
+      60
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(
       FeeSchedulerMode.Linear,
       cliffFeeNumerator,
       new BN(120),
-      new BN(baseFeeParams.reductionFactor),
-      new BN(periodFrequency)
+      new BN(baseFeeParams.reductionFactor)
     );
     const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFee);
     expect(minBaseFeeNumerator.toNumber()).equal(baseFeeNumerator.toNumber());
@@ -63,21 +33,19 @@ describe("fee helpers function", () => {
   it("get base fee params with Exponential Fee Scheduler", async () => {
     const maxBaseFee = 4000; // 40%
     const minBaseFee = 100; // 1%
-    const periodFrequency = 60;
     const baseFeeParams = getBaseFeeParams(
       maxBaseFee,
       minBaseFee,
       FeeSchedulerMode.Exponential,
       120,
-      periodFrequency
+      60
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(
       FeeSchedulerMode.Exponential,
       cliffFeeNumerator,
       new BN(120),
-      new BN(baseFeeParams.reductionFactor),
-      new BN(periodFrequency)
+      new BN(baseFeeParams.reductionFactor)
     ).toNumber();
     const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFee).toNumber();
     const diff = Math.abs(minBaseFeeNumerator - baseFeeNumerator);

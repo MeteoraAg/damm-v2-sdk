@@ -2522,8 +2522,7 @@ function getBaseFeeNumerator(
   feeSchedulerMode: FeeSchedulerMode,
   cliffFeeNumerator: BN,
   period: BN,
-  reductionFactor: BN,
-  periodFrequency: BN
+  reductionFactor: BN
 ): BN;
 ```
 

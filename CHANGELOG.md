@@ -21,16 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-## damm_v2_sdk [1.1.2]
-
-### Fixed
-
-- `getBaseFeeNumerator` not returning `cliffFeeNumerator` when `periodFrequency` is 0
-
-### Breaking Changes
-
-- `getBaseFeeNumerator` now requires a `periodFrequency` parameter. This value can be extracted from the `poolFees.baseFee.periodFrequency`
-
 ## damm_v2_sdk [1.1.0] [PR #59](https://github.com/MeteoraAg/damm-v2-sdk/pull/59)
 
 ### Added

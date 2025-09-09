@@ -43,7 +43,7 @@ export function getBaseFeeNumerator(
   reductionFactor: BN,
   periodFrequency: BN
 ): BN {
-  if (periodFrequency.eq(new BN(0))) {
+  if (periodFrequency.eq(new BN(0)) || period.eq(new BN(0))) {
     return cliffFeeNumerator;
   }
 

@@ -109,23 +109,26 @@ export function getFeeNumerator(
     variableFeeControl: number;
   }
 ): BN {
+  let feeNumerator: BN;
   if (
     Number(periodFrequency) == 0 ||
     new BN(currentPoint).lt(activationPoint)
   ) {
-    return cliffFeeNumerator;
-  }
-  const period = BN.min(
-    new BN(numberOfPeriod),
-    new BN(currentPoint).sub(activationPoint).div(periodFrequency)
-  );
+    feeNumerator = cliffFeeNumerator
+  } else {
+    const period = BN.min(
+      new BN(numberOfPeriod),
+      new BN(currentPoint).sub(activationPoint).div(periodFrequency)
+    );
 
-  let feeNumerator = getBaseFeeNumerator(
-    feeSchedulerMode,
-    cliffFeeNumerator,
-    period,
-    reductionFactor
-  );
+    feeNumerator = getBaseFeeNumerator(
+      feeSchedulerMode,
+      cliffFeeNumerator,
+      period,
+      reductionFactor
+    );
+  }
+
 
   if (dynamicFeeParams) {
     const { volatilityAccumulator, binStep, variableFeeControl } =
@@ -216,17 +219,17 @@ export function getSwapAmount(
   // Calculate the output amount based on swap direction
   const outAmount = aToB
     ? getAmountBFromLiquidityDelta(
-        liquidity,
-        sqrtPrice,
-        nextSqrtPrice,
-        Rounding.Down
-      )
+      liquidity,
+      sqrtPrice,
+      nextSqrtPrice,
+      Rounding.Down
+    )
     : getAmountAFromLiquidityDelta(
-        liquidity,
-        sqrtPrice,
-        nextSqrtPrice,
-        Rounding.Down
-      );
+      liquidity,
+      sqrtPrice,
+      nextSqrtPrice,
+      Rounding.Down
+    );
 
   // Apply fees to output amount if fee is taken on output
   const amountOut = feeMode.feeOnInput
@@ -548,10 +551,10 @@ export function getSwapResultFromOutAmount(
     pool.poolFees.baseFee.reductionFactor,
     pool.poolFees.dynamicFee.initialized === 1
       ? {
-          volatilityAccumulator: pool.poolFees.dynamicFee.volatilityAccumulator,
-          binStep: pool.poolFees.dynamicFee.binStep,
-          variableFeeControl: pool.poolFees.dynamicFee.variableFeeControl,
-        }
+        volatilityAccumulator: pool.poolFees.dynamicFee.volatilityAccumulator,
+        binStep: pool.poolFees.dynamicFee.binStep,
+        variableFeeControl: pool.poolFees.dynamicFee.variableFeeControl,
+      }
       : undefined
   );
 

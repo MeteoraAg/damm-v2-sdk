@@ -8,7 +8,7 @@ export type CpAmm = {
   address: "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG";
   metadata: {
     name: "cpAmm";
-    version: "0.1.3";
+    version: "0.1.4";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -2664,6 +2664,83 @@ export type CpAmm = {
       ];
     },
     {
+      name: "splitPosition2";
+      discriminator: [221, 147, 228, 207, 140, 212, 17, 119];
+      accounts: [
+        {
+          name: "pool";
+          writable: true;
+          relations: ["firstPosition", "secondPosition"];
+        },
+        {
+          name: "firstPosition";
+          docs: ["The first position"];
+          writable: true;
+        },
+        {
+          name: "firstPositionNftAccount";
+          docs: ["The token account for position nft"];
+        },
+        {
+          name: "secondPosition";
+          docs: ["The second position"];
+          writable: true;
+        },
+        {
+          name: "secondPositionNftAccount";
+          docs: ["The token account for position nft"];
+        },
+        {
+          name: "firstOwner";
+          docs: ["Owner of first position"];
+          signer: true;
+        },
+        {
+          name: "secondOwner";
+          docs: ["Owner of second position"];
+          signer: true;
+        },
+        {
+          name: "eventAuthority";
+          pda: {
+            seeds: [
+              {
+                kind: "const";
+                value: [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ];
+              }
+            ];
+          };
+        },
+        {
+          name: "program";
+        }
+      ];
+      args: [
+        {
+          name: "numerator";
+          type: "u32";
+        }
+      ];
+    },
+    {
       name: "swap";
       discriminator: [248, 198, 158, 145, 225, 117, 135, 200];
       accounts: [
@@ -3060,8 +3137,8 @@ export type CpAmm = {
       discriminator: [100, 213, 74, 3, 95, 91, 228, 146];
     },
     {
-      name: "evtSplitPosition";
-      discriminator: [182, 138, 42, 254, 27, 94, 82, 221];
+      name: "evtSplitPosition2";
+      discriminator: [165, 32, 203, 174, 72, 100, 233, 103];
     },
     {
       name: "evtSwap";
@@ -4338,7 +4415,7 @@ export type CpAmm = {
       };
     },
     {
-      name: "evtSplitPosition";
+      name: "evtSplitPosition2";
       type: {
         kind: "struct";
         fields: [
@@ -4394,7 +4471,7 @@ export type CpAmm = {
             name: "splitPositionParameters";
             type: {
               defined: {
-                name: "splitPositionParameters";
+                name: "splitPositionParameters2";
               };
             };
           }
@@ -5338,6 +5415,38 @@ export type CpAmm = {
             type: {
               array: ["u8", 16];
             };
+          }
+        ];
+      };
+    },
+    {
+      name: "splitPositionParameters2";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "unlockedLiquidityNumerator";
+            type: "u32";
+          },
+          {
+            name: "permanentLockedLiquidityNumerator";
+            type: "u32";
+          },
+          {
+            name: "feeANumerator";
+            type: "u32";
+          },
+          {
+            name: "feeBNumerator";
+            type: "u32";
+          },
+          {
+            name: "reward0Numerator";
+            type: "u32";
+          },
+          {
+            name: "reward1Numerator";
+            type: "u32";
           }
         ];
       };

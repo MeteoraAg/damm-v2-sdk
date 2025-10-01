@@ -65,6 +65,7 @@ import {
   WithdrawIneligibleRewardParams,
   WithdrawQuote,
   SplitPositionParams,
+  SplitPosition2Params,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -2960,6 +2961,32 @@ export class CpAmm {
         reward1Percentage,
         padding: new Array(16).fill(0),
       })
+      .accountsPartial({
+        pool,
+        firstPosition,
+        firstPositionNftAccount,
+        secondPosition,
+        secondPositionNftAccount,
+        firstOwner: firstPositionOwner,
+        secondOwner: secondPositionOwner,
+      })
+      .transaction();
+  }
+
+  async splitPosition2(params: SplitPosition2Params): TxBuilder {
+    const {
+      firstPositionOwner,
+      secondPositionOwner,
+      pool,
+      firstPosition,
+      firstPositionNftAccount,
+      secondPosition,
+      secondPositionNftAccount,
+      numerator,
+    } = params;
+
+    return await this._program.methods
+      .splitPosition2(numerator)
       .accountsPartial({
         pool,
         firstPosition,

@@ -2847,6 +2847,112 @@ export type CpAmm = {
       ];
     },
     {
+      name: "swap2";
+      discriminator: [65, 75, 63, 76, 235, 91, 91, 136];
+      accounts: [
+        {
+          name: "poolAuthority";
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
+        },
+        {
+          name: "pool";
+          docs: ["Pool account"];
+          writable: true;
+        },
+        {
+          name: "inputTokenAccount";
+          docs: ["The user token account for input token"];
+          writable: true;
+        },
+        {
+          name: "outputTokenAccount";
+          docs: ["The user token account for output token"];
+          writable: true;
+        },
+        {
+          name: "tokenAVault";
+          docs: ["The vault token account for input token"];
+          writable: true;
+          relations: ["pool"];
+        },
+        {
+          name: "tokenBVault";
+          docs: ["The vault token account for output token"];
+          writable: true;
+          relations: ["pool"];
+        },
+        {
+          name: "tokenAMint";
+          docs: ["The mint of token a"];
+        },
+        {
+          name: "tokenBMint";
+          docs: ["The mint of token b"];
+        },
+        {
+          name: "payer";
+          docs: ["The user performing the swap"];
+          signer: true;
+        },
+        {
+          name: "tokenAProgram";
+          docs: ["Token a program"];
+        },
+        {
+          name: "tokenBProgram";
+          docs: ["Token b program"];
+        },
+        {
+          name: "referralTokenAccount";
+          docs: ["referral token account"];
+          writable: true;
+          optional: true;
+        },
+        {
+          name: "eventAuthority";
+          pda: {
+            seeds: [
+              {
+                kind: "const";
+                value: [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ];
+              }
+            ];
+          };
+        },
+        {
+          name: "program";
+        }
+      ];
+      args: [
+        {
+          name: "params";
+          type: {
+            defined: {
+              name: "swapParameters2";
+            };
+          };
+        }
+      ];
+    },
+    {
       name: "updateRewardDuration";
       discriminator: [138, 174, 196, 169, 213, 235, 254, 107];
       accounts: [
@@ -3121,6 +3227,10 @@ export type CpAmm = {
       discriminator: [129, 91, 188, 3, 246, 52, 185, 249];
     },
     {
+      name: "evtLiquidityChange";
+      discriminator: [197, 171, 78, 127, 224, 211, 87, 13];
+    },
+    {
       name: "evtLockPosition";
       discriminator: [168, 63, 108, 83, 219, 82, 2, 200];
     },
@@ -3143,6 +3253,10 @@ export type CpAmm = {
     {
       name: "evtSwap";
       discriminator: [27, 60, 21, 213, 138, 170, 187, 147];
+    },
+    {
+      name: "evtSwap2";
+      discriminator: [189, 66, 51, 168, 38, 80, 117, 153];
     },
     {
       name: "evtUpdateRewardDuration";
@@ -3392,6 +3506,36 @@ export type CpAmm = {
       code: 6046;
       name: "samePosition";
       msg: "Same position";
+    },
+    {
+      code: 6047;
+      name: "invalidBaseFeeMode";
+      msg: "Invalid base fee mode";
+    },
+    {
+      code: 6048;
+      name: "invalidFeeRateLimiter";
+      msg: "Invalid fee rate limiter";
+    },
+    {
+      code: 6049;
+      name: "failToValidateSingleSwapInstruction";
+      msg: "Fail to validate single swap instruction in rate limiter";
+    },
+    {
+      code: 6050;
+      name: "invalidFeeScheduler";
+      msg: "Invalid fee scheduler";
+    },
+    {
+      code: 6051;
+      name: "undeterminedError";
+      msg: "Undetermined error";
+    },
+    {
+      code: 6052;
+      name: "invalidPoolVersion";
+      msg: "Invalid pool version";
     }
   ];
   types: [
@@ -3432,7 +3576,7 @@ export type CpAmm = {
             type: "u64";
           },
           {
-            name: "feeSchedulerMode";
+            name: "baseFeeMode";
             type: "u8";
           },
           {
@@ -3442,15 +3586,17 @@ export type CpAmm = {
             };
           },
           {
-            name: "numberOfPeriod";
+            name: "firstFactor";
             type: "u16";
           },
           {
-            name: "periodFrequency";
-            type: "u64";
+            name: "secondFactor";
+            type: {
+              array: ["u8", 8];
+            };
           },
           {
-            name: "reductionFactor";
+            name: "thirdFactor";
             type: "u64";
           }
         ];
@@ -3466,19 +3612,21 @@ export type CpAmm = {
             type: "u64";
           },
           {
-            name: "numberOfPeriod";
+            name: "firstFactor";
             type: "u16";
           },
           {
-            name: "periodFrequency";
+            name: "secondFactor";
+            type: {
+              array: ["u8", 8];
+            };
+          },
+          {
+            name: "thirdFactor";
             type: "u64";
           },
           {
-            name: "reductionFactor";
-            type: "u64";
-          },
-          {
-            name: "feeSchedulerMode";
+            name: "baseFeeMode";
             type: "u8";
           }
         ];
@@ -3498,7 +3646,7 @@ export type CpAmm = {
             type: "u64";
           },
           {
-            name: "feeSchedulerMode";
+            name: "baseFeeMode";
             type: "u8";
           },
           {
@@ -3508,15 +3656,17 @@ export type CpAmm = {
             };
           },
           {
-            name: "numberOfPeriod";
+            name: "firstFactor";
             type: "u16";
           },
           {
-            name: "periodFrequency";
-            type: "u64";
+            name: "secondFactor";
+            type: {
+              array: ["u8", 8];
+            };
           },
           {
-            name: "reductionFactor";
+            name: "thirdFactor";
             type: "u64";
           },
           {
@@ -4295,6 +4445,66 @@ export type CpAmm = {
       };
     },
     {
+      name: "evtLiquidityChange";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "pool";
+            type: "pubkey";
+          },
+          {
+            name: "position";
+            type: "pubkey";
+          },
+          {
+            name: "owner";
+            type: "pubkey";
+          },
+          {
+            name: "tokenAAmount";
+            type: "u64";
+          },
+          {
+            name: "tokenBAmount";
+            type: "u64";
+          },
+          {
+            name: "transferFeeIncludedTokenAAmount";
+            type: "u64";
+          },
+          {
+            name: "transferFeeIncludedTokenBAmount";
+            type: "u64";
+          },
+          {
+            name: "reserveAAmount";
+            type: "u64";
+          },
+          {
+            name: "reserveBAmount";
+            type: "u64";
+          },
+          {
+            name: "liquidityDelta";
+            type: "u128";
+          },
+          {
+            name: "tokenAAmountThreshold";
+            type: "u64";
+          },
+          {
+            name: "tokenBAmountThreshold";
+            type: "u64";
+          },
+          {
+            name: "changeType";
+            type: "u8";
+          }
+        ];
+      };
+    },
+    {
       name: "evtLockPosition";
       type: {
         kind: "struct";
@@ -4517,6 +4727,70 @@ export type CpAmm = {
           },
           {
             name: "currentTimestamp";
+            type: "u64";
+          }
+        ];
+      };
+    },
+    {
+      name: "evtSwap2";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "pool";
+            type: "pubkey";
+          },
+          {
+            name: "tradeDirection";
+            type: "u8";
+          },
+          {
+            name: "collectFeeMode";
+            type: "u8";
+          },
+          {
+            name: "hasReferral";
+            type: "bool";
+          },
+          {
+            name: "params";
+            type: {
+              defined: {
+                name: "swapParameters2";
+              };
+            };
+          },
+          {
+            name: "swapResult";
+            type: {
+              defined: {
+                name: "swapResult2";
+              };
+            };
+          },
+          {
+            name: "includedTransferFeeAmountIn";
+            type: "u64";
+          },
+          {
+            name: "includedTransferFeeAmountOut";
+            type: "u64";
+          },
+          {
+            name: "excludedTransferFeeAmountOut";
+            type: "u64";
+          },
+          {
+            name: "currentTimestamp";
+            type: "u64";
+          },
+          {
+            name: "reserveAAmount";
+            type: "u64";
+          },
+          {
+            name: "reserveBAmount";
             type: "u64";
           }
         ];
@@ -4813,11 +5087,16 @@ export type CpAmm = {
             type: "u8";
           },
           {
+            name: "version";
+            docs: [
+              "pool version, 0: max_fee is still capped at 50%, 1: max_fee is capped at 99%"
+            ];
+            type: "u8";
+          },
+          {
             name: "padding0";
             docs: ["padding"];
-            type: {
-              array: ["u8", 2];
-            };
+            type: "u8";
           },
           {
             name: "feeAPerLiquidity";
@@ -5508,6 +5787,33 @@ export type CpAmm = {
       };
     },
     {
+      name: "swapParameters2";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "amount0";
+            docs: [
+              "When it's exact in, partial fill, this will be amount_in. When it's exact out, this will be amount_out"
+            ];
+            type: "u64";
+          },
+          {
+            name: "amount1";
+            docs: [
+              "When it's exact in, partial fill, this will be minimum_amount_out. When it's exact out, this will be maximum_amount_in"
+            ];
+            type: "u64";
+          },
+          {
+            name: "swapMode";
+            docs: ["Swap mode, refer [SwapMode]"];
+            type: "u8";
+          }
+        ];
+      };
+    },
+    {
       name: "swapResult";
       docs: ["Encodes all results of swapping"];
       type: {
@@ -5523,6 +5829,50 @@ export type CpAmm = {
           },
           {
             name: "lpFee";
+            type: "u64";
+          },
+          {
+            name: "protocolFee";
+            type: "u64";
+          },
+          {
+            name: "partnerFee";
+            type: "u64";
+          },
+          {
+            name: "referralFee";
+            type: "u64";
+          }
+        ];
+      };
+    },
+    {
+      name: "swapResult2";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "includedFeeInputAmount";
+            type: "u64";
+          },
+          {
+            name: "excludedFeeInputAmount";
+            type: "u64";
+          },
+          {
+            name: "amountLeft";
+            type: "u64";
+          },
+          {
+            name: "outputAmount";
+            type: "u64";
+          },
+          {
+            name: "nextSqrtPrice";
+            type: "u128";
+          },
+          {
+            name: "tradingFee";
             type: "u64";
           },
           {

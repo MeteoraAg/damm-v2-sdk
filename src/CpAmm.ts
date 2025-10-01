@@ -983,11 +983,11 @@ export class CpAmm {
       poolFees,
     } = poolState;
     const {
-      feeSchedulerMode,
+      baseFeeMode,
       cliffFeeNumerator,
-      numberOfPeriod,
-      reductionFactor,
-      periodFrequency,
+      firstFactor,
+      secondFactor,
+      thirdFactor,
     } = poolFees.baseFee;
     const dynamicFee = poolFees.dynamicFee;
 
@@ -1011,11 +1011,11 @@ export class CpAmm {
     const tradeFeeNumerator = getFeeNumerator(
       currentPoint,
       activationPoint,
-      numberOfPeriod,
-      periodFrequency,
-      feeSchedulerMode,
+      firstFactor,
+      secondFactor,
+      baseFeeMode,
       cliffFeeNumerator,
-      reductionFactor,
+      thirdFactor,
       dynamicFeeParams
     );
 

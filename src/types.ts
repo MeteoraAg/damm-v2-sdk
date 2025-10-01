@@ -17,9 +17,10 @@ export enum ActivationPoint {
   Slot,
 }
 
-export enum FeeSchedulerMode {
-  Linear,
-  Exponential,
+export enum BaseFeeMode {
+  FeeSchedulerLinear,
+  FeeSchedulerExponential,
+  RateLimiter,
 }
 
 export enum CollectFeeMode {
@@ -60,23 +61,27 @@ export type TokenBadgeState = IdlAccounts<CpAmmTypes>["tokenBadge"];
 //   IdlTypes<CpAmm>["InitializeCustomizablePoolParameters"];
 export type RewardInfo = IdlTypes<CpAmmTypes>["rewardInfo"];
 
-export type DynamicFee = {
-  binStep: number;
-  binStepU128: BN;
-  filterPeriod: number;
-  decayPeriod: number;
-  reductionFactor: number;
-  maxVolatilityAccumulator: number;
-  variableFeeControl: number;
-};
+/**
+ * Dynamic fee parameters
+ * @param binStep
+ * @param binStepU128
+ * @param filterPeriod
+ * @param decayPeriod
+ * @param reductionFactor
+ * @param maxVolatilityAccumulator
+ * @param variableFeeControl
+ */
+export type DynamicFee = IdlTypes<CpAmmTypes>["dynamicFeeParameters"];
 
-export type BaseFee = {
-  cliffFeeNumerator: BN;
-  numberOfPeriod: number;
-  periodFrequency: BN;
-  reductionFactor: BN;
-  feeSchedulerMode: number;
-};
+/**
+ * Base fee parameters
+ * @param cliffFeeNumerator
+ * @param firstFactor // feeScheduler: numberOfPeriod, rateLimiter: feeIncrementBps
+ * @param secondFactor // feeScheduler: periodFrequency, rateLimiter: maxLimiterDuration
+ * @param thirdFactor // feeScheduler: reductionFactor, rateLimiter: referenceAmount
+ * @param baseFeeMode
+ */
+export type BaseFee = IdlTypes<CpAmmTypes>["baseFeeParameters"];
 
 export type PoolFeesParams = {
   baseFee: BaseFee;

@@ -1794,7 +1794,7 @@ const secondPosition = await client.getUserPositionByPool(
   secondUser.publicKey
 );
 
-const splitPositionTx = await client.splitPosition({
+const splitPosition2Tx = await client.splitPosition2({
   firstPositionOwner: firstUser.publicKey,
   secondPositionOwner: secondUser.publicKey,
   pool: poolAddress,

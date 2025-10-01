@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## damm_v2_sdk [1.1.5] [PR #68](https://github.com/MeteoraAg/damm-v2-sdk/pull/68)
 
-## Added
+### Added
 
 - Add new function `splitPosition2` to allow split position via numerator
 

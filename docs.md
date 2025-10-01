@@ -28,6 +28,7 @@
   - [claimReward](#claimreward)
   - [closePosition](#closeposition)
   - [splitPosition](#splitposition)
+  - [splitPosition2](#splitposition2)
 
 - [State Functions](#state-functions)
 
@@ -1721,6 +1722,87 @@ const splitPositionTx = await client.splitPosition({
   feeBPercentage: 50,
   reward0Percentage: 50,
   reward1Percentage: 50,
+});
+```
+
+**Notes**
+
+- The first position must already exist for that pool
+- The second position can be a new empty position for that same pool
+
+---
+
+### splitPosition2
+
+Splits a position into two positions via numerator.
+
+**Function**
+
+```typescript
+async splitPosition2(params: SplitPosition2Params): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface SplitPosition2Params {
+  firstPositionOwner: PublicKey; // The owner of the first position
+  secondPositionOwner: PublicKey; // The owner of the second position
+  pool: PublicKey; // The pool address
+  firstPosition: PublicKey; // The first position address
+  firstPositionNftAccount: PublicKey; // The first position NFT account
+  secondPosition: PublicKey; // The second position address
+  secondPositionNftAccount: PublicKey; // The second position NFT account
+  numerator: number; // The numerator to split the position by, which is a percentage of the position
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const firstPosition = await client.getUserPositionByPool(
+  poolAddress,
+  firstUser.publicKey
+);
+
+const secondPositionKP = Keypair.generate();
+
+const createSecondPositionTx = await client.createPosition({
+  owner: secondUser.publicKey,
+  payer: secondUser.publicKey,
+  pool: poolAddress,
+  positionNft: secondPositionKP.publicKey,
+});
+
+const createSignature = await sendAndConfirmTransaction(
+  connection,
+  createSecondPositionTx,
+  [secondUser, secondPositionKP],
+  {
+    commitment: "confirmed",
+    skipPreflight: true,
+  }
+);
+console.log("Second position created:", createSignature);
+
+const secondPosition = await client.getUserPositionByPool(
+  poolAddress,
+  secondUser.publicKey
+);
+
+const splitPositionTx = await client.splitPosition({
+  firstPositionOwner: firstUser.publicKey,
+  secondPositionOwner: secondUser.publicKey,
+  pool: poolAddress,
+  firstPosition: firstPosition[0].position,
+  firstPositionNftAccount: firstPosition[0].positionNftAccount,
+  secondPosition: secondPosition[0].position,
+  secondPositionNftAccount: secondPosition[0].positionNftAccount,
+  numerator: SPLIT_POSITION_DENOMINATOR / 2,
 });
 ```
 

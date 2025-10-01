@@ -654,3 +654,14 @@ export type SplitPositionParams = {
   reward0Percentage: number;
   reward1Percentage: number;
 };
+
+export type SplitPositionParams2 = {
+  firstPositionOwner: PublicKey;
+  secondPositionOwner: PublicKey;
+  pool: PublicKey;
+  firstPosition: PublicKey;
+  firstPositionNftAccount: PublicKey;
+  secondPosition: PublicKey;
+  secondPositionNftAccount: PublicKey;
+  numerator: number;
+};

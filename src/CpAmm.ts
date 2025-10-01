@@ -65,7 +65,7 @@ import {
   WithdrawIneligibleRewardParams,
   WithdrawQuote,
   SplitPositionParams,
-  SplitPositionParams2,
+  SplitPosition2Params,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -2973,7 +2973,7 @@ export class CpAmm {
       .transaction();
   }
 
-  async splitPosition2(params: SplitPositionParams2): TxBuilder {
+  async splitPosition2(params: SplitPosition2Params): TxBuilder {
     const {
       firstPositionOwner,
       secondPositionOwner,

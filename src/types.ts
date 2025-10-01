@@ -655,7 +655,7 @@ export type SplitPositionParams = {
   reward1Percentage: number;
 };
 
-export type SplitPositionParams2 = {
+export type SplitPosition2Params = {
   firstPositionOwner: PublicKey;
   secondPositionOwner: PublicKey;
   pool: PublicKey;

@@ -425,10 +425,11 @@ export function getFeeNumeratorFromExcludedFeeAmount(
     const remainingAmountFeeNumerator = c.add(i.mul(aPlusOne));
 
     // included_fee_remaining_amount = getIncludedFeeAmount(remainingAmountFeeNumerator, excludedFeeRemainingAmount)
-    const includedFeeRemainingAmount = getIncludedFeeAmount(
-      remainingAmountFeeNumerator,
-      excludedFeeRemainingAmount
-    );
+    const { includedFeeAmount: includedFeeRemainingAmount } =
+      getIncludedFeeAmount(
+        remainingAmountFeeNumerator,
+        excludedFeeRemainingAmount
+      );
 
     // total_in_amount = includedFeeAmount + includedFeeRemainingAmount
     includedFeeAmount = includedFeeAmount.add(includedFeeRemainingAmount);
@@ -446,10 +447,8 @@ export function getFeeNumeratorFromExcludedFeeAmount(
       new BN(maxFeeBps),
       new BN(FEE_DENOMINATOR)
     );
-    const includedFeeRemainingAmount = getIncludedFeeAmount(
-      maxFeeNumerator,
-      excludedFeeRemainingAmount
-    );
+    const { includedFeeAmount: includedFeeRemainingAmount } =
+      getIncludedFeeAmount(maxFeeNumerator, excludedFeeRemainingAmount);
 
     // total_amount_in = includedFeeRemainingAmount + checkedIncludedFeeAmount
     includedFeeAmount = includedFeeRemainingAmount.add(

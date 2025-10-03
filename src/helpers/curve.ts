@@ -1,7 +1,7 @@
 import { BN } from "@coral-xyz/anchor";
 import { Rounding } from "../types";
 import { mulDiv } from "../math";
-import { SCALE_OFFSET } from "../constants";
+import { SCALE_OFFSET, U64_MAX } from "../constants";
 
 // aToB
 // √P' = √P * L / (L + Δx*√P)
@@ -137,24 +137,24 @@ export function getNextSqrtPriceFromAmountARoundingDown(
 export function getNextSqrtPriceFromOutput(
   sqrtPrice: BN,
   liquidity: BN,
-  outAmount: BN,
-  isB: boolean
+  amountOut: BN,
+  AForB: boolean
 ): BN {
   if (sqrtPrice.isZero()) {
     throw new Error("sqrt price must be greater than 0");
   }
 
-  if (isB) {
+  if (AForB) {
     return getNextSqrtPriceFromAmountBRoundingUp(
       sqrtPrice,
       liquidity,
-      outAmount
+      amountOut
     );
   } else {
     return getNextSqrtPriceFromAmountARoundingDown(
       sqrtPrice,
       liquidity,
-      outAmount
+      amountOut
     );
   }
 }

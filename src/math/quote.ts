@@ -1,0 +1,654 @@
+import { getMaxFeeNumerator, hasPartner, isSwapEnable } from "../helpers";
+import {
+  FeeMode,
+  PoolState,
+  Rounding,
+  SwapResult2,
+  TradeDirection,
+} from "../types";
+import BN from "bn.js";
+import {
+  getFeeMode,
+  getFeeOnAmount,
+  getIncludedFeeAmount,
+  getTotalTradingFeeFromExcludedFeeAmount,
+  getTotalTradingFeeFromIncludedFeeAmount,
+  splitFees,
+} from "./feeMath";
+import {
+  getDeltaAmountAUnsigned,
+  getDeltaAmountBUnsigned,
+  getNextSqrtPriceFromInput,
+  getNextSqrtPriceFromOutput,
+} from "./curve";
+
+export function getSwapResultFromExactInput(
+  poolState: PoolState,
+  amountIn: BN,
+  feeMode: FeeMode,
+  tradeDirection: TradeDirection,
+  currentPoint: BN
+): SwapResult2 {
+  let actualProtocolFee = new BN(0);
+  let actualTradingFee = new BN(0);
+  let actualReferralFee = new BN(0);
+  let actualPartnerFee = new BN(0);
+
+  const maxFeeNumerator = getMaxFeeNumerator(poolState.version);
+
+  // We can compute the trade_fee_numerator here. Instead of separately for amount_in, and amount_out.
+  // This is because FeeRateLimiter (fee rate scale based on amount) only applied when fee_mode.fees_on_input
+  // (a.k.a TradeDirection::QuoteToBase + CollectFeeMode::QuoteToken)
+  // For the rest of the time, the fee rate is not dependent on amount.
+  const tradeFeeNumerator = getTotalTradingFeeFromIncludedFeeAmount(
+    poolState.poolFees,
+    currentPoint,
+    poolState.activationPoint,
+    amountIn,
+    tradeDirection,
+    maxFeeNumerator
+  );
+
+  let actualAmountIn: BN;
+  if (feeMode.feesOnInput) {
+    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+      getFeeOnAmount(
+        poolState.poolFees,
+        amountIn,
+        tradeFeeNumerator,
+        feeMode.hasReferral,
+        hasPartner(poolState.partner)
+      );
+
+    actualProtocolFee = protocolFee;
+    actualTradingFee = tradingFee;
+    actualReferralFee = referralFee;
+    actualPartnerFee = partnerFee;
+
+    actualAmountIn = amount;
+  } else {
+    actualAmountIn = amountIn;
+  }
+
+  let swapAmountFromInput;
+  if (tradeDirection === TradeDirection.AtoB) {
+    swapAmountFromInput = calculateAtoBFromAmountIn(poolState, actualAmountIn);
+  } else {
+    swapAmountFromInput = calculateBtoAFromAmountIn(poolState, actualAmountIn);
+  }
+  const { outputAmount, nextSqrtPrice, amountLeft } = swapAmountFromInput;
+
+  let actualAmountOut: BN;
+  if (feeMode.feesOnInput) {
+    actualAmountOut = outputAmount;
+  } else {
+    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+      getFeeOnAmount(
+        poolState.poolFees,
+        outputAmount,
+        tradeFeeNumerator,
+        feeMode.hasReferral,
+        hasPartner(poolState.partner)
+      );
+
+    actualProtocolFee = protocolFee;
+    actualTradingFee = tradingFee;
+    actualReferralFee = referralFee;
+    actualPartnerFee = partnerFee;
+
+    actualAmountOut = amount;
+  }
+
+  return {
+    amountLeft,
+    includedFeeInputAmount: amountIn,
+    excludedFeeInputAmount: actualAmountIn,
+    outputAmount: actualAmountOut,
+    nextSqrtPrice: nextSqrtPrice,
+    tradingFee: actualTradingFee,
+    protocolFee: actualProtocolFee,
+    partnerFee: actualPartnerFee,
+    referralFee: actualReferralFee,
+  };
+}
+
+export function calculateAtoBFromAmountIn(
+  poolState: PoolState,
+  amountIn: BN
+): {
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  amountLeft: BN;
+} {
+  // finding new target price
+  const nextSqrtPrice = getNextSqrtPriceFromInput(
+    poolState.sqrtPrice,
+    poolState.liquidity,
+    amountIn,
+    true
+  );
+
+  if (nextSqrtPrice.lt(poolState.sqrtMinPrice)) {
+    throw new Error("Price range is violated");
+  }
+
+  // finding output amount
+  const outputAmount = getDeltaAmountBUnsigned(
+    poolState.sqrtPrice,
+    nextSqrtPrice,
+    poolState.liquidity,
+    Rounding.Down
+  );
+
+  return {
+    outputAmount,
+    nextSqrtPrice,
+    amountLeft: new BN(0),
+  };
+}
+
+export function calculateBtoAFromAmountIn(
+  poolState: PoolState,
+  amountIn: BN
+): {
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  amountLeft: BN;
+} {
+  // finding new target price
+  const nextSqrtPrice = getNextSqrtPriceFromInput(
+    poolState.sqrtPrice,
+    poolState.liquidity,
+    amountIn,
+    false
+  );
+
+  if (nextSqrtPrice.gt(poolState.sqrtMaxPrice)) {
+    throw new Error("Price range is violated");
+  }
+
+  // finding output amount
+  const outputAmount = getDeltaAmountAUnsigned(
+    poolState.sqrtPrice,
+    nextSqrtPrice,
+    poolState.liquidity,
+    Rounding.Down
+  );
+
+  return {
+    outputAmount,
+    nextSqrtPrice,
+    amountLeft: new BN(0),
+  };
+}
+
+export function getSwapResultFromPartialInput(
+  poolState: PoolState,
+  amountIn: BN,
+  feeMode: FeeMode,
+  tradeDirection: TradeDirection,
+  currentPoint: BN
+): SwapResult2 {
+  let actualProtocolFee = new BN(0);
+  let actualTradingFee = new BN(0);
+  let actualReferralFee = new BN(0);
+  let actualPartnerFee = new BN(0);
+
+  const maxFeeNumerator = getMaxFeeNumerator(poolState.version);
+
+  const tradeFeeNumerator = getTotalTradingFeeFromIncludedFeeAmount(
+    poolState.poolFees,
+    currentPoint,
+    poolState.activationPoint,
+    amountIn,
+    tradeDirection,
+    maxFeeNumerator
+  );
+
+  let actualAmountIn: BN;
+  if (feeMode.feesOnInput) {
+    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+      getFeeOnAmount(
+        poolState.poolFees,
+        amountIn,
+        tradeFeeNumerator,
+        feeMode.hasReferral,
+        hasPartner(poolState.partner)
+      );
+    actualProtocolFee = protocolFee;
+    actualTradingFee = tradingFee;
+    actualReferralFee = referralFee;
+    actualPartnerFee = partnerFee;
+
+    actualAmountIn = amount;
+  } else {
+    actualAmountIn = amountIn;
+  }
+
+  let swapAmountFromInput;
+  if (tradeDirection === TradeDirection.AtoB) {
+    swapAmountFromInput = calculateAtoBFromPartialAmountIn(
+      poolState,
+      actualAmountIn
+    );
+  } else {
+    swapAmountFromInput = calculateBtoAFromPartialAmountIn(
+      poolState,
+      actualAmountIn
+    );
+  }
+
+  let { amountLeft, outputAmount, nextSqrtPrice } = swapAmountFromInput;
+
+  let includedFeeInputAmount: BN;
+  if (amountLeft.gt(new BN(0))) {
+    actualAmountIn = actualAmountIn.sub(amountLeft);
+
+    if (feeMode.feesOnInput) {
+      const tradeFeeNumerator = getTotalTradingFeeFromExcludedFeeAmount(
+        poolState.poolFees,
+        currentPoint,
+        poolState.activationPoint,
+        actualAmountIn,
+        tradeDirection,
+        maxFeeNumerator
+      );
+
+      const { includedFeeAmount, feeAmount } = getIncludedFeeAmount(
+        tradeFeeNumerator,
+        actualAmountIn
+      );
+
+      const { tradingFee, protocolFee, referralFee, partnerFee } = splitFees(
+        poolState.poolFees,
+        feeAmount,
+        feeMode.hasReferral,
+        hasPartner(poolState.partner)
+      );
+
+      actualProtocolFee = protocolFee;
+      actualTradingFee = tradingFee;
+      actualReferralFee = referralFee;
+      actualPartnerFee = partnerFee;
+
+      includedFeeInputAmount = includedFeeAmount;
+    } else {
+      includedFeeInputAmount = actualAmountIn;
+    }
+  } else {
+    includedFeeInputAmount = amountIn;
+  }
+
+  let actualAmountOut: BN;
+  if (feeMode.feesOnInput) {
+    actualAmountOut = outputAmount;
+  } else {
+    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+      getFeeOnAmount(
+        poolState.poolFees,
+        outputAmount,
+        tradeFeeNumerator,
+        feeMode.hasReferral,
+        hasPartner(poolState.partner)
+      );
+    actualProtocolFee = protocolFee;
+    actualTradingFee = tradingFee;
+    actualReferralFee = referralFee;
+    actualPartnerFee = partnerFee;
+
+    actualAmountOut = amount;
+  }
+
+  return {
+    includedFeeInputAmount,
+    excludedFeeInputAmount: actualAmountIn,
+    amountLeft,
+    outputAmount: actualAmountOut,
+    nextSqrtPrice,
+    tradingFee: actualTradingFee,
+    protocolFee: actualProtocolFee,
+    partnerFee: actualPartnerFee,
+    referralFee: actualReferralFee,
+  };
+}
+
+export function calculateAtoBFromPartialAmountIn(
+  poolState: PoolState,
+  amountIn: BN
+): {
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  amountLeft: BN;
+} {
+  const maxAmountIn = getDeltaAmountAUnsigned(
+    poolState.sqrtMinPrice,
+    poolState.sqrtPrice,
+    poolState.liquidity,
+    Rounding.Up
+  );
+
+  let consumedInAmount: BN;
+  let nextSqrtPrice: BN;
+
+  if (amountIn.gte(maxAmountIn)) {
+    consumedInAmount = maxAmountIn;
+    nextSqrtPrice = poolState.sqrtMinPrice;
+  } else {
+    nextSqrtPrice = getNextSqrtPriceFromInput(
+      poolState.sqrtPrice,
+      poolState.liquidity,
+      amountIn,
+      true
+    );
+    consumedInAmount = amountIn;
+  }
+
+  const outputAmount = getDeltaAmountBUnsigned(
+    nextSqrtPrice,
+    poolState.sqrtPrice,
+    poolState.liquidity,
+    Rounding.Down
+  );
+
+  const amountLeft = amountIn.sub(consumedInAmount);
+
+  return {
+    outputAmount,
+    nextSqrtPrice,
+    amountLeft,
+  };
+}
+
+export function calculateBtoAFromPartialAmountIn(
+  poolState: PoolState,
+  amountIn: BN
+): {
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  amountLeft: BN;
+} {
+  const maxAmountIn = getDeltaAmountBUnsigned(
+    poolState.sqrtPrice,
+    poolState.sqrtMaxPrice,
+    poolState.liquidity,
+    Rounding.Up
+  );
+
+  let consumedInAmount: BN;
+  let nextSqrtPrice: BN;
+
+  if (amountIn.gte(maxAmountIn)) {
+    consumedInAmount = maxAmountIn;
+    nextSqrtPrice = poolState.sqrtMaxPrice;
+  } else {
+    nextSqrtPrice = getNextSqrtPriceFromInput(
+      poolState.sqrtPrice,
+      poolState.liquidity,
+      amountIn,
+      false
+    );
+    consumedInAmount = amountIn;
+  }
+
+  const outputAmount = getDeltaAmountAUnsigned(
+    poolState.sqrtPrice,
+    nextSqrtPrice,
+    poolState.liquidity,
+    Rounding.Down
+  );
+
+  const amountLeft = amountIn.sub(consumedInAmount);
+
+  return {
+    outputAmount,
+    nextSqrtPrice,
+    amountLeft,
+  };
+}
+
+export function getSwapResultFromExactOutput(
+  poolState: PoolState,
+  amountOut: BN,
+  feeMode: FeeMode,
+  tradeDirection: TradeDirection,
+  currentPoint: BN
+): SwapResult2 {
+  let actualProtocolFee = new BN(0);
+  let actualTradingFee = new BN(0);
+  let actualReferralFee = new BN(0);
+  let actualPartnerFee = new BN(0);
+
+  const maxFeeNumerator = getMaxFeeNumerator(poolState.version);
+
+  let includedFeeAmountOut: BN;
+  if (feeMode.feesOnInput) {
+    includedFeeAmountOut = amountOut;
+  } else {
+    const tradeFeeNumerator = getTotalTradingFeeFromExcludedFeeAmount(
+      poolState.poolFees,
+      currentPoint,
+      poolState.activationPoint,
+      amountOut,
+      tradeDirection,
+      maxFeeNumerator
+    );
+
+    const { includedFeeAmount, feeAmount } = getIncludedFeeAmount(
+      tradeFeeNumerator,
+      amountOut
+    );
+
+    const split = splitFees(
+      poolState.poolFees,
+      feeAmount,
+      feeMode.hasReferral,
+      hasPartner(poolState.partner)
+    );
+
+    actualTradingFee = split.tradingFee;
+    actualProtocolFee = split.protocolFee;
+    actualReferralFee = split.referralFee;
+    actualPartnerFee = split.partnerFee;
+
+    includedFeeAmountOut = includedFeeAmount;
+  }
+
+  let swapAmountFromOutput;
+  if (tradeDirection === TradeDirection.AtoB) {
+    swapAmountFromOutput = calculateAtoBFromAmountOut(
+      poolState,
+      includedFeeAmountOut
+    );
+  } else {
+    swapAmountFromOutput = calculateBtoAFromAmountOut(
+      poolState,
+      includedFeeAmountOut
+    );
+  }
+  const { inputAmount, nextSqrtPrice } = swapAmountFromOutput;
+
+  let includedFeeInputAmount: BN;
+  if (feeMode.feesOnInput) {
+    const tradeFeeNumerator = getTotalTradingFeeFromExcludedFeeAmount(
+      poolState.poolFees,
+      currentPoint,
+      poolState.activationPoint,
+      inputAmount,
+      tradeDirection,
+      maxFeeNumerator
+    );
+
+    const { includedFeeAmount, feeAmount } = getIncludedFeeAmount(
+      tradeFeeNumerator,
+      inputAmount
+    );
+
+    const split = splitFees(
+      poolState.poolFees,
+      feeAmount,
+      feeMode.hasReferral,
+      hasPartner(poolState.partner)
+    );
+
+    actualTradingFee = split.tradingFee;
+    actualProtocolFee = split.protocolFee;
+    actualReferralFee = split.referralFee;
+    actualPartnerFee = split.partnerFee;
+
+    includedFeeInputAmount = includedFeeAmount;
+  } else {
+    includedFeeInputAmount = inputAmount;
+  }
+
+  return {
+    amountLeft: new BN(0),
+    includedFeeInputAmount: includedFeeInputAmount,
+    excludedFeeInputAmount: inputAmount,
+    outputAmount: amountOut,
+    nextSqrtPrice: nextSqrtPrice,
+    tradingFee: actualTradingFee,
+    protocolFee: actualProtocolFee,
+    partnerFee: actualPartnerFee,
+    referralFee: actualReferralFee,
+  };
+}
+
+export function calculateAtoBFromAmountOut(
+  poolState: PoolState,
+  amountOut: BN
+): { inputAmount: BN; nextSqrtPrice: BN } {
+  const nextSqrtPrice = getNextSqrtPriceFromOutput(
+    poolState.sqrtPrice,
+    poolState.liquidity,
+    amountOut,
+    true
+  );
+
+  if (nextSqrtPrice.lt(poolState.sqrtMinPrice)) {
+    throw new Error("Price Range Violation");
+  }
+
+  const inputAmount = getDeltaAmountAUnsigned(
+    nextSqrtPrice,
+    poolState.sqrtPrice,
+    poolState.liquidity,
+    Rounding.Up
+  );
+
+  return {
+    inputAmount,
+    nextSqrtPrice,
+  };
+}
+
+export function calculateBtoAFromAmountOut(
+  poolState: PoolState,
+  amountOut: BN
+): { inputAmount: BN; nextSqrtPrice: BN } {
+  const nextSqrtPrice = getNextSqrtPriceFromOutput(
+    poolState.sqrtPrice,
+    poolState.liquidity,
+    amountOut,
+    false
+  );
+
+  if (nextSqrtPrice.gt(poolState.sqrtMaxPrice)) {
+    throw new Error("Price Range Violation");
+  }
+
+  const inputAmount = getDeltaAmountBUnsigned(
+    poolState.sqrtPrice,
+    nextSqrtPrice,
+    poolState.liquidity,
+    Rounding.Up
+  );
+
+  return {
+    inputAmount,
+    nextSqrtPrice,
+  };
+}
+
+export function swapQuoteExactInput(
+  pool: PoolState,
+  currentPoint: BN,
+  actualAmountIn: BN,
+  aToB: boolean,
+  hasReferral: boolean
+): SwapResult2 {
+  if (actualAmountIn.lte(new BN(0))) {
+    throw new Error("Amount in must be greater than 0");
+  }
+
+  if (!isSwapEnable(pool, currentPoint)) {
+    throw new Error("Swap is disabled");
+  }
+
+  const tradeDirection = aToB ? TradeDirection.AtoB : TradeDirection.BtoA;
+
+  const feeMode = getFeeMode(pool.collectFeeMode, tradeDirection, hasReferral);
+
+  return getSwapResultFromExactInput(
+    pool,
+    actualAmountIn,
+    feeMode,
+    tradeDirection,
+    currentPoint
+  );
+}
+
+export function swapQuoteExactOutput(
+  pool: PoolState,
+  currentPoint: BN,
+  actualAmountOut: BN,
+  aToB: boolean,
+  hasReferral: boolean
+): SwapResult2 {
+  if (actualAmountOut.lte(new BN(0))) {
+    throw new Error("Amount out must be greater than 0");
+  }
+
+  if (!isSwapEnable(pool, currentPoint)) {
+    throw new Error("Swap is disabled");
+  }
+
+  const tradeDirection = aToB ? TradeDirection.AtoB : TradeDirection.BtoA;
+
+  const feeMode = getFeeMode(pool.collectFeeMode, tradeDirection, hasReferral);
+
+  return getSwapResultFromExactOutput(
+    pool,
+    actualAmountOut,
+    feeMode,
+    tradeDirection,
+    currentPoint
+  );
+}
+
+export function swapQuotePartialInput(
+  pool: PoolState,
+  currentPoint: BN,
+  actualAmountIn: BN,
+  aToB: boolean,
+  hasReferral: boolean
+): SwapResult2 {
+  if (actualAmountIn.lte(new BN(0))) {
+    throw new Error("Amount in must be greater than 0");
+  }
+
+  if (!isSwapEnable(pool, currentPoint)) {
+    throw new Error("Swap is disabled");
+  }
+
+  const tradeDirection = aToB ? TradeDirection.AtoB : TradeDirection.BtoA;
+
+  const feeMode = getFeeMode(pool.collectFeeMode, tradeDirection, hasReferral);
+
+  return getSwapResultFromPartialInput(
+    pool,
+    actualAmountIn,
+    feeMode,
+    tradeDirection,
+    currentPoint
+  );
+}

@@ -1,4 +1,4 @@
-import { Program, BN } from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import invariant from "invariant";
 
@@ -66,6 +66,7 @@ import {
   WithdrawQuote,
   SplitPositionParams,
   SplitPosition2Params,
+  Quote2Result,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -101,7 +102,7 @@ import {
   getFeeMode,
   getSwapResultFromOutAmount,
 } from "./helpers";
-import { min, max } from "bn.js";
+import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
 
 /**
@@ -1059,12 +1060,16 @@ export class CpAmm {
     };
   }
 
+  getQuote2(params: GetQuote2Params): Quote2Result {
+    
+  }
+
   /**
    * Calculates swap quote based on desired output amount and pool state.
    * @param params - Swap parameters including output amount, pool state, slippage, etc.
    * @returns Swap quote including required input amount, fees, and price impact.
    */
-  getQuoteExactOut(params: GetQuoteExactOutParams): QuoteExactOutResult {
+  getQuoteExactOut(params: GetQuoteExactOutParams): Quote2Result {
     const {
       outAmount,
       outputTokenMint,

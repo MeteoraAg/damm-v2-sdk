@@ -1,4 +1,3 @@
-import { BN } from "@coral-xyz/anchor";
 import {
   BaseFee,
   CollectFeeMode,
@@ -10,6 +9,7 @@ import {
   SwapResult,
   TradeDirection,
   SwapAmount,
+  PoolVersion,
 } from "../types";
 import {
   BASIS_POINT_MAX,
@@ -19,12 +19,14 @@ import {
   DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
   DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
   FEE_DENOMINATOR,
+  MAX_FEE_BPS_V0,
+  MAX_FEE_BPS_V1,
   MAX_FEE_NUMERATOR,
+  MAX_FEE_NUMERATOR_V0,
+  MAX_FEE_NUMERATOR_V1,
   MAX_PRICE_CHANGE_BPS_DEFAULT,
   SCALE_OFFSET,
 } from "../constants";
-import { ONE, pow } from "../math/feeMath";
-import { mulDiv } from "../math";
 import {
   getAmountAFromLiquidityDelta,
   getAmountBFromLiquidityDelta,
@@ -32,6 +34,7 @@ import {
   getNextSqrtPriceFromOutput,
 } from "./curve";
 import Decimal from "decimal.js";
+import BN from "bn.js";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
@@ -53,30 +56,6 @@ export function getBaseFeeNumerator(
   }
 
   return feeNumerator;
-}
-
-/**
- * Calculates the dynamic fee numerator based on market volatility metrics
- *
- * @param volatilityAccumulator - A measure of accumulated market volatility (BN)
- * @param binStep - The size of price bins in the liquidity distribution (BN)
- * @param variableFeeControl - Parameter controlling the impact of volatility on fees (BN)
- * @returns The calculated dynamic fee numerator (BN)
- */
-export function getDynamicFeeNumerator(
-  volatilityAccumulator: BN,
-  binStep: BN,
-  variableFeeControl: BN
-): BN {
-  if (variableFeeControl.isZero()) {
-    return new BN(0);
-  }
-  const squareVfaBin = volatilityAccumulator
-    .mul(new BN(binStep))
-    .pow(new BN(2));
-  const vFee = variableFeeControl.mul(squareVfaBin);
-
-  return vFee.add(new BN(99_999_999_999)).div(new BN(100_000_000_000));
 }
 
 /**
@@ -114,7 +93,7 @@ export function getFeeNumerator(
     Number(periodFrequency) == 0 ||
     new BN(currentPoint).lt(activationPoint)
   ) {
-    feeNumerator = cliffFeeNumerator
+    feeNumerator = cliffFeeNumerator;
   } else {
     const period = BN.min(
       new BN(numberOfPeriod),
@@ -128,7 +107,6 @@ export function getFeeNumerator(
       reductionFactor
     );
   }
-
 
   if (dynamicFeeParams) {
     const { volatilityAccumulator, binStep, variableFeeControl } =
@@ -219,17 +197,17 @@ export function getSwapAmount(
   // Calculate the output amount based on swap direction
   const outAmount = aToB
     ? getAmountBFromLiquidityDelta(
-      liquidity,
-      sqrtPrice,
-      nextSqrtPrice,
-      Rounding.Down
-    )
+        liquidity,
+        sqrtPrice,
+        nextSqrtPrice,
+        Rounding.Down
+      )
     : getAmountAFromLiquidityDelta(
-      liquidity,
-      sqrtPrice,
-      nextSqrtPrice,
-      Rounding.Down
-    );
+        liquidity,
+        sqrtPrice,
+        nextSqrtPrice,
+        Rounding.Down
+      );
 
   // Apply fees to output amount if fee is taken on output
   const amountOut = feeMode.feeOnInput
@@ -401,62 +379,6 @@ export function getDynamicFeeParams(
 }
 
 /**
- * Calculates the excluded fee amount and trading fee from an included fee amount
- * @param tradeFeeNumerator - The fee numerator
- * @param includedFeeAmount - The amount that includes the fee
- * @returns Tuple of [excluded_fee_amount, trading_fee]
- */
-export function getExcludedFeeAmount(
-  tradeFeeNumerator: BN,
-  includedFeeAmount: BN
-): { excludedFeeAmount: BN; tradingFee: BN } {
-  const tradingFee = mulDiv(
-    includedFeeAmount,
-    tradeFeeNumerator,
-    new BN(FEE_DENOMINATOR),
-    Rounding.Up
-  );
-  const excludedFeeAmount = includedFeeAmount.sub(tradingFee);
-
-  return { excludedFeeAmount, tradingFee };
-}
-
-/**
- * Calculates the included fee amount from an excluded fee amount
- * @param tradeFeeNumerator - The fee numerator
- * @param excludedFeeAmount - The amount that excludes the fee
- * @returns The amount including the fee
- */
-export function getIncludedFeeAmount(
-  tradeFeeNumerator: BN,
-  excludedFeeAmount: BN
-): BN {
-  const denominator = new BN(FEE_DENOMINATOR).sub(tradeFeeNumerator);
-  if (denominator.isZero() || denominator.isNeg()) {
-    throw new Error("Invalid fee numerator");
-  }
-
-  const includedFeeAmount = mulDiv(
-    excludedFeeAmount,
-    new BN(FEE_DENOMINATOR),
-    denominator,
-    Rounding.Up
-  );
-
-  // Sanity check
-  const { excludedFeeAmount: inverseAmount } = getExcludedFeeAmount(
-    tradeFeeNumerator,
-    includedFeeAmount
-  );
-
-  if (inverseAmount.lt(excludedFeeAmount)) {
-    throw new Error("Inverse amount is less than excluded_fee_amount");
-  }
-
-  return includedFeeAmount;
-}
-
-/**
  * Calculates the input amount required from A to B for a given output amount
  * @param pool - The pool state
  * @param outAmount - The desired output amount (quote amount)
@@ -551,10 +473,10 @@ export function getSwapResultFromOutAmount(
     pool.poolFees.baseFee.reductionFactor,
     pool.poolFees.dynamicFee.initialized === 1
       ? {
-        volatilityAccumulator: pool.poolFees.dynamicFee.volatilityAccumulator,
-        binStep: pool.poolFees.dynamicFee.binStep,
-        variableFeeControl: pool.poolFees.dynamicFee.variableFeeControl,
-      }
+          volatilityAccumulator: pool.poolFees.dynamicFee.volatilityAccumulator,
+          binStep: pool.poolFees.dynamicFee.binStep,
+          variableFeeControl: pool.poolFees.dynamicFee.variableFeeControl,
+        }
       : undefined
   );
 
@@ -648,4 +570,26 @@ export function getSwapResultFromOutAmount(
     },
     inputAmount: includedFeeInAmount,
   };
+}
+
+export function getMaxFeeNumerator(poolVersion: PoolVersion): BN {
+  switch (poolVersion) {
+    case PoolVersion.V0:
+      return new BN(MAX_FEE_NUMERATOR_V0);
+    case PoolVersion.V1:
+      return new BN(MAX_FEE_NUMERATOR_V1);
+    default:
+      throw new Error("Invalid pool version");
+  }
+}
+
+export function getMaxFeeBps(poolVersion: PoolVersion): number {
+  switch (poolVersion) {
+    case PoolVersion.V0:
+      return MAX_FEE_BPS_V0;
+    case PoolVersion.V1:
+      return MAX_FEE_BPS_V1;
+    default:
+      throw new Error("Invalid pool version");
+  }
 }

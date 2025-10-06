@@ -469,14 +469,7 @@ export type GetQuoteExactOutParams = {
   tokenBDecimal: number;
 };
 
-export type SwapResult = {
-  outputAmount: BN;
-  nextSqrtPrice: BN;
-  lpFee: BN;
-  protocolFee: BN;
-  referralFee: BN;
-  partnerFee: BN;
-};
+export type SwapResult = IdlTypes<CpAmmTypes>["swapResult"];
 
 export type SwapResult2 = IdlTypes<CpAmmTypes>["swapResult2"];
 
@@ -513,6 +506,36 @@ export type SwapParams = {
   tokenBProgram: PublicKey;
   referralTokenAccount: PublicKey | null;
 };
+
+export type Swap2Params = {
+  payer: PublicKey;
+  pool: PublicKey;
+  inputTokenMint: PublicKey;
+  outputTokenMint: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+  referralTokenAccount: PublicKey | null;
+} & (
+  | {
+      swapMode: SwapMode.ExactIn;
+      amountIn: BN;
+      minimumAmountOut: BN;
+    }
+  | {
+      swapMode: SwapMode.PartialFill;
+      amountIn: BN;
+      minimumAmountOut: BN;
+    }
+  | {
+      swapMode: SwapMode.ExactOut;
+      amountOut: BN;
+      maximumAmountIn: BN;
+    }
+);
 
 export type LockPositionParams = {
   owner: PublicKey;

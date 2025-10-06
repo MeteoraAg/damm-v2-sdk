@@ -3,7 +3,7 @@ import {
   CollectFeeMode,
   DynamicFee,
   FeeMode,
-  FeeSchedulerMode,
+  BaseFeeMode,
   Rounding,
   PoolState,
   SwapResult,
@@ -21,10 +21,10 @@ import {
   FEE_DENOMINATOR,
   MAX_FEE_BPS_V0,
   MAX_FEE_BPS_V1,
-  MAX_FEE_NUMERATOR,
   MAX_FEE_NUMERATOR_V0,
   MAX_FEE_NUMERATOR_V1,
   MAX_PRICE_CHANGE_BPS_DEFAULT,
+  ONE_Q64,
   SCALE_OFFSET,
 } from "../constants";
 import {
@@ -35,22 +35,23 @@ import {
 } from "./curve";
 import Decimal from "decimal.js";
 import BN from "bn.js";
+import { getVariableFeeNumerator, pow } from "../math";
 
 // Fee scheduler
 // Linear: cliffFeeNumerator - period * reductionFactor
 // Exponential: cliffFeeNumerator * (1 -reductionFactor/BASIS_POINT_MAX)^period
 export function getBaseFeeNumerator(
-  feeSchedulerMode: FeeSchedulerMode,
+  feeSchedulerMode: BaseFeeMode,
   cliffFeeNumerator: BN,
   period: BN,
   reductionFactor: BN
 ): BN {
   let feeNumerator: BN;
-  if (feeSchedulerMode == FeeSchedulerMode.Linear) {
+  if (feeSchedulerMode == BaseFeeMode.FeeSchedulerLinear) {
     feeNumerator = cliffFeeNumerator.sub(period.mul(reductionFactor));
   } else {
     const bps = reductionFactor.shln(SCALE_OFFSET).div(new BN(BASIS_POINT_MAX));
-    const base = ONE.sub(bps);
+    const base = ONE_Q64.sub(bps);
     const result = pow(base, period);
     feeNumerator = cliffFeeNumerator.mul(result).shrn(SCALE_OFFSET);
   }
@@ -111,14 +112,14 @@ export function getFeeNumerator(
   if (dynamicFeeParams) {
     const { volatilityAccumulator, binStep, variableFeeControl } =
       dynamicFeeParams;
-    const dynamicFeeNumberator = getDynamicFeeNumerator(
+    const dynamicFeeNumberator = getVariableFeeNumerator(
       volatilityAccumulator,
       new BN(binStep),
       new BN(variableFeeControl)
     );
     feeNumerator = feeNumerator.add(dynamicFeeNumberator);
   }
-  return feeNumerator.gt(new BN(MAX_FEE_NUMERATOR))
+  return feeNumerator.gt(getMaxFeeNumerator(poolVersion))
     ? new BN(MAX_FEE_NUMERATOR)
     : feeNumerator;
 }

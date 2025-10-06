@@ -185,14 +185,14 @@ export function getNextSqrtPriceFromInput(
 }
 
 /**
- * Gets the delta amount of token_b for given liquidity and price range.
+ * Gets the delta amount of token_b for given liquidity and price range. (getDeltaAmountBUnsigned)
  * @param lowerSqrtPrice - lower sqrt price (BN)
  * @param upperSqrtPrice - upper sqrt price (BN)
  * @param liquidity - current liquidity (BN)
  * @param rounding - rounding (Rounding)
  * @returns delta amount of token_b (BN)
  */
-export function getDeltaAmountBUnsigned(
+export function getAmountBFromLiquidityDelta(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
   liquidity: BN,
@@ -246,7 +246,7 @@ function getDeltaAmountBUnsignedUnchecked(
 }
 
 /**
- * Gets the delta amount_a for given liquidity and price range.
+ * Gets the delta amount_a for given liquidity and price range. (getDeltaAmountAUnsigned)
  * `Δa = L * (1 / √P_lower - 1 / √P_upper)`
  * i.e. `L * (√P_upper - √P_lower) / (√P_upper * √P_lower)`
  * @param lowerSqrtPrice - lower sqrt price (BN)
@@ -255,7 +255,7 @@ function getDeltaAmountBUnsignedUnchecked(
  * @param rounding - rounding (Rounding)
  * @returns delta amount of token_a (BN)
  */
-export function getDeltaAmountAUnsigned(
+export function getAmountAFromLiquidityDelta(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
   liquidity: BN,
@@ -300,4 +300,33 @@ function getDeltaAmountAUnsignedUnchecked(
 
   const result = mulDiv(numerator1, numerator2, denominator, rounding);
   return result;
+}
+
+// Δa = L * (1 / √P_lower - 1 / √P_upper)
+//
+// Δa = L * (√P_upper - √P_lower) / (√P_upper * √P_lower)
+//
+// L = Δa * √P_upper * √P_lower / (√P_upper - √P_lower)
+//
+export function getLiquidityDeltaFromAmountA(
+  amountA: BN,
+  lowerSqrtPrice: BN, // current sqrt price
+  upperSqrtPrice: BN // max sqrt price
+): BN {
+  const product = amountA.mul(lowerSqrtPrice).mul(upperSqrtPrice); // Q128.128
+  const denominator = upperSqrtPrice.sub(lowerSqrtPrice); // Q64.64
+
+  return product.div(denominator);
+}
+
+// Δb = L (√P_upper - √P_lower)
+// L = Δb / (√P_upper - √P_lower)
+export function getLiquidityDeltaFromAmountB(
+  amountB: BN,
+  lowerSqrtPrice: BN, // min sqrt price
+  upperSqrtPrice: BN // current sqrt price,
+): BN {
+  const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
+  const product = amountB.shln(128);
+  return product.div(denominator);
 }

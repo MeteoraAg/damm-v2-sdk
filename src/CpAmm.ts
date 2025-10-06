@@ -31,7 +31,6 @@ import {
   CreatePositionAndAddLiquidity,
   CreatePositionParams,
   DepositQuote,
-  DynamicFeeParams,
   FundRewardParams,
   GetDepositQuoteParams,
   GetQuoteParams,
@@ -81,34 +80,28 @@ import {
 } from "./pda";
 
 import {
-  getFeeNumerator,
   getOrCreateATAInstruction,
   getTokenProgram,
   unwrapSOLInstruction,
   wrapSOLInstruction,
-  getSwapAmount,
-  getLiquidityDeltaFromAmountA,
-  getLiquidityDeltaFromAmountB,
-  getPriceImpact,
   positionByPoolFilter,
   vestingByPositionFilter,
   calculateInitSqrtPrice,
   calculateTransferFeeExcludedAmount,
   calculateTransferFeeIncludedAmount,
-  getAmountBFromLiquidityDelta,
-  getAmountAFromLiquidityDelta,
   getAvailableVestingLiquidity,
   isVestingComplete,
   getAllPositionNftAccountByOwner,
-  getFeeMode,
-  getSwapResultFromOutAmount,
-  getMaxFeeBps,
   parseRateLimiterSecondFactor,
   getCurrentPoint,
 } from "./helpers";
 import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
 import {
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
+  getLiquidityDeltaFromAmountA,
+  getLiquidityDeltaFromAmountB,
   isRateLimiterApplied,
   swapQuoteExactInput,
   swapQuoteExactOutput,

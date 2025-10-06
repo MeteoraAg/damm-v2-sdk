@@ -414,7 +414,7 @@ export type GetQuoteParams = {
   };
   tokenADecimal: number;
   tokenBDecimal: number;
-  hasReferral: boolean;
+  hasReferral?: boolean;
 };
 
 export type GetQuote2Params = {
@@ -452,7 +452,6 @@ export type SwapAmount = {
   outputAmount: BN;
   nextSqrtPrice: BN;
 };
-
 
 export type SwapResult = IdlTypes<CpAmmTypes>["swapResult"];
 

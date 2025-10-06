@@ -2,6 +2,10 @@ import { BN } from "@coral-xyz/anchor";
 import {
   BASIS_POINT_MAX,
   FEE_DENOMINATOR,
+  MAX_FEE_BPS_V0,
+  MAX_FEE_BPS_V1,
+  MAX_FEE_NUMERATOR_V0,
+  MAX_FEE_NUMERATOR_V1,
   ONE_Q64,
   SCALE_OFFSET,
   U128_MAX,
@@ -13,6 +17,7 @@ import {
   FeeMode,
   FeeOnAmountResult,
   PoolFeesStruct,
+  PoolVersion,
   Rounding,
   SplitFees,
   TradeDirection,
@@ -299,4 +304,26 @@ export function getIncludedFeeAmount(
   const feeAmount = includedFeeAmount.sub(excludedFeeAmount);
 
   return { includedFeeAmount, feeAmount };
+}
+
+export function getMaxFeeNumerator(poolVersion: PoolVersion): BN {
+  switch (poolVersion) {
+    case PoolVersion.V0:
+      return new BN(MAX_FEE_NUMERATOR_V0);
+    case PoolVersion.V1:
+      return new BN(MAX_FEE_NUMERATOR_V1);
+    default:
+      throw new Error("Invalid pool version");
+  }
+}
+
+export function getMaxFeeBps(poolVersion: PoolVersion): number {
+  switch (poolVersion) {
+    case PoolVersion.V0:
+      return MAX_FEE_BPS_V0;
+    case PoolVersion.V1:
+      return MAX_FEE_BPS_V1;
+    default:
+      throw new Error("Invalid pool version");
+  }
 }

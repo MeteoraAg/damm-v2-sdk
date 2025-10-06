@@ -2,10 +2,9 @@ import {
   calculateTransferFeeExcludedAmount,
   calculateTransferFeeIncludedAmount,
   getAmountWithSlippage,
-  getMaxFeeNumerator,
   getPriceImpact,
   hasPartner,
-  isSwapEnable,
+  isSwapEnabled,
 } from "../helpers";
 import {
   FeeMode,
@@ -21,13 +20,14 @@ import {
   getFeeMode,
   getFeeOnAmount,
   getIncludedFeeAmount,
+  getMaxFeeNumerator,
   getTotalTradingFeeFromExcludedFeeAmount,
   getTotalTradingFeeFromIncludedFeeAmount,
   splitFees,
 } from "./feeMath";
 import {
-  getDeltaAmountAUnsigned,
-  getDeltaAmountBUnsigned,
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
   getNextSqrtPriceFromInput,
   getNextSqrtPriceFromOutput,
 } from "./curve";
@@ -144,7 +144,7 @@ export function calculateAtoBFromAmountIn(
   }
 
   // finding output amount
-  const outputAmount = getDeltaAmountBUnsigned(
+  const outputAmount = getAmountBFromLiquidityDelta(
     poolState.sqrtPrice,
     nextSqrtPrice,
     poolState.liquidity,
@@ -179,7 +179,7 @@ export function calculateBtoAFromAmountIn(
   }
 
   // finding output amount
-  const outputAmount = getDeltaAmountAUnsigned(
+  const outputAmount = getAmountAFromLiquidityDelta(
     poolState.sqrtPrice,
     nextSqrtPrice,
     poolState.liquidity,
@@ -331,7 +331,7 @@ export function calculateAtoBFromPartialAmountIn(
   nextSqrtPrice: BN;
   amountLeft: BN;
 } {
-  const maxAmountIn = getDeltaAmountAUnsigned(
+  const maxAmountIn = getAmountAFromLiquidityDelta(
     poolState.sqrtMinPrice,
     poolState.sqrtPrice,
     poolState.liquidity,
@@ -354,7 +354,7 @@ export function calculateAtoBFromPartialAmountIn(
     consumedInAmount = amountIn;
   }
 
-  const outputAmount = getDeltaAmountBUnsigned(
+  const outputAmount = getAmountBFromLiquidityDelta(
     nextSqrtPrice,
     poolState.sqrtPrice,
     poolState.liquidity,
@@ -378,7 +378,7 @@ export function calculateBtoAFromPartialAmountIn(
   nextSqrtPrice: BN;
   amountLeft: BN;
 } {
-  const maxAmountIn = getDeltaAmountBUnsigned(
+  const maxAmountIn = getAmountBFromLiquidityDelta(
     poolState.sqrtPrice,
     poolState.sqrtMaxPrice,
     poolState.liquidity,
@@ -401,7 +401,7 @@ export function calculateBtoAFromPartialAmountIn(
     consumedInAmount = amountIn;
   }
 
-  const outputAmount = getDeltaAmountAUnsigned(
+  const outputAmount = getAmountAFromLiquidityDelta(
     poolState.sqrtPrice,
     nextSqrtPrice,
     poolState.liquidity,
@@ -539,7 +539,7 @@ export function calculateAtoBFromAmountOut(
     throw new Error("Price Range Violation");
   }
 
-  const inputAmount = getDeltaAmountAUnsigned(
+  const inputAmount = getAmountAFromLiquidityDelta(
     nextSqrtPrice,
     poolState.sqrtPrice,
     poolState.liquidity,
@@ -567,7 +567,7 @@ export function calculateBtoAFromAmountOut(
     throw new Error("Price Range Violation");
   }
 
-  const inputAmount = getDeltaAmountBUnsigned(
+  const inputAmount = getAmountBFromLiquidityDelta(
     poolState.sqrtPrice,
     nextSqrtPrice,
     poolState.liquidity,
@@ -602,7 +602,7 @@ export function swapQuoteExactInput(
     throw new Error("Amount in must be greater than 0");
   }
 
-  if (!isSwapEnable(pool, currentPoint)) {
+  if (!isSwapEnabled(pool, currentPoint)) {
     throw new Error("Swap is disabled");
   }
 
@@ -680,7 +680,7 @@ export function swapQuoteExactOutput(
     throw new Error("Amount out must be greater than 0");
   }
 
-  if (!isSwapEnable(pool, currentPoint)) {
+  if (!isSwapEnabled(pool, currentPoint)) {
     throw new Error("Swap is disabled");
   }
 
@@ -758,7 +758,7 @@ export function swapQuotePartialInput(
     throw new Error("Amount in must be greater than 0");
   }
 
-  if (!isSwapEnable(pool, currentPoint)) {
+  if (!isSwapEnabled(pool, currentPoint)) {
     throw new Error("Swap is disabled");
   }
 

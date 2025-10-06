@@ -19,7 +19,7 @@ import {
   MIN_FEE_NUMERATOR,
 } from "../constants";
 import { toNumerator } from "../math";
-import { getMaxFeeBps, getMaxFeeNumerator } from "./fee";
+import { getMaxFeeBps, getMaxFeeNumerator } from "../math";
 
 /**
  * Validate fee scheduler parameters

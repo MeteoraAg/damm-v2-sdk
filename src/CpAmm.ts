@@ -35,7 +35,6 @@ import {
   FundRewardParams,
   GetDepositQuoteParams,
   GetQuoteParams,
-  GetQuoteExactOutParams,
   GetWithdrawQuoteParams,
   InitializeCustomizeablePoolParams,
   InitializeCustomizeablePoolWithDynamicConfigParams,
@@ -69,6 +68,7 @@ import {
   Quote2Result,
   Swap2Params,
   SwapMode,
+  GetQuote2Params,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -89,7 +89,6 @@ import {
   getSwapAmount,
   getLiquidityDeltaFromAmountA,
   getLiquidityDeltaFromAmountB,
-  getMinAmountWithSlippage,
   getPriceImpact,
   positionByPoolFilter,
   vestingByPositionFilter,
@@ -109,7 +108,12 @@ import {
 } from "./helpers";
 import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
-import { isRateLimiterApplied } from "./math";
+import {
+  isRateLimiterApplied,
+  swapQuoteExactInput,
+  swapQuoteExactOutput,
+  swapQuotePartialInput,
+} from "./math";
 
 /**
  * CpAmm SDK class to interact with the DAMM-V2
@@ -958,113 +962,138 @@ export class CpAmm {
     return min(liquidityDeltaFromAmountA, liquidityDeltaFromAmountB);
   }
 
-  // /**
-  //  * Calculates swap quote based on input amount and pool state.
-  //  * @param params - Swap parameters including input amount, pool state, slippage, etc.
-  //  * @returns Swap quote including expected output amount, fee, and price impact.
-  //  */
-  // getQuote(params: GetQuoteParams): {
-  //   swapInAmount: BN;
-  //   consumedInAmount: BN;
-  //   swapOutAmount: BN;
-  //   minSwapOutAmount: BN;
-  //   totalFee: BN;
-  //   priceImpact: Decimal;
-  // } {
-  //   const {
-  //     inAmount,
-  //     inputTokenMint,
-  //     slippage,
-  //     poolState,
-  //     currentTime,
-  //     currentSlot,
-  //     inputTokenInfo,
-  //     outputTokenInfo,
-  //   } = params;
-  //   const {
-  //     sqrtPrice: sqrtPriceQ64,
-  //     liquidity: liquidityQ64,
-  //     activationType,
-  //     activationPoint,
-  //     collectFeeMode,
-  //     poolFees,
-  //   } = poolState;
-  //   const {
-  //     baseFeeMode,
-  //     cliffFeeNumerator,
-  //     firstFactor,
-  //     secondFactor,
-  //     thirdFactor,
-  //   } = poolFees.baseFee;
-  //   const dynamicFee = poolFees.dynamicFee;
+  /**
+   * Calculates swap quote based on input amount and pool state.
+   * @param params - Swap parameters including input amount, pool state, slippage, etc.
+   * @returns Swap quote including expected output amount, fee, and price impact.
+   */
+  getQuote(params: GetQuoteParams): {
+    swapInAmount: BN;
+    consumedInAmount: BN;
+    swapOutAmount: BN;
+    minSwapOutAmount: BN;
+    totalFee: BN;
+    priceImpact: Decimal;
+  } {
+    const {
+      inAmount,
+      inputTokenMint,
+      slippage,
+      poolState,
+      currentTime,
+      currentSlot,
+      inputTokenInfo,
+      outputTokenInfo,
+      tokenADecimal,
+      tokenBDecimal,
+      hasReferral,
+    } = params;
+    const { sqrtPrice: sqrtPriceQ64, activationType } = poolState;
 
-  //   let actualAmountIn = inAmount;
-  //   if (inputTokenInfo) {
-  //     actualAmountIn = calculateTransferFeeExcludedAmount(
-  //       inAmount,
-  //       inputTokenInfo.mint,
-  //       inputTokenInfo.currentEpoch
-  //     ).amount;
-  //   }
-  //   const aToB = poolState.tokenAMint.equals(inputTokenMint);
-  //   const currentPoint = activationType ? currentTime : currentSlot;
+    const aToB = poolState.tokenAMint.equals(inputTokenMint);
 
-  //   let dynamicFeeParams: DynamicFeeParams;
-  //   if (dynamicFee.initialized) {
-  //     const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
-  //     dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
-  //   }
+    const currentPoint = activationType
+      ? new BN(currentTime)
+      : new BN(currentSlot);
 
-  //   const tradeFeeNumerator = getFeeNumerator(
-  //     currentPoint,
-  //     activationPoint,
-  //     firstFactor,
-  //     secondFactor,
-  //     baseFeeMode,
-  //     cliffFeeNumerator,
-  //     thirdFactor,
-  //     dynamicFeeParams
-  //   );
+    const swapResult = swapQuoteExactInput(
+      poolState,
+      currentPoint,
+      inAmount,
+      slippage,
+      aToB,
+      hasReferral,
+      tokenADecimal,
+      tokenBDecimal,
+      inputTokenInfo,
+      outputTokenInfo
+    );
 
-  //   const { amountOut, totalFee, nextSqrtPrice } = getSwapAmount(
-  //     actualAmountIn,
-  //     sqrtPriceQ64,
-  //     liquidityQ64,
-  //     tradeFeeNumerator,
-  //     aToB,
-  //     collectFeeMode
-  //   );
+    return {
+      swapInAmount: inAmount,
+      consumedInAmount: swapResult.includedFeeInputAmount,
+      swapOutAmount: swapResult.outputAmount,
+      minSwapOutAmount: swapResult.minimumAmountOut,
+      totalFee: swapResult.tradingFee
+        .add(swapResult.protocolFee)
+        .add(swapResult.partnerFee)
+        .add(swapResult.referralFee),
+      priceImpact: swapResult.priceImpact,
+    };
+  }
 
-  //   let actualAmountOut = amountOut;
-  //   if (outputTokenInfo) {
-  //     actualAmountOut = calculateTransferFeeExcludedAmount(
-  //       amountOut,
-  //       outputTokenInfo.mint,
-  //       outputTokenInfo.currentEpoch
-  //     ).amount;
-  //   }
+  getQuote2(params: GetQuote2Params): Quote2Result {
+    const {
+      inputTokenMint,
+      slippage,
+      poolState,
+      currentPoint,
+      inputTokenInfo,
+      outputTokenInfo,
+      hasReferral,
+      tokenADecimal,
+      tokenBDecimal,
+      swapMode,
+    } = params;
 
-  //   const minSwapOutAmount = getMinAmountWithSlippage(
-  //     actualAmountOut,
-  //     slippage
-  //   );
+    const aToB = poolState.tokenAMint.equals(inputTokenMint);
 
-  //   return {
-  //     swapInAmount: inAmount,
-  //     consumedInAmount: actualAmountIn,
-  //     swapOutAmount: actualAmountOut,
-  //     minSwapOutAmount,
-  //     totalFee,
-  //     priceImpact: getPriceImpact(
-  //       actualAmountIn,
-  //       actualAmountOut,
-  //       sqrtPriceQ64,
-  //       aToB,
-  //       params.tokenADecimal,
-  //       params.tokenBDecimal
-  //     ),
-  //   };
-  // }
+    switch (swapMode) {
+      case SwapMode.ExactIn:
+        if ("amountIn" in params) {
+          return swapQuoteExactInput(
+            poolState,
+            currentPoint,
+            params.amountIn,
+            slippage,
+            aToB,
+            hasReferral,
+            tokenADecimal,
+            tokenBDecimal,
+            inputTokenInfo,
+            outputTokenInfo
+          );
+        }
+        throw new Error("amountIn is required for ExactIn swap mode");
+
+      case SwapMode.ExactOut:
+        if ("amountOut" in params) {
+          return swapQuoteExactOutput(
+            poolState,
+            currentPoint,
+            params.amountOut,
+            slippage,
+            aToB,
+            hasReferral,
+            tokenADecimal,
+            tokenBDecimal,
+            inputTokenInfo,
+            outputTokenInfo
+          );
+        }
+        throw new Error("outAmount is required for ExactOut swap mode");
+
+      case SwapMode.PartialFill:
+        if ("amountIn" in params) {
+          return swapQuotePartialInput(
+            poolState,
+            currentPoint,
+            params.amountIn,
+            slippage,
+            aToB,
+            hasReferral,
+            tokenADecimal,
+            tokenBDecimal,
+            inputTokenInfo,
+            outputTokenInfo
+          );
+        }
+        throw new Error("amountIn is required for PartialFill swap mode");
+
+      default:
+        throw new Error(`Unsupported swap mode: ${swapMode}`);
+    }
+  }
 
   /**
    * Calculates the deposit quote for liquidity pool.

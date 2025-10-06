@@ -2,6 +2,7 @@ import { IdlAccounts, IdlTypes, Program, BN } from "@coral-xyz/anchor";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
 import { Mint } from "@solana/spl-token";
+import Decimal from "decimal.js";
 
 export type AmmProgram = Program<CpAmmTypes>;
 
@@ -413,6 +414,7 @@ export type GetQuoteParams = {
   };
   tokenADecimal: number;
   tokenBDecimal: number;
+  hasReferral: boolean;
 };
 
 export type GetQuote2Params = {
@@ -430,6 +432,7 @@ export type GetQuote2Params = {
   };
   tokenADecimal: number;
   tokenBDecimal: number;
+  hasReferral: boolean;
 } & (
   | {
       swapMode: SwapMode.ExactIn;
@@ -450,30 +453,13 @@ export type SwapAmount = {
   nextSqrtPrice: BN;
 };
 
-export type GetQuoteExactOutParams = {
-  outAmount: BN;
-  outputTokenMint: PublicKey;
-  slippage: number;
-  poolState: PoolState;
-  currentTime: number;
-  currentSlot: number;
-  inputTokenInfo?: {
-    mint: Mint;
-    currentEpoch: number;
-  };
-  outputTokenInfo?: {
-    mint: Mint;
-    currentEpoch: number;
-  };
-  tokenADecimal: number;
-  tokenBDecimal: number;
-};
 
 export type SwapResult = IdlTypes<CpAmmTypes>["swapResult"];
 
 export type SwapResult2 = IdlTypes<CpAmmTypes>["swapResult2"];
 
 export interface Quote2Result extends SwapResult2 {
+  priceImpact: Decimal;
   minimumAmountOut?: BN;
   maximumAmountIn?: BN;
 }

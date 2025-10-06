@@ -1,8 +1,18 @@
-import { getMaxFeeNumerator, hasPartner, isSwapEnable } from "../helpers";
+import {
+  calculateTransferFeeExcludedAmount,
+  calculateTransferFeeIncludedAmount,
+  getAmountWithSlippage,
+  getMaxFeeNumerator,
+  getPriceImpact,
+  hasPartner,
+  isSwapEnable,
+} from "../helpers";
 import {
   FeeMode,
   PoolState,
+  Quote2Result,
   Rounding,
+  SwapMode,
   SwapResult2,
   TradeDirection,
 } from "../types";
@@ -21,6 +31,7 @@ import {
   getNextSqrtPriceFromInput,
   getNextSqrtPriceFromOutput,
 } from "./curve";
+import { Mint } from "@solana/spl-token";
 
 export function getSwapResultFromExactInput(
   poolState: PoolState,
@@ -572,11 +583,22 @@ export function calculateBtoAFromAmountOut(
 export function swapQuoteExactInput(
   pool: PoolState,
   currentPoint: BN,
-  actualAmountIn: BN,
+  amountIn: BN,
+  slippage: number,
   aToB: boolean,
-  hasReferral: boolean
-): SwapResult2 {
-  if (actualAmountIn.lte(new BN(0))) {
+  hasReferral: boolean,
+  tokenADecimal: number,
+  tokenBDecimal: number,
+  inputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  },
+  outputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  }
+): Quote2Result {
+  if (amountIn.lte(new BN(0))) {
     throw new Error("Amount in must be greater than 0");
   }
 
@@ -588,23 +610,73 @@ export function swapQuoteExactInput(
 
   const feeMode = getFeeMode(pool.collectFeeMode, tradeDirection, hasReferral);
 
-  return getSwapResultFromExactInput(
+  let actualAmountIn = amountIn;
+  if (inputTokenInfo) {
+    actualAmountIn = calculateTransferFeeExcludedAmount(
+      amountIn,
+      inputTokenInfo.mint,
+      inputTokenInfo.currentEpoch
+    ).amount;
+  }
+
+  const swapResult = getSwapResultFromExactInput(
     pool,
     actualAmountIn,
     feeMode,
     tradeDirection,
     currentPoint
   );
+
+  let actualAmountOut = swapResult.outputAmount;
+  if (outputTokenInfo) {
+    actualAmountOut = calculateTransferFeeExcludedAmount(
+      swapResult.outputAmount,
+      outputTokenInfo.mint,
+      outputTokenInfo.currentEpoch
+    ).amount;
+  }
+
+  const minimumAmountOut = getAmountWithSlippage(
+    actualAmountOut,
+    slippage,
+    SwapMode.ExactIn
+  );
+
+  const priceImpact = getPriceImpact(
+    actualAmountIn,
+    actualAmountOut,
+    pool.sqrtPrice,
+    aToB,
+    tokenADecimal,
+    tokenBDecimal
+  );
+
+  return {
+    ...swapResult,
+    minimumAmountOut,
+    priceImpact,
+  };
 }
 
 export function swapQuoteExactOutput(
   pool: PoolState,
   currentPoint: BN,
-  actualAmountOut: BN,
+  amountOut: BN,
+  slippage: number,
   aToB: boolean,
-  hasReferral: boolean
-): SwapResult2 {
-  if (actualAmountOut.lte(new BN(0))) {
+  hasReferral: boolean,
+  tokenADecimal: number,
+  tokenBDecimal: number,
+  inputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  },
+  outputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  }
+): Quote2Result {
+  if (amountOut.lte(new BN(0))) {
     throw new Error("Amount out must be greater than 0");
   }
 
@@ -616,23 +688,73 @@ export function swapQuoteExactOutput(
 
   const feeMode = getFeeMode(pool.collectFeeMode, tradeDirection, hasReferral);
 
-  return getSwapResultFromExactOutput(
+  let actualAmountOut = amountOut;
+  if (outputTokenInfo) {
+    actualAmountOut = calculateTransferFeeIncludedAmount(
+      amountOut,
+      outputTokenInfo.mint,
+      outputTokenInfo.currentEpoch
+    ).amount;
+  }
+
+  const swapResult = getSwapResultFromExactOutput(
     pool,
     actualAmountOut,
     feeMode,
     tradeDirection,
     currentPoint
   );
+
+  let actualAmountIn = swapResult.includedFeeInputAmount;
+  if (inputTokenInfo) {
+    actualAmountIn = calculateTransferFeeIncludedAmount(
+      swapResult.includedFeeInputAmount,
+      inputTokenInfo.mint,
+      inputTokenInfo.currentEpoch
+    ).amount;
+  }
+
+  const maximumAmountIn = getAmountWithSlippage(
+    actualAmountIn,
+    slippage,
+    SwapMode.ExactOut
+  );
+
+  const priceImpact = getPriceImpact(
+    actualAmountIn,
+    actualAmountOut,
+    pool.sqrtPrice,
+    aToB,
+    tokenADecimal,
+    tokenBDecimal
+  );
+
+  return {
+    ...swapResult,
+    maximumAmountIn,
+    priceImpact,
+  };
 }
 
 export function swapQuotePartialInput(
   pool: PoolState,
   currentPoint: BN,
-  actualAmountIn: BN,
+  amountIn: BN,
+  slippage: number,
   aToB: boolean,
-  hasReferral: boolean
-): SwapResult2 {
-  if (actualAmountIn.lte(new BN(0))) {
+  hasReferral: boolean,
+  tokenADecimal: number,
+  tokenBDecimal: number,
+  inputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  },
+  outputTokenInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  }
+): Quote2Result {
+  if (amountIn.lte(new BN(0))) {
     throw new Error("Amount in must be greater than 0");
   }
 
@@ -644,11 +766,50 @@ export function swapQuotePartialInput(
 
   const feeMode = getFeeMode(pool.collectFeeMode, tradeDirection, hasReferral);
 
-  return getSwapResultFromPartialInput(
+  let actualAmountIn = amountIn;
+  if (inputTokenInfo) {
+    actualAmountIn = calculateTransferFeeExcludedAmount(
+      amountIn,
+      inputTokenInfo.mint,
+      inputTokenInfo.currentEpoch
+    ).amount;
+  }
+
+  const swapResult = getSwapResultFromPartialInput(
     pool,
     actualAmountIn,
     feeMode,
     tradeDirection,
     currentPoint
   );
+
+  let actualAmountOut = swapResult.outputAmount;
+  if (outputTokenInfo) {
+    actualAmountOut = calculateTransferFeeExcludedAmount(
+      swapResult.outputAmount,
+      outputTokenInfo.mint,
+      outputTokenInfo.currentEpoch
+    ).amount;
+  }
+
+  const minimumAmountOut = getAmountWithSlippage(
+    actualAmountOut,
+    slippage,
+    SwapMode.PartialFill
+  );
+
+  const priceImpact = getPriceImpact(
+    actualAmountIn,
+    actualAmountOut,
+    pool.sqrtPrice,
+    aToB,
+    tokenADecimal,
+    tokenBDecimal
+  );
+
+  return {
+    ...swapResult,
+    minimumAmountOut,
+    priceImpact,
+  };
 }

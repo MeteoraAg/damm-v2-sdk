@@ -1,8 +1,8 @@
 import { BN } from "@coral-xyz/anchor";
 import { BASIS_POINT_MAX, LIQUIDITY_SCALE } from "../constants";
 import Decimal from "decimal.js";
-import { PoolState, PositionState } from "../types";
-import { PublicKey } from "@solana/web3.js";
+import { PoolState, PositionState, SwapMode } from "../types";
+
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
  * that slippage rate
@@ -17,15 +17,37 @@ export const getMaxAmountWithSlippage = (amount: BN, rate: number) => {
 };
 
 /**
- * It takes an amount and a slippage rate, and returns the minimum amount that will be received after
- * slippage
- * @param {BN} amount - The amount of tokens you want to sell.
- * @param {number} rate - The percentage of slippage you're willing to accept. (Max to 2 decimal place)
- * @returns The minimum amount that can be received after slippage is applied.
+ * Calculates minimum amount out or maximum amount in based on slippage and swap mode.
+ * For ExactIn/PartialFill: returns minimum amount out.
+ * For ExactOut: returns maximum amount in.
+ *
+ * @param {BN} amount - The base amount (outputAmount for ExactIn/PartialFill, includedFeeInputAmount for ExactOut)
+ * @param {number} slippageBps - Slippage in basis points (1% = 100)
+ * @param {SwapMode} swapMode - Swap mode (ExactIn, PartialFill, ExactOut)
+ * @returns {BN} - Minimum amount out (for ExactIn/PartialFill) or maximum amount in (for ExactOut)
  */
-export const getMinAmountWithSlippage = (amount: BN, rate: number) => {
-  const slippage = ((100 - rate) / 100) * BASIS_POINT_MAX;
-  return amount.mul(new BN(slippage)).div(new BN(BASIS_POINT_MAX));
+export const getAmountWithSlippage = (
+  amount: BN,
+  slippageBps: number,
+  swapMode: SwapMode
+): BN => {
+  let result: BN;
+
+  if (slippageBps > 0) {
+    if (swapMode === SwapMode.ExactOut) {
+      // maximum amount in: amount * (10000 + slippageBps) / 10000
+      const slippageFactor = new BN(BASIS_POINT_MAX + slippageBps);
+      result = amount.mul(slippageFactor).div(new BN(BASIS_POINT_MAX));
+    } else {
+      // minimum amount out: amount * (10000 - slippageBps) / 10000
+      const slippageFactor = new BN(BASIS_POINT_MAX - slippageBps);
+      result = amount.mul(slippageFactor).div(new BN(BASIS_POINT_MAX));
+    }
+  } else {
+    result = amount;
+  }
+
+  return result;
 };
 
 /**
@@ -117,7 +139,14 @@ export const getPriceChange = (
     .toNumber();
 };
 
-// (sqrtPrice)^2 * 10 ** (base_decimal - quote_decimal) / 2^128
+/**
+ * Converts a sqrt price to a price
+ * (sqrtPrice)^2 * 10 ** (base_decimal - quote_decimal) / 2^128
+ * @param sqrtPrice - The sqrt price
+ * @param tokenADecimal - The token A decimal
+ * @param tokenBDecimal - The token B decimal
+ * @returns The price
+ */
 export const getPriceFromSqrtPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
@@ -132,7 +161,14 @@ export const getPriceFromSqrtPrice = (
   return price;
 };
 
-//  sqrt(price / 10^(tokenADecimal - tokenBDecimal)) * 2^64
+/**
+ * Converts a price to a sqrt price
+ * sqrt(price / 10^(tokenADecimal - tokenBDecimal)) * 2^64
+ * @param price - The price
+ * @param tokenADecimal - The token A decimal
+ * @param tokenBDecimal - The token B decimal
+ * @returns The sqrt price
+ */
 export const getSqrtPriceFromPrice = (
   price: string,
   tokenADecimal: number,
@@ -153,6 +189,14 @@ export const getSqrtPriceFromPrice = (
 
 // fee = totalLiquidity * feePerTokenStore
 // precision: (totalLiquidity * feePerTokenStore) >> 128
+/**
+ * Gets the unclaimed reward
+ * fee = totalLiquidity * feePerTokenStore
+ * precision: (totalLiquidity * feePerTokenStore) >> 128
+ * @param poolState - The pool state
+ * @param positionState - The position state
+ * @returns The unclaimed reward
+ */
 export const getUnClaimReward = (
   poolState: PoolState,
   positionState: PositionState

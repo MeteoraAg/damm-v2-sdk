@@ -1,4 +1,4 @@
-import { Program, BN } from "@coral-xyz/anchor";
+import { Program } from "@coral-xyz/anchor";
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import invariant from "invariant";
 
@@ -11,6 +11,7 @@ import {
   TransactionInstruction,
   SystemProgram,
   AccountMeta,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
 } from "@solana/web3.js";
 import {
   AddLiquidityParams,
@@ -30,11 +31,9 @@ import {
   CreatePositionAndAddLiquidity,
   CreatePositionParams,
   DepositQuote,
-  DynamicFeeParams,
   FundRewardParams,
   GetDepositQuoteParams,
   GetQuoteParams,
-  GetQuoteExactOutParams,
   GetWithdrawQuoteParams,
   InitializeCustomizeablePoolParams,
   InitializeCustomizeablePoolWithDynamicConfigParams,
@@ -49,7 +48,6 @@ import {
   PreparePoolCreationParams,
   PreparePoolCreationSingleSide,
   PrepareTokenAccountParams,
-  QuoteExactOutResult,
   RefreshVestingParams,
   RemoveAllLiquidityAndClosePositionParams,
   RemoveAllLiquidityParams,
@@ -66,6 +64,10 @@ import {
   WithdrawQuote,
   SplitPositionParams,
   SplitPosition2Params,
+  Quote2Result,
+  Swap2Params,
+  SwapMode,
+  GetQuote2Params,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -78,31 +80,33 @@ import {
 } from "./pda";
 
 import {
-  getFeeNumerator,
   getOrCreateATAInstruction,
   getTokenProgram,
   unwrapSOLInstruction,
   wrapSOLInstruction,
-  getSwapAmount,
-  getLiquidityDeltaFromAmountA,
-  getLiquidityDeltaFromAmountB,
-  getMinAmountWithSlippage,
-  getPriceImpact,
   positionByPoolFilter,
   vestingByPositionFilter,
-  calculateInitSqrtPrice,
   calculateTransferFeeExcludedAmount,
   calculateTransferFeeIncludedAmount,
-  getAmountBFromLiquidityDelta,
-  getAmountAFromLiquidityDelta,
   getAvailableVestingLiquidity,
   isVestingComplete,
   getAllPositionNftAccountByOwner,
-  getFeeMode,
-  getSwapResultFromOutAmount,
+  parseRateLimiterSecondFactor,
+  getCurrentPoint,
 } from "./helpers";
-import { min, max } from "bn.js";
+import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
+import {
+  calculateInitSqrtPrice,
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
+  getLiquidityDeltaFromAmountA,
+  getLiquidityDeltaFromAmountB,
+  isRateLimiterApplied,
+  swapQuoteExactInput,
+  swapQuoteExactOutput,
+  swapQuotePartialInput,
+} from "./math";
 
 /**
  * CpAmm SDK class to interact with the DAMM-V2
@@ -973,175 +977,115 @@ export class CpAmm {
       currentSlot,
       inputTokenInfo,
       outputTokenInfo,
+      tokenADecimal,
+      tokenBDecimal,
+      hasReferral,
     } = params;
-    const {
-      sqrtPrice: sqrtPriceQ64,
-      liquidity: liquidityQ64,
-      activationType,
-      activationPoint,
-      collectFeeMode,
-      poolFees,
-    } = poolState;
-    const {
-      feeSchedulerMode,
-      cliffFeeNumerator,
-      numberOfPeriod,
-      reductionFactor,
-      periodFrequency,
-    } = poolFees.baseFee;
-    const dynamicFee = poolFees.dynamicFee;
+    const { sqrtPrice: sqrtPriceQ64, activationType } = poolState;
 
-    let actualAmountIn = inAmount;
-    if (inputTokenInfo) {
-      actualAmountIn = calculateTransferFeeExcludedAmount(
-        inAmount,
-        inputTokenInfo.mint,
-        inputTokenInfo.currentEpoch
-      ).amount;
-    }
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
-    const currentPoint = activationType ? currentTime : currentSlot;
 
-    let dynamicFeeParams: DynamicFeeParams;
-    if (dynamicFee.initialized) {
-      const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
-      dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
-    }
+    const currentPoint = activationType
+      ? new BN(currentTime)
+      : new BN(currentSlot);
 
-    const tradeFeeNumerator = getFeeNumerator(
+    const swapResult = swapQuoteExactInput(
+      poolState,
       currentPoint,
-      activationPoint,
-      numberOfPeriod,
-      periodFrequency,
-      feeSchedulerMode,
-      cliffFeeNumerator,
-      reductionFactor,
-      dynamicFeeParams
-    );
-
-    const { amountOut, totalFee, nextSqrtPrice } = getSwapAmount(
-      actualAmountIn,
-      sqrtPriceQ64,
-      liquidityQ64,
-      tradeFeeNumerator,
+      inAmount,
+      slippage,
       aToB,
-      collectFeeMode
-    );
-
-    let actualAmountOut = amountOut;
-    if (outputTokenInfo) {
-      actualAmountOut = calculateTransferFeeExcludedAmount(
-        amountOut,
-        outputTokenInfo.mint,
-        outputTokenInfo.currentEpoch
-      ).amount;
-    }
-
-    const minSwapOutAmount = getMinAmountWithSlippage(
-      actualAmountOut,
-      slippage
+      hasReferral,
+      tokenADecimal,
+      tokenBDecimal,
+      inputTokenInfo,
+      outputTokenInfo
     );
 
     return {
       swapInAmount: inAmount,
-      consumedInAmount: actualAmountIn,
-      swapOutAmount: actualAmountOut,
-      minSwapOutAmount,
-      totalFee,
-      priceImpact: getPriceImpact(
-        actualAmountIn,
-        actualAmountOut,
-        sqrtPriceQ64,
-        aToB,
-        params.tokenADecimal,
-        params.tokenBDecimal
-      ),
+      consumedInAmount: swapResult.includedFeeInputAmount,
+      swapOutAmount: swapResult.outputAmount,
+      minSwapOutAmount: swapResult.minimumAmountOut,
+      totalFee: swapResult.tradingFee
+        .add(swapResult.protocolFee)
+        .add(swapResult.partnerFee)
+        .add(swapResult.referralFee),
+      priceImpact: swapResult.priceImpact,
     };
   }
 
-  /**
-   * Calculates swap quote based on desired output amount and pool state.
-   * @param params - Swap parameters including output amount, pool state, slippage, etc.
-   * @returns Swap quote including required input amount, fees, and price impact.
-   */
-  getQuoteExactOut(params: GetQuoteExactOutParams): QuoteExactOutResult {
+  getQuote2(params: GetQuote2Params): Quote2Result {
     const {
-      outAmount,
-      outputTokenMint,
+      inputTokenMint,
       slippage,
       poolState,
-      currentTime,
-      currentSlot,
+      currentPoint,
       inputTokenInfo,
       outputTokenInfo,
+      hasReferral,
+      tokenADecimal,
+      tokenBDecimal,
+      swapMode,
     } = params;
-    const {
-      sqrtPrice: sqrtPriceQ64,
-      activationType,
-      collectFeeMode,
-      poolFees,
-    } = poolState;
 
-    const dynamicFee = poolFees.dynamicFee;
+    const aToB = poolState.tokenAMint.equals(inputTokenMint);
 
-    const bToA = poolState.tokenAMint.equals(outputTokenMint);
-    const tradeDirection = bToA ? TradeDirection.BtoA : TradeDirection.AtoB;
+    switch (swapMode) {
+      case SwapMode.ExactIn:
+        if ("amountIn" in params) {
+          return swapQuoteExactInput(
+            poolState,
+            currentPoint,
+            params.amountIn,
+            slippage,
+            aToB,
+            hasReferral,
+            tokenADecimal,
+            tokenBDecimal,
+            inputTokenInfo,
+            outputTokenInfo
+          );
+        }
+        throw new Error("amountIn is required for ExactIn swap mode");
 
-    const currentPoint = activationType ? currentTime : currentSlot;
+      case SwapMode.ExactOut:
+        if ("amountOut" in params) {
+          return swapQuoteExactOutput(
+            poolState,
+            currentPoint,
+            params.amountOut,
+            slippage,
+            aToB,
+            hasReferral,
+            tokenADecimal,
+            tokenBDecimal,
+            inputTokenInfo,
+            outputTokenInfo
+          );
+        }
+        throw new Error("outAmount is required for ExactOut swap mode");
 
-    let dynamicFeeParams: DynamicFeeParams;
-    if (dynamicFee.initialized) {
-      const { volatilityAccumulator, binStep, variableFeeControl } = dynamicFee;
-      dynamicFeeParams = { volatilityAccumulator, binStep, variableFeeControl };
+      case SwapMode.PartialFill:
+        if ("amountIn" in params) {
+          return swapQuotePartialInput(
+            poolState,
+            currentPoint,
+            params.amountIn,
+            slippage,
+            aToB,
+            hasReferral,
+            tokenADecimal,
+            tokenBDecimal,
+            inputTokenInfo,
+            outputTokenInfo
+          );
+        }
+        throw new Error("amountIn is required for PartialFill swap mode");
+
+      default:
+        throw new Error(`Unsupported swap mode: ${swapMode}`);
     }
-
-    let actualAmountOut = outAmount;
-    if (outputTokenInfo) {
-      actualAmountOut = calculateTransferFeeIncludedAmount(
-        outAmount,
-        outputTokenInfo.mint,
-        outputTokenInfo.currentEpoch
-      ).amount;
-    }
-
-    const feeMode = getFeeMode(collectFeeMode, bToA);
-
-    const { swapResult, inputAmount } = getSwapResultFromOutAmount(
-      poolState,
-      actualAmountOut,
-      feeMode,
-      tradeDirection,
-      currentPoint
-    );
-
-    let actualInputAmount = inputAmount;
-    if (inputTokenInfo) {
-      actualInputAmount = calculateTransferFeeIncludedAmount(
-        inputAmount,
-        inputTokenInfo.mint,
-        inputTokenInfo.currentEpoch
-      ).amount;
-    }
-
-    const maxInputAmount = new BN(
-      Math.ceil(actualInputAmount.toNumber() * (1 + slippage / 100))
-    );
-
-    const priceImpact = getPriceImpact(
-      actualInputAmount,
-      actualAmountOut,
-      sqrtPriceQ64,
-      !bToA, // aToB is the opposite of bToA
-      params.tokenADecimal,
-      params.tokenBDecimal
-    ).toNumber();
-
-    return {
-      swapResult,
-      inputAmount: actualInputAmount,
-      maxInputAmount,
-      priceImpact,
-    };
   }
 
   /**
@@ -2119,6 +2063,10 @@ export class CpAmm {
       ? [tokenAProgram, tokenBProgram]
       : [tokenBProgram, tokenAProgram];
 
+    const tradeDirection = inputTokenMint.equals(tokenAMint)
+      ? TradeDirection.AtoB
+      : TradeDirection.BtoA;
+
     const {
       tokenAAta: inputTokenAccount,
       tokenBAta: outputTokenAccount,
@@ -2153,6 +2101,39 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
+    const poolState = await this.fetchPoolState(pool);
+
+    const currentPoint = await getCurrentPoint(
+      this._program.provider.connection,
+      poolState.activationType
+    );
+
+    const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
+      poolState.poolFees.baseFee.secondFactor
+    );
+
+    // check if rate limiter is applied
+    const rateLimiterApplied = isRateLimiterApplied(
+      poolState.poolFees.baseFee.thirdFactor,
+      maxLimiterDuration,
+      maxFeeBps,
+      poolState.poolFees.baseFee.firstFactor,
+      currentPoint,
+      poolState.activationPoint,
+      tradeDirection
+    );
+
+    // add remaining accounts if rate limiter is applied
+    const remainingAccounts = rateLimiterApplied
+      ? [
+          {
+            isSigner: false,
+            isWritable: false,
+            pubkey: SYSVAR_INSTRUCTIONS_PUBKEY,
+          },
+        ]
+      : [];
+
     return await this._program.methods
       .swap({
         amountIn,
@@ -2172,6 +2153,141 @@ export class CpAmm {
         tokenBProgram,
         referralTokenAccount,
       })
+      .remainingAccounts(remainingAccounts)
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  async swap2(params: Swap2Params): TxBuilder {
+    const {
+      payer,
+      pool,
+      inputTokenMint,
+      outputTokenMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+      referralTokenAccount,
+      swapMode,
+    } = params;
+
+    const [inputTokenProgram, outputTokenProgram] = inputTokenMint.equals(
+      tokenAMint
+    )
+      ? [tokenAProgram, tokenBProgram]
+      : [tokenBProgram, tokenAProgram];
+
+    const tradeDirection = inputTokenMint.equals(tokenAMint)
+      ? TradeDirection.AtoB
+      : TradeDirection.BtoA;
+
+    const {
+      tokenAAta: inputTokenAccount,
+      tokenBAta: outputTokenAccount,
+      instructions: preInstructions,
+    } = await this.prepareTokenAccounts({
+      payer,
+      tokenAOwner: payer,
+      tokenBOwner: payer,
+      tokenAMint: inputTokenMint,
+      tokenBMint: outputTokenMint,
+      tokenAProgram: inputTokenProgram,
+      tokenBProgram: outputTokenProgram,
+    });
+
+    let amount0: BN;
+    let amount1: BN;
+
+    if (swapMode === SwapMode.ExactOut) {
+      amount0 = params.amountOut;
+      amount1 = params.maximumAmountIn;
+    } else {
+      amount0 = params.amountIn;
+      amount1 = params.minimumAmountOut;
+    }
+
+    if (inputTokenMint.equals(NATIVE_MINT)) {
+      const amount =
+        swapMode === SwapMode.ExactIn || swapMode === SwapMode.PartialFill
+          ? amount0
+          : amount1;
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        inputTokenAccount,
+        BigInt(amount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(payer);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    const poolState = await this.fetchPoolState(pool);
+
+    const currentPoint = await getCurrentPoint(
+      this._program.provider.connection,
+      poolState.activationType
+    );
+
+    const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
+      poolState.poolFees.baseFee.secondFactor
+    );
+
+    // check if rate limiter is applied
+    const rateLimiterApplied = isRateLimiterApplied(
+      poolState.poolFees.baseFee.thirdFactor,
+      maxLimiterDuration,
+      maxFeeBps,
+      poolState.poolFees.baseFee.firstFactor,
+      currentPoint,
+      poolState.activationPoint,
+      tradeDirection
+    );
+
+    // add remaining accounts if rate limiter is applied
+    const remainingAccounts = rateLimiterApplied
+      ? [
+          {
+            isSigner: false,
+            isWritable: false,
+            pubkey: SYSVAR_INSTRUCTIONS_PUBKEY,
+          },
+        ]
+      : [];
+
+    return await this._program.methods
+      .swap2({
+        amount0,
+        amount1,
+        swapMode,
+      })
+      .accountsPartial({
+        poolAuthority: this.poolAuthority,
+        pool,
+        payer,
+        inputTokenAccount,
+        outputTokenAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+        referralTokenAccount,
+      })
+      .remainingAccounts(remainingAccounts)
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
       .transaction();

@@ -3,7 +3,6 @@ export * from "./pda";
 export * from "./types";
 export * from "./constants";
 export * from "./helpers";
-export * from "./types";
 export * from "./math";
 export type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
 import CpAmmIDL from "./idl/cp_amm.json";

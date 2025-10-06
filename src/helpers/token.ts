@@ -20,9 +20,21 @@ import {
   TransactionInstruction,
 } from "@solana/web3.js";
 
+/**
+ * Gets the token program
+ * @param flag - The flag
+ * @returns The token program
+ */
 export function getTokenProgram(flag: number): PublicKey {
   return flag == 0 ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
 }
+
+/**
+ * Gets the token decimals
+ * @param connection - The connection
+ * @param mint - The mint
+ * @returns The token decimals
+ */
 export const getTokenDecimals = async (
   connection: Connection,
   mint: PublicKey
@@ -30,6 +42,16 @@ export const getTokenDecimals = async (
   return (await getMint(connection, mint)).decimals;
 };
 
+/**
+ * Gets the or creates the ATA instruction
+ * @param connection - The connection
+ * @param tokenMint - The token mint
+ * @param owner - The owner
+ * @param payer - The payer
+ * @param allowOwnerOffCurve - The allow owner off curve
+ * @param tokenProgram - The token program
+ * @returns The ATA instruction
+ */
 export const getOrCreateATAInstruction = async (
   connection: Connection,
   tokenMint: PublicKey,
@@ -70,6 +92,13 @@ export const getOrCreateATAInstruction = async (
   }
 };
 
+/**
+ * Gets the wrap SOL instruction
+ * @param from - The from
+ * @param to - The to
+ * @param amount - The amount
+ * @returns The wrap SOL instruction
+ */
 export const wrapSOLInstruction = (
   from: PublicKey,
   to: PublicKey,
@@ -95,6 +124,13 @@ export const wrapSOLInstruction = (
   ];
 };
 
+/**
+ * Gets the unwrap SOL instruction
+ * @param owner - The owner
+ * @param receiver - The receiver
+ * @param allowOwnerOffCurve - The allow owner off curve
+ * @returns The unwrap SOL instruction
+ */
 export const unwrapSOLInstruction = async (
   owner: PublicKey,
   receiver: PublicKey = owner,
@@ -118,6 +154,12 @@ export const unwrapSOLInstruction = async (
   return null;
 };
 
+/**
+ * Gets all the user position NFT accounts
+ * @param connection - The connection
+ * @param user - The user
+ * @returns The user position NFT accounts
+ */
 export async function getAllUserPositionNftAccount(
   connection: Connection,
   user: PublicKey
@@ -164,6 +206,12 @@ export async function getAllUserPositionNftAccount(
   return userPositionNftAccount;
 }
 
+/**
+ * Gets all the position NFT accounts by owner
+ * @param connection - The connection
+ * @param user - The user
+ * @returns The position NFT accounts by owner
+ */
 export async function getAllPositionNftAccountByOwner(
   connection: Connection,
   user: PublicKey

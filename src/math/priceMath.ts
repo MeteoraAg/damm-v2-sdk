@@ -1,12 +1,20 @@
 import { BN } from "@coral-xyz/anchor";
 import Decimal from "decimal.js";
 
-// a = L * (1/s - 1/pb)
-// b = L * (s - pa)
-// b/a = (s - pa) / (1/s - 1/pb)
-// With: x = 1 / pb and y = b/a
-// => s ^ 2 + s * (-pa + x * y) - y = 0
-// s = [(pa - xy) + √((xy - pa)² + 4y)]/2
+/**
+ * Calculates the initial sqrt price
+ * a = L * (1/s - 1/pb)
+ * b = L * (s - pa)
+ * b/a = (s - pa) / (1/s - 1/pb)
+ * With: x = 1 / pb and y = b/a
+ * => s ^ 2 + s * (-pa + x * y) - y = 0
+ * s = [(pa - xy) + √((xy - pa)² + 4y)]/2
+ * @param tokenAAmount - The token A amount
+ * @param tokenBAmount - The token B amount
+ * @param minSqrtPrice - The min sqrt price
+ * @param maxSqrtPrice - The max sqrt price
+ * @returns The initial sqrt price
+ */
 export function calculateInitSqrtPrice(
   tokenAAmount: BN,
   tokenBAmount: BN,

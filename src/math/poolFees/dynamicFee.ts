@@ -22,7 +22,7 @@ export function isDynamicFeeEnabled(dynamicFee: DynamicFeeStruct): boolean {
  * @param variableFeeControl - Parameter controlling the impact of volatility on fees (BN)
  * @returns The calculated dynamic fee numerator (BN)
  */
-export function getVariableFeeNumerator(
+export function getDynamicFeeNumerator(
   volatilityAccumulator: BN,
   binStep: BN,
   variableFeeControl: BN

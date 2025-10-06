@@ -15,16 +15,18 @@ import {
 import { expect } from "chai";
 
 import {
+  ActivationType,
+  BaseFeeMode,
   CpAmm,
   CreatePositionParams,
   derivePositionAddress,
   derivePositionNftAccount,
-  FeeSchedulerMode,
   getBaseFeeParams,
   InitializeCustomizeablePoolParams,
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,
   PoolFeesParams,
+  PoolVersion,
   SPLIT_POSITION_DENOMINATOR,
   SplitPosition2Params,
 } from "../src";
@@ -58,12 +60,22 @@ describe("Split Position 2", () => {
     });
 
     it("Should successfully split position 2 between poolCreator and user", async () => {
+      const tokenBDecimal = 9;
+      const activationType = ActivationType.Timestamp;
+      const poolVersion = PoolVersion.V0;
       const baseFee = getBaseFeeParams(
-        100, // 1% max fee in bps
-        100, // 1% min fee in bps
-        FeeSchedulerMode.Linear,
-        0, // numberOfPeriod
-        0 // totalDuration
+        {
+          baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
+          feeSchedulerParam: {
+            startingFeeBps: 100,
+            endingFeeBps: 100,
+            numberOfPeriod: 0,
+            totalDuration: 0,
+          },
+        },
+        tokenBDecimal,
+        activationType,
+        poolVersion
       );
       const poolFees: PoolFeesParams = {
         baseFee,
@@ -213,12 +225,22 @@ describe("Split Position 2", () => {
     });
 
     it("Should successfully split position 2 between poolCreator and user with Token 2022", async () => {
+      const tokenBDecimal = 9;
+      const activationType = ActivationType.Timestamp;
+      const poolVersion = PoolVersion.V0;
       const baseFee = getBaseFeeParams(
-        100, // 1% max fee in bps
-        100, // 1% min fee in bps
-        FeeSchedulerMode.Linear,
-        0, // numberOfPeriod
-        0 // totalDuration
+        {
+          baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
+          feeSchedulerParam: {
+            startingFeeBps: 100,
+            endingFeeBps: 100,
+            numberOfPeriod: 0,
+            totalDuration: 0,
+          },
+        },
+        tokenBDecimal,
+        activationType,
+        poolVersion
       );
       const poolFees: PoolFeesParams = {
         baseFee,

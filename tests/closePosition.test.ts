@@ -16,6 +16,7 @@ import {
 import {
   AddLiquidityParams,
   BaseFee,
+  convertToFeeSchedulerSecondFactor,
   CpAmm,
   derivePositionNftAccount,
   getTokenProgram,
@@ -54,11 +55,11 @@ describe("Remove liquidity & Close position", () => {
 
     it("Success case", async () => {
       const baseFee: BaseFee = {
-        cliffFeeNumerator: new BN(1_000_000), // 1%
-        numberOfPeriod: 10,
-        periodFrequency: new BN(10),
-        reductionFactor: new BN(2),
-        feeSchedulerMode: 0, // Linear
+        cliffFeeNumerator: new BN(1_000_000), // 50%
+        firstFactor: 10,
+        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
+        thirdFactor: new BN(2),
+        baseFeeMode: 0, // Linear
       };
       const poolFees: PoolFeesParams = {
         baseFee,
@@ -200,10 +201,10 @@ describe("Remove liquidity & Close position", () => {
     it("Success case", async () => {
       const baseFee: BaseFee = {
         cliffFeeNumerator: new BN(1_000_000), // 1%
-        numberOfPeriod: 10,
-        periodFrequency: new BN(10),
-        reductionFactor: new BN(2),
-        feeSchedulerMode: 0, // Linear
+        firstFactor: 10,
+        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
+        thirdFactor: new BN(2),
+        baseFeeMode: 0, // Linear
       };
       const poolFees: PoolFeesParams = {
         baseFee,

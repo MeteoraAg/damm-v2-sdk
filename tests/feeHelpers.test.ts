@@ -1,11 +1,14 @@
 import BN from "bn.js";
 import {
+  ActivationType,
+  BaseFeeMode,
   bpsToFeeNumerator,
-  FeeSchedulerMode,
   getBaseFeeNumerator,
   getBaseFeeParams,
   getDynamicFeeNumerator,
   getDynamicFeeParams,
+  parseFeeSchedulerSecondFactor,
+  PoolVersion,
 } from "../src";
 import { expect } from "chai";
 
@@ -13,19 +16,32 @@ describe("fee helpers function", () => {
   it("get base fee params with Linear Fee Scheduler", async () => {
     const maxBaseFee = 4000; // 40%
     const minBaseFee = 100; // 1%
+    const tokenBDecimal = 9;
+    const activationType = ActivationType.Timestamp;
+    const poolVersion = PoolVersion.V0;
     const baseFeeParams = getBaseFeeParams(
-      maxBaseFee,
-      minBaseFee,
-      FeeSchedulerMode.Linear,
-      120,
-      60
+      {
+        baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
+        feeSchedulerParam: {
+          startingFeeBps: maxBaseFee,
+          endingFeeBps: minBaseFee,
+          numberOfPeriod: 120,
+          totalDuration: 60,
+        },
+      },
+      tokenBDecimal,
+      activationType,
+      poolVersion
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(
-      FeeSchedulerMode.Linear,
       cliffFeeNumerator,
-      new BN(120),
-      new BN(baseFeeParams.reductionFactor)
+      baseFeeParams.firstFactor,
+      parseFeeSchedulerSecondFactor(baseFeeParams.secondFactor),
+      new BN(baseFeeParams.thirdFactor),
+      baseFeeParams.baseFeeMode,
+      new BN(120), // currentPoint
+      new BN(120) // activationPoint
     );
     const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFee);
     expect(minBaseFeeNumerator.toNumber()).equal(baseFeeNumerator.toNumber());
@@ -33,22 +49,35 @@ describe("fee helpers function", () => {
   it("get base fee params with Exponential Fee Scheduler", async () => {
     const maxBaseFee = 4000; // 40%
     const minBaseFee = 100; // 1%
+    const tokenBDecimal = 9;
+    const activationType = ActivationType.Timestamp;
+    const poolVersion = PoolVersion.V0;
     const baseFeeParams = getBaseFeeParams(
-      maxBaseFee,
-      minBaseFee,
-      FeeSchedulerMode.Exponential,
-      120,
-      60
+      {
+        baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
+        feeSchedulerParam: {
+          startingFeeBps: maxBaseFee,
+          endingFeeBps: minBaseFee,
+          numberOfPeriod: 120,
+          totalDuration: 60,
+        },
+      },
+      tokenBDecimal,
+      activationType,
+      poolVersion
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(
-      FeeSchedulerMode.Exponential,
       cliffFeeNumerator,
-      new BN(120),
-      new BN(baseFeeParams.reductionFactor)
-    ).toNumber();
+      baseFeeParams.firstFactor,
+      parseFeeSchedulerSecondFactor(baseFeeParams.secondFactor),
+      new BN(baseFeeParams.thirdFactor),
+      baseFeeParams.baseFeeMode,
+      new BN(120), // currentPoint
+      new BN(120) // activationPoint
+    );
     const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFee).toNumber();
-    const diff = Math.abs(minBaseFeeNumerator - baseFeeNumerator);
+    const diff = Math.abs(minBaseFeeNumerator - baseFeeNumerator.toNumber());
     const percentDifference = (diff / minBaseFeeNumerator) * 100;
     // less than 1%.
     expect(percentDifference < 1);

@@ -22,7 +22,7 @@ import {
   SplitFees,
   TradeDirection,
 } from "../types";
-import { getBaseFeeHandler, getVariableFeeNumerator } from "./poolFees";
+import { getBaseFeeHandler, getDynamicFeeNumerator } from "./poolFees";
 
 /**
  * Converts basis points to a numerator
@@ -138,7 +138,7 @@ export function getTotalFeeNumerator(
   baseFeeNumerator: BN,
   maxFeeNumerator: BN
 ): BN {
-  const dynamicFeeNumerator = getVariableFeeNumerator(
+  const dynamicFeeNumerator = getDynamicFeeNumerator(
     poolFees.dynamicFee.volatilityAccumulator,
     new BN(poolFees.dynamicFee.binStep),
     new BN(poolFees.dynamicFee.variableFeeControl)

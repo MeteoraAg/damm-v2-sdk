@@ -4,15 +4,23 @@ import {
   ActivationType,
   BaseFee,
   BaseFeeMode,
+  DynamicFee,
   PoolStatus,
   PoolVersion,
 } from "../types";
 import {
   BASIS_POINT_MAX,
+  BIN_STEP_BPS_DEFAULT,
+  BIN_STEP_BPS_U128_DEFAULT,
+  DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,
+  DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
+  DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
   FEE_DENOMINATOR,
+  MAX_PRICE_CHANGE_BPS_DEFAULT,
   MAX_RATE_LIMITER_DURATION_IN_SECONDS,
   MAX_RATE_LIMITER_DURATION_IN_SLOTS,
   MIN_FEE_NUMERATOR,
+  ONE_Q64,
 } from "../constants";
 import { getMaxFeeBps, getMaxFeeNumerator } from "../math";
 import Decimal from "decimal.js";
@@ -424,4 +432,58 @@ export function getBaseFeeParams(
       poolVersion
     );
   }
+}
+
+/**
+ * Gets the dynamic fee parameters
+ * @param baseFeeBps - The base fee in basis points
+ * @param maxPriceChangeBps - The max price change in basis points
+ * @returns The dynamic fee parameters
+ */
+export function getDynamicFeeParams(
+  baseFeeBps: number,
+  maxPriceChangeBps: number = MAX_PRICE_CHANGE_BPS_DEFAULT // default 15%
+): DynamicFee {
+  if (maxPriceChangeBps > MAX_PRICE_CHANGE_BPS_DEFAULT) {
+    throw new Error(
+      `maxPriceChangeBps (${maxPriceChangeBps} bps) must be less than or equal to ${MAX_PRICE_CHANGE_BPS_DEFAULT}`
+    );
+  }
+
+  const priceRatio = maxPriceChangeBps / BASIS_POINT_MAX + 1;
+  // Q64
+  const sqrtPriceRatioQ64 = new BN(
+    Decimal.sqrt(priceRatio.toString())
+      .mul(Decimal.pow(2, 64))
+      .floor()
+      .toFixed()
+  );
+  const deltaBinId = sqrtPriceRatioQ64
+    .sub(ONE_Q64)
+    .div(BIN_STEP_BPS_U128_DEFAULT)
+    .muln(2);
+
+  const maxVolatilityAccumulator = new BN(deltaBinId.muln(BASIS_POINT_MAX));
+
+  const squareVfaBin = maxVolatilityAccumulator
+    .mul(new BN(BIN_STEP_BPS_DEFAULT))
+    .pow(new BN(2));
+
+  const baseFeeNumerator = new BN(bpsToFeeNumerator(baseFeeBps));
+  const maxDynamicFeeNumerator = baseFeeNumerator.muln(20).divn(100); // default max dynamic fee = 20% of base fee.
+  const vFee = maxDynamicFeeNumerator
+    .mul(new BN(100_000_000_000))
+    .sub(new BN(99_999_999_999));
+
+  const variableFeeControl = vFee.div(squareVfaBin);
+
+  return {
+    binStep: BIN_STEP_BPS_DEFAULT,
+    binStepU128: BIN_STEP_BPS_U128_DEFAULT,
+    filterPeriod: DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
+    decayPeriod: DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,
+    reductionFactor: DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
+    maxVolatilityAccumulator: maxVolatilityAccumulator.toNumber(),
+    variableFeeControl: variableFeeControl.toNumber(),
+  };
 }

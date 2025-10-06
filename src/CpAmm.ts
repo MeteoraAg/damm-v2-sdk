@@ -11,6 +11,7 @@ import {
   TransactionInstruction,
   SystemProgram,
   AccountMeta,
+  SYSVAR_INSTRUCTIONS_PUBKEY,
 } from "@solana/web3.js";
 import {
   AddLiquidityParams,
@@ -66,6 +67,8 @@ import {
   WithdrawQuote,
   SplitPositionParams,
   SplitPosition2Params,
+  Swap2Params,
+  SwapMode,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -100,6 +103,8 @@ import {
   getAllPositionNftAccountByOwner,
   getFeeMode,
   getSwapResultFromOutAmount,
+  getCurrentPoint,
+  parseRateLimiterSecondFactor,
 } from "./helpers";
 import { min, max } from "bn.js";
 import Decimal from "decimal.js";
@@ -2119,6 +2124,10 @@ export class CpAmm {
       ? [tokenAProgram, tokenBProgram]
       : [tokenBProgram, tokenAProgram];
 
+    const tradeDirection = inputTokenMint.equals(tokenAMint)
+      ? TradeDirection.AtoB
+      : TradeDirection.BtoA;
+
     const {
       tokenAAta: inputTokenAccount,
       tokenBAta: outputTokenAccount,
@@ -2153,6 +2162,39 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
+    const poolState = await this.fetchPoolState(pool);
+
+    const currentPoint = await getCurrentPoint(
+      this._program.provider.connection,
+      poolState.activationType
+    );
+
+    const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
+      poolState.poolFees.baseFee.secondFactor
+    );
+
+    // check if rate limiter is applied
+    const rateLimiterApplied = isRateLimiterApplied(
+      poolState.poolFees.baseFee.thirdFactor,
+      maxLimiterDuration,
+      maxFeeBps,
+      poolState.poolFees.baseFee.firstFactor,
+      currentPoint,
+      poolState.activationPoint,
+      tradeDirection
+    );
+
+    // add remaining accounts if rate limiter is applied
+    const remainingAccounts = rateLimiterApplied
+      ? [
+          {
+            isSigner: false,
+            isWritable: false,
+            pubkey: SYSVAR_INSTRUCTIONS_PUBKEY,
+          },
+        ]
+      : [];
+
     return await this._program.methods
       .swap({
         amountIn,
@@ -2172,6 +2214,141 @@ export class CpAmm {
         tokenBProgram,
         referralTokenAccount,
       })
+      .remainingAccounts(remainingAccounts)
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  async swap2(params: Swap2Params): TxBuilder {
+    const {
+      payer,
+      pool,
+      inputTokenMint,
+      outputTokenMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+      referralTokenAccount,
+      swapMode,
+    } = params;
+
+    const [inputTokenProgram, outputTokenProgram] = inputTokenMint.equals(
+      tokenAMint
+    )
+      ? [tokenAProgram, tokenBProgram]
+      : [tokenBProgram, tokenAProgram];
+
+    const tradeDirection = inputTokenMint.equals(tokenAMint)
+      ? TradeDirection.AtoB
+      : TradeDirection.BtoA;
+
+    const {
+      tokenAAta: inputTokenAccount,
+      tokenBAta: outputTokenAccount,
+      instructions: preInstructions,
+    } = await this.prepareTokenAccounts({
+      payer,
+      tokenAOwner: payer,
+      tokenBOwner: payer,
+      tokenAMint: inputTokenMint,
+      tokenBMint: outputTokenMint,
+      tokenAProgram: inputTokenProgram,
+      tokenBProgram: outputTokenProgram,
+    });
+
+    let amount0: BN;
+    let amount1: BN;
+
+    if (swapMode === SwapMode.ExactOut) {
+      amount0 = params.amountOut;
+      amount1 = params.maximumAmountIn;
+    } else {
+      amount0 = params.amountIn;
+      amount1 = params.minimumAmountOut;
+    }
+
+    if (inputTokenMint.equals(NATIVE_MINT)) {
+      const amount =
+        swapMode === SwapMode.ExactIn || swapMode === SwapMode.PartialFill
+          ? amount0
+          : amount1;
+      const wrapSOLIx = wrapSOLInstruction(
+        payer,
+        inputTokenAccount,
+        BigInt(amount.toString())
+      );
+
+      preInstructions.push(...wrapSOLIx);
+    }
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(payer);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    const poolState = await this.fetchPoolState(pool);
+
+    const currentPoint = await getCurrentPoint(
+      this._program.provider.connection,
+      poolState.activationType
+    );
+
+    const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
+      poolState.poolFees.baseFee.secondFactor
+    );
+
+    // check if rate limiter is applied
+    const rateLimiterApplied = isRateLimiterApplied(
+      poolState.poolFees.baseFee.thirdFactor,
+      maxLimiterDuration,
+      maxFeeBps,
+      poolState.poolFees.baseFee.firstFactor,
+      currentPoint,
+      poolState.activationPoint,
+      tradeDirection
+    );
+
+    // add remaining accounts if rate limiter is applied
+    const remainingAccounts = rateLimiterApplied
+      ? [
+          {
+            isSigner: false,
+            isWritable: false,
+            pubkey: SYSVAR_INSTRUCTIONS_PUBKEY,
+          },
+        ]
+      : [];
+
+    return await this._program.methods
+      .swap2({
+        amount0,
+        amount1,
+        swapMode,
+      })
+      .accountsPartial({
+        poolAuthority: this.poolAuthority,
+        pool,
+        payer,
+        inputTokenAccount,
+        outputTokenAccount,
+        tokenAVault,
+        tokenBVault,
+        tokenAMint,
+        tokenBMint,
+        tokenAProgram,
+        tokenBProgram,
+        referralTokenAccount,
+      })
+      .remainingAccounts(remainingAccounts)
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
       .transaction();

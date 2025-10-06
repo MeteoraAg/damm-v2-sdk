@@ -42,6 +42,12 @@ export type FeeMode = {
   feesOnTokenA: boolean;
 };
 
+export enum SwapMode {
+  ExactIn,
+  PartialFill,
+  ExactOut,
+}
+
 // Account state types
 export type PoolState = IdlAccounts<CpAmmTypes>["pool"];
 export type PositionState = IdlAccounts<CpAmmTypes>["position"];
@@ -434,6 +440,36 @@ export type SwapParams = {
   tokenBProgram: PublicKey;
   referralTokenAccount: PublicKey | null;
 };
+
+export type Swap2Params = {
+  payer: PublicKey;
+  pool: PublicKey;
+  inputTokenMint: PublicKey;
+  outputTokenMint: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+  referralTokenAccount: PublicKey | null;
+} & (
+  | {
+      swapMode: SwapMode.ExactIn;
+      amountIn: BN;
+      minimumAmountOut: BN;
+    }
+  | {
+      swapMode: SwapMode.PartialFill;
+      amountIn: BN;
+      minimumAmountOut: BN;
+    }
+  | {
+      swapMode: SwapMode.ExactOut;
+      amountOut: BN;
+      maximumAmountIn: BN;
+    }
+);
 
 export type LockPositionParams = {
   owner: PublicKey;

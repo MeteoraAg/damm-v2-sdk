@@ -323,7 +323,15 @@ export function getBaseFeeParams(
 
   const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFeeBps);
 
-  const periodFrequency = new BN(totalDuration / numberOfPeriod);
+  let periodFrequency = new BN(totalDuration).divn(numberOfPeriod);
+
+  if (totalDuration % numberOfPeriod !== 0) {
+    periodFrequency = periodFrequency.addn(1);
+  }
+
+  if (periodFrequency.isZero()) {
+    periodFrequency = periodFrequency.addn(1);
+  }
 
   let reductionFactor: BN;
   if (feeSchedulerMode == FeeSchedulerMode.Linear) {

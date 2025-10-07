@@ -96,4 +96,19 @@ describe("fee helpers function", () => {
     // less than 0.1%. Approximate by rounding
     expect(percentDifference < 0.1);
   });
+
+  it("rounds period frequency up when total duration is not evenly divisible", () => {
+    const maxBaseFee = 4000; // 40%
+    const minBaseFee = 100; // 1%
+
+    const baseFeeParams = getBaseFeeParams(
+      maxBaseFee,
+      minBaseFee,
+      FeeSchedulerMode.Linear,
+      3,
+      10
+    );
+
+    expect(baseFeeParams.periodFrequency.toNumber()).to.equal(4);
+  });
 });

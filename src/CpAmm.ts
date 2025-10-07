@@ -981,7 +981,7 @@ export class CpAmm {
       tokenBDecimal,
       hasReferral,
     } = params;
-    const { sqrtPrice: sqrtPriceQ64, activationType } = poolState;
+    const { activationType } = poolState;
 
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
 

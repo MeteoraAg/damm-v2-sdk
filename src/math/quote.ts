@@ -160,8 +160,8 @@ export function calculateAtoBFromAmountIn(
 
   // finding output amount
   const outputAmount = getAmountBFromLiquidityDelta(
-    poolState.sqrtPrice,
     nextSqrtPrice,
+    poolState.sqrtPrice,
     poolState.liquidity,
     Rounding.Down
   );

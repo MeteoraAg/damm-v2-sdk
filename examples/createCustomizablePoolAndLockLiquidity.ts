@@ -98,8 +98,7 @@ import { BaseFeeMode } from "../dist";
       },
     },
     POOL_CONFIG.tokenBDecimals,
-    ActivationType.Timestamp,
-    PoolVersion.V0
+    ActivationType.Timestamp
   );
   const dynamicFeeParams = POOL_CONFIG.useDynamicFee
     ? getDynamicFeeParams(POOL_CONFIG.endingFeeBps)

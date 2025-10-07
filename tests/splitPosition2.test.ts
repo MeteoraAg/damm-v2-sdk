@@ -74,8 +74,7 @@ describe("Split Position 2", () => {
           },
         },
         tokenBDecimal,
-        activationType,
-        poolVersion
+        activationType
       );
       const poolFees: PoolFeesParams = {
         baseFee,
@@ -239,8 +238,7 @@ describe("Split Position 2", () => {
           },
         },
         tokenBDecimal,
-        activationType,
-        poolVersion
+        activationType
       );
       const poolFees: PoolFeesParams = {
         baseFee,

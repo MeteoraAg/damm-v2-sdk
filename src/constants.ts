@@ -1,5 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
+import { PoolVersion } from "../dist";
 
 export const CP_AMM_PROGRAM_ID = new PublicKey(
   "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
@@ -46,3 +47,5 @@ export const MAX_RATE_LIMITER_DURATION_IN_SECONDS = 43200; // 12 hours
 export const MAX_RATE_LIMITER_DURATION_IN_SLOTS = 108000; // 12 hours
 
 export const SPLIT_POSITION_DENOMINATOR = 1_000_000_000;
+
+export const CURRENT_POOL_VERSION = PoolVersion.V0;

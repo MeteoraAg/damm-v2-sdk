@@ -12,6 +12,7 @@ import {
   BASIS_POINT_MAX,
   BIN_STEP_BPS_DEFAULT,
   BIN_STEP_BPS_U128_DEFAULT,
+  CURRENT_POOL_VERSION,
   DYNAMIC_FEE_DECAY_PERIOD_DEFAULT,
   DYNAMIC_FEE_FILTER_PERIOD_DEFAULT,
   DYNAMIC_FEE_REDUCTION_FACTOR_DEFAULT,
@@ -188,8 +189,7 @@ export function getFeeSchedulerParams(
   endingBaseFeeBps: number,
   baseFeeMode: BaseFeeMode,
   numberOfPeriod: number,
-  totalDuration: number,
-  poolVersion: PoolVersion
+  totalDuration: number
 ): BaseFee {
   if (startingBaseFeeBps == endingBaseFeeBps) {
     if (numberOfPeriod != 0 || totalDuration != 0) {
@@ -209,7 +209,7 @@ export function getFeeSchedulerParams(
     throw new Error("Total periods must be greater than zero");
   }
 
-  const poolMaxFeeBps = getMaxFeeBps(poolVersion);
+  const poolMaxFeeBps = getMaxFeeBps(CURRENT_POOL_VERSION);
 
   if (startingBaseFeeBps > poolMaxFeeBps) {
     throw new Error(
@@ -276,8 +276,7 @@ export function getRateLimiterParams(
   maxLimiterDuration: number,
   maxFeeBps: number,
   tokenBDecimal: number,
-  activationType: ActivationType,
-  poolVersion: PoolVersion
+  activationType: ActivationType
 ): BaseFee {
   const cliffFeeNumerator = bpsToFeeNumerator(baseFeeBps);
   const feeIncrementNumerator = bpsToFeeNumerator(feeIncrementBps);
@@ -291,8 +290,8 @@ export function getRateLimiterParams(
     throw new Error("All rate limiter parameters must be greater than zero");
   }
 
-  const poolMaxFeeBps = getMaxFeeBps(poolVersion);
-  const poolMaxFeeNumerator = getMaxFeeNumerator(poolVersion);
+  const poolMaxFeeBps = getMaxFeeBps(CURRENT_POOL_VERSION);
+  const poolMaxFeeNumerator = getMaxFeeNumerator(CURRENT_POOL_VERSION);
 
   if (baseFeeBps > poolMaxFeeBps) {
     throw new Error(
@@ -314,7 +313,7 @@ export function getRateLimiterParams(
 
   if (maxFeeBps > poolMaxFeeBps) {
     throw new Error(
-      `Max fee (${maxFeeBps} bps) exceeds maximum allowed value of ${poolMaxFeeBps} bps for PoolVersion V${poolVersion}`
+      `Max fee (${maxFeeBps} bps) exceeds maximum allowed value of ${poolMaxFeeBps} bps for PoolVersion V${CURRENT_POOL_VERSION}`
     );
   }
 
@@ -387,8 +386,7 @@ export function getBaseFeeParams(
     };
   },
   tokenBDecimal: number,
-  activationType: ActivationType,
-  poolVersion: PoolVersion
+  activationType: ActivationType
 ): BaseFee {
   if (baseFeeParams.baseFeeMode === BaseFeeMode.RateLimiter) {
     if (!baseFeeParams.rateLimiterParam) {
@@ -411,8 +409,7 @@ export function getBaseFeeParams(
       maxLimiterDuration,
       maxFeeBps,
       tokenBDecimal,
-      activationType,
-      poolVersion
+      activationType
     );
   } else {
     if (!baseFeeParams.feeSchedulerParam) {
@@ -428,8 +425,7 @@ export function getBaseFeeParams(
       endingFeeBps,
       baseFeeParams.baseFeeMode,
       numberOfPeriod,
-      totalDuration,
-      poolVersion
+      totalDuration
     );
   }
 }

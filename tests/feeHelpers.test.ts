@@ -8,7 +8,6 @@ import {
   getDynamicFeeNumerator,
   getDynamicFeeParams,
   parseFeeSchedulerSecondFactor,
-  PoolVersion,
 } from "../src";
 import { expect } from "chai";
 
@@ -18,7 +17,6 @@ describe("fee helpers function", () => {
     const minBaseFee = 100; // 1%
     const tokenBDecimal = 9;
     const activationType = ActivationType.Timestamp;
-    const poolVersion = PoolVersion.V0;
     const baseFeeParams = getBaseFeeParams(
       {
         baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
@@ -30,8 +28,7 @@ describe("fee helpers function", () => {
         },
       },
       tokenBDecimal,
-      activationType,
-      poolVersion
+      activationType
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(
@@ -51,7 +48,6 @@ describe("fee helpers function", () => {
     const minBaseFee = 100; // 1%
     const tokenBDecimal = 9;
     const activationType = ActivationType.Timestamp;
-    const poolVersion = PoolVersion.V0;
     const baseFeeParams = getBaseFeeParams(
       {
         baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
@@ -63,8 +59,7 @@ describe("fee helpers function", () => {
         },
       },
       tokenBDecimal,
-      activationType,
-      poolVersion
+      activationType
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
     const baseFeeNumerator = getBaseFeeNumerator(

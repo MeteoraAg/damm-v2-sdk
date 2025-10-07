@@ -26,7 +26,6 @@ import {
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,
   PoolFeesParams,
-  PoolVersion,
   SplitPositionParams,
 } from "../src";
 import { DECIMALS } from "./bankrun-utils";
@@ -61,7 +60,6 @@ describe("Split Position", () => {
     it("Should successfully split position between poolCreator and user", async () => {
       const tokenBDecimal = 9;
       const activationType = ActivationType.Timestamp;
-      const poolVersion = PoolVersion.V0;
       const baseFee = getBaseFeeParams(
         {
           baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
@@ -73,8 +71,7 @@ describe("Split Position", () => {
           },
         },
         tokenBDecimal,
-        activationType,
-        poolVersion
+        activationType
       );
       const poolFees: PoolFeesParams = {
         baseFee,
@@ -231,7 +228,6 @@ describe("Split Position", () => {
     it("Should successfully split position between poolCreator and user with Token 2022", async () => {
       const tokenBDecimal = 9;
       const activationType = ActivationType.Timestamp;
-      const poolVersion = PoolVersion.V0;
       const baseFee = getBaseFeeParams(
         {
           baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
@@ -243,8 +239,7 @@ describe("Split Position", () => {
           },
         },
         tokenBDecimal,
-        activationType,
-        poolVersion
+        activationType
       );
       const poolFees: PoolFeesParams = {
         baseFee,

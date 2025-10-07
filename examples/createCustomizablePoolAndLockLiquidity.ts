@@ -128,7 +128,7 @@ import {
     initSqrtPrice: initSqrtPrice,
     poolFees: poolFees,
     hasAlphaVault: false,
-    activationType: 0,
+    activationType: ActivationType.Timestamp,
     collectFeeMode: 0,
     activationPoint: null,
     tokenAProgram,

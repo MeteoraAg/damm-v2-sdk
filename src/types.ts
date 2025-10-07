@@ -463,19 +463,6 @@ export interface Quote2Result extends SwapResult2 {
   maximumAmountIn?: BN;
 }
 
-export type QuoteExactOutResult = {
-  swapResult: SwapResult;
-  inputAmount: BN;
-  maxInputAmount: BN;
-  priceImpact: number;
-};
-
-export type SwapQuotes = {
-  totalFee: BN;
-  minOutAmount: BN;
-  actualAmount: BN;
-};
-
 export type SwapParams = {
   payer: PublicKey;
   pool: PublicKey;

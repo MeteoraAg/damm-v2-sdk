@@ -2,6 +2,7 @@ import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import {
   ActivationType,
+  BaseFeeMode,
   CpAmm,
   getBaseFeeParams,
   getDynamicFeeParams,
@@ -9,7 +10,6 @@ import {
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,
   PoolFeesParams,
-  PoolVersion,
 } from "../src";
 import {
   getMint,
@@ -17,7 +17,6 @@ import {
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { BaseFeeMode } from "../dist";
 
 (async () => {
   const POOL_CONFIG = {

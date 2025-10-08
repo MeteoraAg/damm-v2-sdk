@@ -26,6 +26,7 @@ import {
   MIN_SQRT_PRICE,
   PoolFeesParams,
   RemoveAllLiquidityParams,
+  RemoveLiquidityParams,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
 
@@ -151,8 +152,8 @@ describe("Remove liquidity", () => {
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
-      // remove liquidiy
-      let removeLiquidityParams = {
+      // remove liquidity
+      let removeLiquidityParams: RemoveLiquidityParams = {
         ...addLiquidityParams,
         vestings: [],
         currentPoint: new BN(0),
@@ -294,7 +295,7 @@ describe("Remove liquidity", () => {
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
-      let removeLiquidityParams = {
+      let removeLiquidityParams: RemoveLiquidityParams = {
         ...addLiquidityParams,
         vestings: [],
         currentPoint: new BN(0),

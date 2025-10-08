@@ -67,10 +67,6 @@ export function getFeeInPeriod(
 
   const fee = result.mul(cliffFeeNumerator).shrn(SCALE_OFFSET);
 
-  if (fee.gt(U64_MAX)) {
-    throw new Error("Type cast failed: fee does not fit in u64");
-  }
-
   return fee;
 }
 
@@ -145,10 +141,6 @@ export function getTotalFeeNumerator(
   }
 
   const totalFeeNumerator = dynamicFeeNumerator.add(baseFeeNumerator);
-
-  if (totalFeeNumerator.gt(U64_MAX)) {
-    throw new Error("Type cast failed: fee does not fit in u64");
-  }
 
   return BN.min(totalFeeNumerator, maxFeeNumerator);
 }

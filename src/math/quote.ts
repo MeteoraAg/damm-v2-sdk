@@ -77,7 +77,7 @@ export function getSwapResultFromExactInput(
         amountIn,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState.partner)
+        hasPartner(poolState)
       );
 
     actualProtocolFee = protocolFee;
@@ -108,7 +108,7 @@ export function getSwapResultFromExactInput(
         outputAmount,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState.partner)
+        hasPartner(poolState)
       );
 
     actualProtocolFee = protocolFee;
@@ -254,7 +254,7 @@ export function getSwapResultFromPartialInput(
         amountIn,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState.partner)
+        hasPartner(poolState)
       );
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
@@ -304,7 +304,7 @@ export function getSwapResultFromPartialInput(
         poolState.poolFees,
         feeAmount,
         feeMode.hasReferral,
-        hasPartner(poolState.partner)
+        hasPartner(poolState)
       );
 
       actualProtocolFee = protocolFee;
@@ -330,7 +330,7 @@ export function getSwapResultFromPartialInput(
         outputAmount,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState.partner)
+        hasPartner(poolState)
       );
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
@@ -504,7 +504,7 @@ export function getSwapResultFromExactOutput(
       poolState.poolFees,
       feeAmount,
       feeMode.hasReferral,
-      hasPartner(poolState.partner)
+      hasPartner(poolState)
     );
 
     actualTradingFee = split.tradingFee;
@@ -549,7 +549,7 @@ export function getSwapResultFromExactOutput(
       poolState.poolFees,
       feeAmount,
       feeMode.hasReferral,
-      hasPartner(poolState.partner)
+      hasPartner(poolState)
     );
 
     actualTradingFee = split.tradingFee;

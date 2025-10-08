@@ -31,17 +31,13 @@ import { getBaseFeeHandler, getDynamicFeeNumerator } from "./poolFees";
  * @returns The numerator
  */
 export function toNumerator(bps: BN, feeDenominator: BN): BN {
-  try {
-    const numerator = mulDiv(
-      bps,
-      feeDenominator,
-      new BN(BASIS_POINT_MAX),
-      Rounding.Down
-    );
-    return numerator;
-  } catch (error) {
-    throw new Error("Type cast failed or calculation overflow in toNumerator");
-  }
+  const numerator = mulDiv(
+    bps,
+    feeDenominator,
+    new BN(BASIS_POINT_MAX),
+    Rounding.Down
+  );
+  return numerator;
 }
 
 /**
@@ -138,11 +134,15 @@ export function getTotalFeeNumerator(
   baseFeeNumerator: BN,
   maxFeeNumerator: BN
 ): BN {
-  const dynamicFeeNumerator = getDynamicFeeNumerator(
-    poolFees.dynamicFee.volatilityAccumulator,
-    new BN(poolFees.dynamicFee.binStep),
-    new BN(poolFees.dynamicFee.variableFeeControl)
-  );
+  let dynamicFeeNumerator = new BN(0);
+
+  if (poolFees.dynamicFee.initialized !== 0) {
+    dynamicFeeNumerator = getDynamicFeeNumerator(
+      poolFees.dynamicFee.volatilityAccumulator,
+      new BN(poolFees.dynamicFee.binStep),
+      new BN(poolFees.dynamicFee.variableFeeControl)
+    );
+  }
 
   const totalFeeNumerator = dynamicFeeNumerator.add(baseFeeNumerator);
 
@@ -150,11 +150,7 @@ export function getTotalFeeNumerator(
     throw new Error("Type cast failed: fee does not fit in u64");
   }
 
-  if (totalFeeNumerator.gt(maxFeeNumerator)) {
-    return maxFeeNumerator;
-  } else {
-    return totalFeeNumerator;
-  }
+  return BN.min(totalFeeNumerator, maxFeeNumerator);
 }
 
 /**

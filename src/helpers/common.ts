@@ -5,6 +5,7 @@ import {
   BaseFee,
   BaseFeeMode,
   DynamicFee,
+  PoolState,
   PoolStatus,
   PoolVersion,
 } from "../types";
@@ -31,8 +32,8 @@ import Decimal from "decimal.js";
  * @param partner - The partner address
  * @returns True if the partner is valid, false otherwise
  */
-export function hasPartner(partner: PublicKey): boolean {
-  return !partner.equals(PublicKey.default);
+export function hasPartner(poolState: PoolState): boolean {
+  return !poolState.partner.equals(PublicKey.default);
 }
 
 /**
@@ -65,10 +66,6 @@ export function isSwapEnabled(
   pool: { poolStatus: PoolStatus; activationPoint: BN },
   currentPoint: BN
 ): boolean {
-  if (typeof pool.poolStatus !== "number") {
-    throw new Error("invalid pool status");
-  }
-
   return (
     pool.poolStatus === PoolStatus.Enable &&
     currentPoint.gte(pool.activationPoint)

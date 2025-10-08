@@ -284,7 +284,11 @@ export function getCheckedAmounts(
   cliffFeeNumerator: BN,
   maxFeeBps: number,
   feeIncrementBps: number
-): [BN, BN, boolean] {
+): {
+  checkedExcludedFeeAmount: BN;
+  checkedIncludedFeeAmount: BN;
+  isOverflow: boolean;
+} {
   const maxIndex = getMaxIndex(maxFeeBps, cliffFeeNumerator, feeIncrementBps);
 
   const x0 = referenceAmount;
@@ -293,24 +297,32 @@ export function getCheckedAmounts(
 
   if (maxIndexInputAmount.lte(U64_MAX)) {
     const checkedIncludedFeeAmount = maxIndexInputAmount;
-    const checkedOutputAmount = getExcludedFeeAmountFromIncludedFeeAmount(
+    const checkedExcludedFeeAmount = getExcludedFeeAmountFromIncludedFeeAmount(
       checkedIncludedFeeAmount,
       referenceAmount,
       cliffFeeNumerator,
       maxFeeBps,
       feeIncrementBps
     );
-    return [checkedOutputAmount, checkedIncludedFeeAmount, false];
+    return {
+      checkedExcludedFeeAmount,
+      checkedIncludedFeeAmount,
+      isOverflow: false,
+    };
   } else {
     const checkedIncludedFeeAmount = U64_MAX;
-    const checkedOutputAmount = getExcludedFeeAmountFromIncludedFeeAmount(
+    const checkedExcludedFeeAmount = getExcludedFeeAmountFromIncludedFeeAmount(
       checkedIncludedFeeAmount,
       referenceAmount,
       cliffFeeNumerator,
       maxFeeBps,
       feeIncrementBps
     );
-    return [checkedOutputAmount, checkedIncludedFeeAmount, true];
+    return {
+      checkedExcludedFeeAmount,
+      checkedIncludedFeeAmount,
+      isOverflow: true,
+    };
   }
 }
 
@@ -343,7 +355,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
   }
 
   // get checked amounts
-  const [checkedExcludedFeeAmount, checkedIncludedFeeAmount, isOverflow] =
+  const { checkedExcludedFeeAmount, checkedIncludedFeeAmount, isOverflow } =
     getCheckedAmounts(
       referenceAmount,
       cliffFeeNumerator,

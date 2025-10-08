@@ -27,9 +27,6 @@ export function getDynamicFeeNumerator(
   binStep: BN,
   variableFeeControl: BN
 ): BN {
-  if (variableFeeControl.isZero()) {
-    return new BN(0);
-  }
   const squareVfaBin = volatilityAccumulator
     .mul(new BN(binStep))
     .pow(new BN(2));

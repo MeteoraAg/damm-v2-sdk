@@ -985,6 +985,9 @@ export class CpAmm {
 
     const aToB = poolState.tokenAMint.equals(inputTokenMint);
 
+    // because for a DAMM v2 pool, the activation type can either be slot (0) or timestamp (1).
+    // if it is slot, we use the currentSlot from blockchain slot.
+    // if it is timestamp, we use the currentTime from blockTime.
     const currentPoint = activationType
       ? new BN(currentTime)
       : new BN(currentSlot);

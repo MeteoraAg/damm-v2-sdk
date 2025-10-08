@@ -205,10 +205,6 @@ export function getAmountBFromLiquidityDelta(
     rounding
   );
 
-  if (result.gt(U64_MAX)) {
-    throw new Error("MathOverflow: result exceeds u64 max");
-  }
-
   return result;
 }
 
@@ -267,10 +263,6 @@ export function getAmountAFromLiquidityDelta(
     liquidity,
     rounding
   );
-
-  if (result.gt(U64_MAX)) {
-    throw new Error("MathOverflow: result exceeds u64 max");
-  }
 
   return result;
 }

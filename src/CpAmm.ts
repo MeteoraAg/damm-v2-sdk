@@ -1129,9 +1129,9 @@ export class CpAmm {
           ),
           rawAmount: (delta: BN) =>
             getAmountBFromLiquidityDelta(
-              delta,
-              sqrtPrice,
               minSqrtPrice,
+              sqrtPrice,
+              delta,
               Rounding.Up
             ),
         }
@@ -1143,9 +1143,9 @@ export class CpAmm {
           ),
           rawAmount: (delta: BN) =>
             getAmountAFromLiquidityDelta(
-              delta,
               sqrtPrice,
               maxSqrtPrice,
+              delta,
               Rounding.Up
             ),
         };
@@ -1190,15 +1190,15 @@ export class CpAmm {
       tokenBTokenInfo,
     } = params;
     const amountA = getAmountAFromLiquidityDelta(
-      liquidityDelta,
       sqrtPrice,
       maxSqrtPrice,
+      liquidityDelta,
       Rounding.Down
     );
     const amountB = getAmountBFromLiquidityDelta(
-      liquidityDelta,
-      sqrtPrice,
       minSqrtPrice,
+      sqrtPrice,
+      liquidityDelta,
       Rounding.Down
     );
 
@@ -2585,16 +2585,16 @@ export class CpAmm {
 
     // recalculate liquidity delta
     const tokenAWithdrawAmount = getAmountAFromLiquidityDelta(
-      positionBLiquidityDelta,
       poolState.sqrtPrice,
       poolState.sqrtMaxPrice,
+      positionBLiquidityDelta,
       Rounding.Down
     );
 
     const tokenBWithdrawAmount = getAmountBFromLiquidityDelta(
-      positionBLiquidityDelta,
-      poolState.sqrtPrice,
       poolState.sqrtMinPrice,
+      poolState.sqrtPrice,
+      positionBLiquidityDelta,
       Rounding.Down
     );
 

@@ -14,6 +14,7 @@ import {
 import { DECIMALS } from "./bankrun-utils";
 import {
   BaseFee,
+  convertToFeeSchedulerSecondFactor,
   CpAmm,
   CreatePositionParams,
   InitializeCustomizeablePoolParams,
@@ -51,10 +52,10 @@ describe("Create position", () => {
 
       const baseFee: BaseFee = {
         cliffFeeNumerator: new BN(1_000_000), // 1%
-        numberOfPeriod: 10,
-        periodFrequency: new BN(10),
-        reductionFactor: new BN(2),
-        feeSchedulerMode: 0, // Linear
+        firstFactor: 10,
+        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
+        thirdFactor: new BN(2),
+        baseFeeMode: 0, // Linear
       };
       const poolFees: PoolFeesParams = {
         baseFee,
@@ -155,10 +156,10 @@ describe("Create position", () => {
 
       const baseFee: BaseFee = {
         cliffFeeNumerator: new BN(1_000_000), // 1%
-        numberOfPeriod: 10,
-        periodFrequency: new BN(10),
-        reductionFactor: new BN(2),
-        feeSchedulerMode: 0, // Linear
+        firstFactor: 10,
+        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
+        thirdFactor: new BN(2),
+        baseFeeMode: 0, // Linear
       };
       const poolFees: PoolFeesParams = {
         baseFee,

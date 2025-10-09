@@ -1,8 +1,9 @@
 import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import {
+  ActivationType,
+  BaseFeeMode,
   CpAmm,
-  FeeSchedulerMode,
   getBaseFeeParams,
   getDynamicFeeParams,
   getSqrtPriceFromPrice,
@@ -28,11 +29,11 @@ import {
     maxTokenAAmount: 1_000_000,
     maxTokenBAmount: 1, // SOL
     initialPrice: 1, // 1 base token = 1 quote token
-    maxBaseFeeBps: 5000, // 50%
-    minBaseFeeBps: 25, // 0.25%
+    startingFeeBps: 5000, // 50%
+    endingFeeBps: 25, // 0.25%
     useDynamicFee: true,
     isLockLiquidity: true,
-    feeSchedulerMode: FeeSchedulerMode.Exponential,
+    baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
     numberOfPeriod: 60, // 60 peridos
     totalDuration: 3600, // 60 * 60
   };
@@ -86,14 +87,20 @@ import {
   });
 
   const baseFeeParams = getBaseFeeParams(
-    POOL_CONFIG.maxBaseFeeBps,
-    POOL_CONFIG.minBaseFeeBps,
-    POOL_CONFIG.feeSchedulerMode,
-    POOL_CONFIG.numberOfPeriod,
-    POOL_CONFIG.totalDuration
+    {
+      baseFeeMode: POOL_CONFIG.baseFeeMode,
+      feeSchedulerParam: {
+        startingFeeBps: POOL_CONFIG.startingFeeBps,
+        endingFeeBps: POOL_CONFIG.endingFeeBps,
+        numberOfPeriod: POOL_CONFIG.numberOfPeriod,
+        totalDuration: POOL_CONFIG.totalDuration,
+      },
+    },
+    POOL_CONFIG.tokenBDecimals,
+    ActivationType.Timestamp
   );
   const dynamicFeeParams = POOL_CONFIG.useDynamicFee
-    ? getDynamicFeeParams(POOL_CONFIG.minBaseFeeBps)
+    ? getDynamicFeeParams(POOL_CONFIG.endingFeeBps)
     : null;
 
   const poolFees: PoolFeesParams = {
@@ -121,7 +128,7 @@ import {
     initSqrtPrice: initSqrtPrice,
     poolFees: poolFees,
     hasAlphaVault: false,
-    activationType: 0,
+    activationType: ActivationType.Timestamp,
     collectFeeMode: 0,
     activationPoint: null,
     tokenAProgram,

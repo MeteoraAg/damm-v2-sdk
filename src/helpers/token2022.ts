@@ -13,6 +13,12 @@ interface TransferFeeIncludedAmount {
   transferFee: BN;
 }
 
+/**
+ * Calculates the pre fee amount
+ * @param transferFee - The transfer fee
+ * @param postFeeAmount - The post fee amount
+ * @returns The pre fee amount
+ */
 function calculatePreFeeAmount(transferFee: TransferFee, postFeeAmount: BN) {
   if (postFeeAmount.isZero()) {
     return new BN(0);
@@ -46,6 +52,12 @@ function calculatePreFeeAmount(transferFee: TransferFee, postFeeAmount: BN) {
   return rawPreFeeAmount;
 }
 
+/**
+ * Calculates the inverse fee
+ * @param transferFee - The transfer fee
+ * @param postFeeAmount - The post fee amount
+ * @returns The inverse fee
+ */
 function calculateInverseFee(transferFee: TransferFee, postFeeAmount: BN) {
   const preFeeAmount = calculatePreFeeAmount(transferFee, postFeeAmount);
   return new BN(
@@ -53,6 +65,13 @@ function calculateInverseFee(transferFee: TransferFee, postFeeAmount: BN) {
   );
 }
 
+/**
+ * Calculates the transfer fee included amount
+ * @param transferFeeExcludedAmount - The transfer fee excluded amount
+ * @param mint - The mint
+ * @param currentEpoch - The current epoch
+ * @returns The transfer fee included amount
+ */
 export function calculateTransferFeeIncludedAmount(
   transferFeeExcludedAmount: BN,
   mint: Mint,
@@ -94,6 +113,13 @@ interface TransferFeeExcludedAmount {
   transferFee: BN;
 }
 
+/**
+ * Calculates the transfer fee excluded amount
+ * @param transferFeeIncludedAmount - The transfer fee included amount
+ * @param mint - The mint
+ * @param currentEpoch - The current epoch
+ * @returns The transfer fee excluded amount
+ */
 export function calculateTransferFeeExcludedAmount(
   transferFeeIncludedAmount: BN,
   mint: Mint,

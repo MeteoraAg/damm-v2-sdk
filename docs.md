@@ -485,6 +485,9 @@ interface GetQuoteParams {
     mint: Mint;
     currentEpoch: number;
   }; // Token info for Token2022 transfer fee calculations
+  tokenADecimal: number; // The decimal of the input token
+  tokenBDecimal: number; // The decimal of the output token
+  hasReferral?: boolean; // Whether the swap has a referral token account
 }
 ```
 
@@ -512,6 +515,17 @@ const quote = await cpAmm.getQuote({
   poolState,
   currentTime: blockTime,
   currentSlot,
+  inputTokenInfo: {
+    mint: usdcMint,
+    currentEpoch: currentEpoch,
+  },
+  outputTokenInfo: {
+    mint: btcMint,
+    currentEpoch: currentEpoch,
+  },
+  tokenADecimal: 6,
+  tokenBDecimal: 9,
+  hasReferral: false,
 });
 
 console.log(`Expected output: ${quote.swapOutAmount.toString()}`);
@@ -529,41 +543,37 @@ console.log(`Price impact: ${quote.priceImpact.toFixed(2)}%`);
 
 ---
 
-### getQuoteExactOut
+### getQuote2
 
-Calculates the expected input amount for a swap based on an exact output amount, including fees and slippage protection.
+Calculates the expected output amount or input amount for a swap depending on the swap mode. There are 3 swap modes: ExactIn, ExactOut, PartialFill.
 
 **Function**
 
 ```typescript
-async getQuoteExactOut(params: GetQuoteExactOutParams): Promise<{
-  outAmount: BN;
-  outputTokenMint: PublicKey;
-  slippage: number;
-  poolState: PoolState;
-  currentTime: number;
-  currentSlot: number;
-  inputTokenInfo?: {
-    mint: Mint;
-    currentEpoch: number;
-  };
-  outputTokenInfo?: {
-    mint: Mint;
-    currentEpoch: number;
-  };
+async getQuote2(params: GetQuote2Params): Promise<{
+  includedFeeInputAmount: BN;
+  excludedFeeInputAmount: BN;
+  amountLeft: BN;
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  tradingFee: BN;
+  protocolFee: BN;
+  partnerFee: BN;
+  referralFee: BN;
+  priceImpact: Decimal;
+  minimumAmountOut?: BN;
+  maximumAmountIn?: BN;
 }>
 ```
 
 **Parameters**
 
 ```typescript
-interface GetQuoteExactOutParams {
-  outAmount: BN; // The amount of output token to swap from
-  outputTokenMint: PublicKey; // The mint of the output token
+interface GetQuote2Params {
+  inputTokenMint: PublicKey; // The mint of the input token
   slippage: number; // Slippage tolerance in percentage (e.g., 0.5 for 0.5%)
+  currentPoint: BN; // Current point depending on the activation type
   poolState: PoolState; // The state of the pool
-  currentTime: number; // Current timestamp (for time-based fees)
-  currentSlot: number; // Current slot (for slot-based fees)
   inputTokenInfo?: {
     mint: Mint;
     currentEpoch: number;
@@ -572,6 +582,12 @@ interface GetQuoteExactOutParams {
     mint: Mint;
     currentEpoch: number;
   }; // Token info for Token2022 transfer fee calculations
+  tokenADecimal: number; // The decimal of the input token
+  tokenBDecimal: number; // The decimal of the output token
+  hasReferral: boolean; // Whether the swap has a referral token account
+  swapMode: SwapMode; // The swap mode
+  amountIn?: BN; // The amount of input token to swap (for ExactIn and PartialFill modes)
+  amountOut?: BN; // The amount of output token to swap (for ExactOut mode)
 }
 ```
 
@@ -579,41 +595,44 @@ interface GetQuoteExactOutParams {
 
 An object containing:
 
+- `includedFeeInputAmount`: The input amount including all applicable fees
+- `excludedFeeInputAmount`: The input amount excluding fees
+- `amountLeft`: The remaining amount after the swap (if any)
 - `outputAmount`: The expected output amount
-- `outputTokenMint`: The mint of the output token
-- `slippage`: The slippage tolerance in percentage
-- `poolState`: The state of the pool
-- `currentTime`: The current timestamp
-- `currentSlot`: The current slot
-- `inputTokenInfo`: Token info for Token2022 transfer fee calculations
-- `outputTokenInfo`: Token info for Token2022 transfer fee calculations
+- `nextSqrtPrice`: The next sqrt price after the swap
+- `tradingFee`: The trading fee charged for the swap
+- `protocolFee`: The protocol fee charged for the swap
+- `partnerFee`: The partner fee charged for the swap
+- `referralFee`: The referral fee charged for the swap
+- `priceImpact`: The price impact of the swap
+- `minimumAmountOut` (optional): The minimum output amount guaranteed (for ExactIn and PartialFill modes)
+- `maximumAmountIn` (optional): The maximum input amount allowed (for ExactOut mode)
 
 **Example**
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
-const currentSlot = await connection.getSlot();
-const blockTime = await connection.getBlockTime(currentSlot);
-const quote = await cpAmm.getQuoteExactOut({
-  outAmount: new BN(100_000_000), // 100 USDC
-  outputTokenMint: usdcMint,
-  slippage: 0.5, // 0.5% slippage
+const currentPoint = await getCurrentPoint(
+  connection,
+  poolState.activationType
+);
+const quote = await cpAmm.getQuote2({
+  inputTokenMint: poolState.tokenBMint,
+  slippage: 0.5,
+  currentPoint,
   poolState,
-  currentTime: blockTime,
-  currentSlot,
+  tokenADecimal: 6,
+  tokenBDecimal: 9,
+  hasReferral: false,
+  swapMode: SwapMode.PartialFill,
+  amountIn: new BN(1_000_000_000),
 });
-
-console.log(`Required input: ${quote.inputAmount.toString()}`);
-console.log(`Max input with slippage: ${quote.maxInputAmount.toString()}`);
-console.log(`Price impact: ${quote.priceImpact.toFixed(2)}%`);
-console.log(`Output amount: ${quote.swapResult.outputAmount.toString()}`);
 ```
 
 **Notes**
 
 - Always check the price impact before executing a swap
 - The `slippage` parameter protects users from price movements
-- Use the `maxInputAmount` as the `amountIn` parameter for `swap`
 - For Token2022 tokens with transfer fees, provide the token info parameters
 
 ---
@@ -820,6 +839,93 @@ const swapTx = await cpAmm.swap({
 - The SDK handles wrapping/unwrapping of SOL automatically
 - Token accounts are created automatically if they don't exist
 - The transaction will fail if the output amount would be less than `minimumAmountOut`
+- Optional referral tokenAccount will receive a portion of fees if the pool is configured for referrals
+
+---
+
+### swap2
+
+Executes a token swap in the pool depending on the swap mode. There are 3 swap modes: ExactIn, ExactOut, PartialFill.
+
+**Function**
+
+```typescript
+async swap2(params: Swap2Params): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface SwapParams {
+  payer: PublicKey; // The wallet paying for the transaction
+  pool: PublicKey; // Address of the pool to swap in
+  inputTokenMint: PublicKey; // Mint of the input token
+  outputTokenMint: PublicKey; // Mint of the output token
+  tokenAVault: PublicKey; // Pool's token A vault
+  tokenBVault: PublicKey; // Pool's token B vault
+  tokenAMint: PublicKey; // Pool's token A mint
+  tokenBMint: PublicKey; // Pool's token B mint
+  tokenAProgram: PublicKey; // Token program for token A
+  tokenBProgram: PublicKey; // Token program for token B
+  referralTokenAccount?: PublicKey; // Optional referral account for fees
+  swapMode: SwapMode; // The swap mode
+  amountIn?: BN; // The amount of input token to swap (for ExactIn and PartialFill modes)
+  amountOut?: BN; // The amount of output token to swap (for ExactOut mode)
+  minimumAmountOut?: BN; // Minimum amount of output token (slippage protection) for ExactIn and PartialFill modes
+  maximumAmountIn?: BN; // Maximum amount of input token (slippage protection) for ExactOut mode
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const currentPoint = await getCurrentPoint(
+  connection,
+  poolState.activationType
+);
+// Get quote first
+const quote = await cpAmm.getQuote2({
+  inputTokenMint: poolState.tokenBMint,
+  slippage: 0.5,
+  currentPoint,
+  poolState,
+  tokenADecimal: 6,
+  tokenBDecimal: 9,
+  hasReferral: false,
+  swapMode: SwapMode.PartialFill,
+  amountIn: new BN(1_000_000_000),
+});
+
+// Execute swap
+const swap2Tx = await cpAmm.swap2({
+  payer: wallet.publicKey,
+  pool: poolAddress,
+  inputTokenMint: poolState.tokenAMint,
+  outputTokenMint: poolState.tokenBMint,
+  tokenAVault: poolState.tokenAVault,
+  tokenBVault: poolState.tokenBVault,
+  tokenAMint: poolState.tokenAMint,
+  tokenBMint: poolState.tokenBMint,
+  tokenAProgram: TOKEN_PROGRAM_ID,
+  tokenBProgram: TOKEN_PROGRAM_ID,
+  referralTokenAccount: null,
+  swapMode: SwapMode.PartialFill,
+  amountIn: new BN(1_000_000_000),
+  minimumAmountOut: quote.minimumAmountOut,
+});
+```
+
+**Notes**
+
+- Get a quote first using `getQuote2` to determine the `minimumAmountOut` or `maximumAmountIn` depending on the swap mode
+- The SDK handles wrapping/unwrapping of SOL automatically
+- Token accounts are created automatically if they don't exist
+- The transaction will fail if the output amount would be less than `minimumAmountOut` or the input amount would be greater than `maximumAmountIn` depending on the swap mode
 - Optional referral tokenAccount will receive a portion of fees if the pool is configured for referrals
 
 ---

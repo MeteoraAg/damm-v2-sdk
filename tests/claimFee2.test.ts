@@ -19,6 +19,7 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
   BaseFee,
+  convertToFeeSchedulerSecondFactor,
   CpAmm,
   derivePositionNftAccount,
   getTokenProgram,
@@ -75,10 +76,10 @@ describe("Claim Fee 2", () => {
 
     const baseFee: BaseFee = {
       cliffFeeNumerator: new BN(500_000_000), // 50%
-      numberOfPeriod: 10,
-      periodFrequency: new BN(10),
-      reductionFactor: new BN(2),
-      feeSchedulerMode: 0, // Linear
+      firstFactor: 10,
+      secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
+      thirdFactor: new BN(2),
+      baseFeeMode: 0, // Linear
     };
     const poolFees: PoolFeesParams = {
       baseFee,

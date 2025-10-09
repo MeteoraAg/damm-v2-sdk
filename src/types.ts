@@ -2,6 +2,7 @@ import { IdlAccounts, IdlTypes, Program, BN } from "@coral-xyz/anchor";
 import { PublicKey, Transaction } from "@solana/web3.js";
 import type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
 import { Mint } from "@solana/spl-token";
+import Decimal from "decimal.js";
 
 export type AmmProgram = Program<CpAmmTypes>;
 
@@ -17,9 +18,10 @@ export enum ActivationPoint {
   Slot,
 }
 
-export enum FeeSchedulerMode {
-  Linear,
-  Exponential,
+export enum BaseFeeMode {
+  FeeSchedulerLinear,
+  FeeSchedulerExponential,
+  RateLimiter,
 }
 
 export enum CollectFeeMode {
@@ -37,10 +39,27 @@ export enum ActivationType {
   Timestamp,
 }
 
+export enum PoolVersion {
+  V0,
+  V1,
+}
+
 export type FeeMode = {
-  feeOnInput: boolean;
+  feesOnInput: boolean;
   feesOnTokenA: boolean;
+  hasReferral: boolean;
 };
+
+export enum PoolStatus {
+  Enable,
+  Disable,
+}
+
+export enum SwapMode {
+  ExactIn,
+  PartialFill,
+  ExactOut,
+}
 
 // Account state types
 export type PoolState = IdlAccounts<CpAmmTypes>["pool"];
@@ -60,23 +79,47 @@ export type TokenBadgeState = IdlAccounts<CpAmmTypes>["tokenBadge"];
 //   IdlTypes<CpAmm>["InitializeCustomizablePoolParameters"];
 export type RewardInfo = IdlTypes<CpAmmTypes>["rewardInfo"];
 
-export type DynamicFee = {
-  binStep: number;
-  binStepU128: BN;
-  filterPeriod: number;
-  decayPeriod: number;
-  reductionFactor: number;
-  maxVolatilityAccumulator: number;
-  variableFeeControl: number;
-};
+/**
+ * Dynamic fee parameters
+ * @param binStep
+ * @param binStepU128
+ * @param filterPeriod
+ * @param decayPeriod
+ * @param reductionFactor
+ * @param maxVolatilityAccumulator
+ * @param variableFeeControl
+ */
+export type DynamicFee = IdlTypes<CpAmmTypes>["dynamicFeeParameters"];
 
-export type BaseFee = {
-  cliffFeeNumerator: BN;
-  numberOfPeriod: number;
-  periodFrequency: BN;
-  reductionFactor: BN;
-  feeSchedulerMode: number;
-};
+/**
+ * Dynamic fee struct
+ * @param initialized
+ * @param padding
+ * @param maxVolatilityAccumulator
+ * @param variableFeeControl
+ * @param binStep
+ * @param filterPeriod
+ * @param decayPeriod
+ * @param reductionFactor
+ * @param lastUpdateTimestamp
+ * @param binStepU128
+ * @param sqrtPriceReference
+ * @param volatilityAccumulator
+ * @param volatilityReference
+ */
+export type DynamicFeeStruct = IdlTypes<CpAmmTypes>["dynamicFeeStruct"];
+
+/**
+ * Base fee parameters
+ * @param cliffFeeNumerator
+ * @param firstFactor // feeScheduler: numberOfPeriod, rateLimiter: feeIncrementBps
+ * @param secondFactor // feeScheduler: periodFrequency, rateLimiter: maxLimiterDuration
+ * @param thirdFactor // feeScheduler: reductionFactor, rateLimiter: referenceAmount
+ * @param baseFeeMode
+ */
+export type BaseFee = IdlTypes<CpAmmTypes>["baseFeeParameters"];
+
+export type PoolFeesStruct = IdlTypes<CpAmmTypes>["poolFeesStruct"];
 
 export type PoolFeesParams = {
   baseFee: BaseFee;
@@ -371,20 +414,14 @@ export type GetQuoteParams = {
   };
   tokenADecimal: number;
   tokenBDecimal: number;
+  hasReferral?: boolean;
 };
 
-export type SwapAmount = {
-  outputAmount: BN;
-  nextSqrtPrice: BN;
-};
-
-export type GetQuoteExactOutParams = {
-  outAmount: BN;
-  outputTokenMint: PublicKey;
+export type GetQuote2Params = {
+  inputTokenMint: PublicKey;
   slippage: number;
+  currentPoint: BN;
   poolState: PoolState;
-  currentTime: number;
-  currentSlot: number;
   inputTokenInfo?: {
     mint: Mint;
     currentEpoch: number;
@@ -395,29 +432,36 @@ export type GetQuoteExactOutParams = {
   };
   tokenADecimal: number;
   tokenBDecimal: number;
-};
+  hasReferral: boolean;
+} & (
+  | {
+      swapMode: SwapMode.ExactIn;
+      amountIn: BN;
+    }
+  | {
+      swapMode: SwapMode.PartialFill;
+      amountIn: BN;
+    }
+  | {
+      swapMode: SwapMode.ExactOut;
+      amountOut: BN;
+    }
+);
 
-export type SwapResult = {
+export type SwapAmount = {
   outputAmount: BN;
   nextSqrtPrice: BN;
-  lpFee: BN;
-  protocolFee: BN;
-  referralFee: BN;
-  partnerFee: BN;
 };
 
-export type QuoteExactOutResult = {
-  swapResult: SwapResult;
-  inputAmount: BN;
-  maxInputAmount: BN;
-  priceImpact: number;
-};
+export type SwapResult = IdlTypes<CpAmmTypes>["swapResult"];
 
-export type SwapQuotes = {
-  totalFee: BN;
-  minOutAmount: BN;
-  actualAmount: BN;
-};
+export type SwapResult2 = IdlTypes<CpAmmTypes>["swapResult2"];
+
+export interface Quote2Result extends SwapResult2 {
+  priceImpact: Decimal;
+  minimumAmountOut?: BN;
+  maximumAmountIn?: BN;
+}
 
 export type SwapParams = {
   payer: PublicKey;
@@ -434,6 +478,36 @@ export type SwapParams = {
   tokenBProgram: PublicKey;
   referralTokenAccount: PublicKey | null;
 };
+
+export type Swap2Params = {
+  payer: PublicKey;
+  pool: PublicKey;
+  inputTokenMint: PublicKey;
+  outputTokenMint: PublicKey;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  tokenAVault: PublicKey;
+  tokenBVault: PublicKey;
+  tokenAProgram: PublicKey;
+  tokenBProgram: PublicKey;
+  referralTokenAccount: PublicKey | null;
+} & (
+  | {
+      swapMode: SwapMode.ExactIn;
+      amountIn: BN;
+      minimumAmountOut: BN;
+    }
+  | {
+      swapMode: SwapMode.PartialFill;
+      amountIn: BN;
+      minimumAmountOut: BN;
+    }
+  | {
+      swapMode: SwapMode.ExactOut;
+      amountOut: BN;
+      maximumAmountIn: BN;
+    }
+);
 
 export type LockPositionParams = {
   owner: PublicKey;
@@ -665,3 +739,38 @@ export type SplitPosition2Params = {
   secondPositionNftAccount: PublicKey;
   numerator: number;
 };
+
+export interface BaseFeeHandler {
+  validate(
+    collectFeeMode: CollectFeeMode,
+    activationType: ActivationType,
+    poolVersion: PoolVersion
+  ): boolean;
+  getBaseFeeNumeratorFromIncludedFeeAmount(
+    currentPoint: BN,
+    activationPoint: BN,
+    tradeDirection: TradeDirection,
+    includedFeeAmount: BN
+  ): BN;
+  getBaseFeeNumeratorFromExcludedFeeAmount(
+    currentPoint: BN,
+    activationPoint: BN,
+    tradeDirection: TradeDirection,
+    excludedFeeAmount: BN
+  ): BN;
+}
+
+export interface FeeOnAmountResult {
+  amount: BN;
+  tradingFee: BN;
+  protocolFee: BN;
+  partnerFee: BN;
+  referralFee: BN;
+}
+
+export interface SplitFees {
+  tradingFee: BN;
+  protocolFee: BN;
+  referralFee: BN;
+  partnerFee: BN;
+}

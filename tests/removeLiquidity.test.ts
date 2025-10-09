@@ -17,6 +17,7 @@ import {
 import {
   AddLiquidityParams,
   BaseFee,
+  convertToFeeSchedulerSecondFactor,
   CpAmm,
   derivePositionNftAccount,
   getTokenProgram,
@@ -25,6 +26,7 @@ import {
   MIN_SQRT_PRICE,
   PoolFeesParams,
   RemoveAllLiquidityParams,
+  RemoveLiquidityParams,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
 
@@ -56,10 +58,10 @@ describe("Remove liquidity", () => {
     it("Remove liqudity", async () => {
       const baseFee: BaseFee = {
         cliffFeeNumerator: new BN(1_000_000), // 1%
-        numberOfPeriod: 10,
-        periodFrequency: new BN(10),
-        reductionFactor: new BN(2),
-        feeSchedulerMode: 0, // Linear
+        firstFactor: 10,
+        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
+        thirdFactor: new BN(2),
+        baseFeeMode: 0, // Linear
       };
       const poolFees: PoolFeesParams = {
         baseFee,
@@ -150,8 +152,8 @@ describe("Remove liquidity", () => {
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
-      // remove liquidiy
-      let removeLiquidityParams = {
+      // remove liquidity
+      let removeLiquidityParams: RemoveLiquidityParams = {
         ...addLiquidityParams,
         vestings: [],
         currentPoint: new BN(0),
@@ -198,10 +200,10 @@ describe("Remove liquidity", () => {
     it("Remove liquidity", async () => {
       const baseFee: BaseFee = {
         cliffFeeNumerator: new BN(1_000_000), // 1%
-        numberOfPeriod: 10,
-        periodFrequency: new BN(10),
-        reductionFactor: new BN(2),
-        feeSchedulerMode: 0, // Linear
+        firstFactor: 10,
+        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
+        thirdFactor: new BN(2),
+        baseFeeMode: 0, // Linear
       };
       const poolFees: PoolFeesParams = {
         baseFee,
@@ -293,7 +295,7 @@ describe("Remove liquidity", () => {
       executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
-      let removeLiquidityParams = {
+      let removeLiquidityParams: RemoveLiquidityParams = {
         ...addLiquidityParams,
         vestings: [],
         currentPoint: new BN(0),

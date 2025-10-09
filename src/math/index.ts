@@ -1,2 +1,6 @@
 export * from "./feeMath";
-export * from "./mathUtils";
+export * from "./utilsMath";
+export * from "./poolFees";
+export * from "./quote";
+export * from "./curve";
+export * from "./priceMath";

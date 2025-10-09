@@ -10,6 +10,15 @@ import {
 } from "@solana/web3.js";
 import { MAX_CU_BUFFER, MIN_CU_BUFFER } from "../constants";
 
+/**
+ * Gets the estimated compute unit usage for a transaction.
+ * @param connection - The connection to the Solana cluster
+ * @param instructions - The instructions to simulate
+ * @param payer - The public key of the fee payer
+ * @param lookupTables - The lookup tables to simulate
+ * @param commitment - The commitment level to simulate
+ * @returns The estimated compute unit usage
+ */
 export const getSimulationComputeUnits = async (
   connection: Connection,
   instructions: Array<TransactionInstruction>,

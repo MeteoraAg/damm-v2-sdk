@@ -23,22 +23,24 @@ describe("fee helpers function", () => {
         feeSchedulerParam: {
           startingFeeBps: maxBaseFee,
           endingFeeBps: minBaseFee,
-          numberOfPeriod: 120,
-          totalDuration: 60,
+          numberOfPeriod: 60,
+          totalDuration: 120,
         },
       },
       tokenBDecimal,
       activationType
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
+    const activationPoint = new BN(120);
+    const currentPoint = activationPoint.addn(120);
     const baseFeeNumerator = getBaseFeeNumerator(
       cliffFeeNumerator,
       baseFeeParams.firstFactor,
       parseFeeSchedulerSecondFactor(baseFeeParams.secondFactor),
       new BN(baseFeeParams.thirdFactor),
       baseFeeParams.baseFeeMode,
-      new BN(120), // currentPoint
-      new BN(120) // activationPoint
+      currentPoint,
+      activationPoint
     );
     const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFee);
     expect(minBaseFeeNumerator.toNumber()).equal(baseFeeNumerator.toNumber());
@@ -54,22 +56,24 @@ describe("fee helpers function", () => {
         feeSchedulerParam: {
           startingFeeBps: maxBaseFee,
           endingFeeBps: minBaseFee,
-          numberOfPeriod: 120,
-          totalDuration: 60,
+          numberOfPeriod: 60,
+          totalDuration: 120,
         },
       },
       tokenBDecimal,
       activationType
     );
     const cliffFeeNumerator = bpsToFeeNumerator(maxBaseFee);
+    const activationPoint = new BN(120);
+    const currentPoint = activationPoint.addn(120); // Add totalDuration to reach end of schedule
     const baseFeeNumerator = getBaseFeeNumerator(
       cliffFeeNumerator,
       baseFeeParams.firstFactor,
       parseFeeSchedulerSecondFactor(baseFeeParams.secondFactor),
       new BN(baseFeeParams.thirdFactor),
       baseFeeParams.baseFeeMode,
-      new BN(120), // currentPoint
-      new BN(120) // activationPoint
+      currentPoint, // currentPoint at end of schedule
+      activationPoint // activationPoint
     );
     const minBaseFeeNumerator = bpsToFeeNumerator(minBaseFee).toNumber();
     const diff = Math.abs(minBaseFeeNumerator - baseFeeNumerator.toNumber());

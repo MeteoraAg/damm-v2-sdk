@@ -155,8 +155,9 @@ describe("Claim Fee", () => {
       tokenAProgram: getTokenProgram(poolState.tokenAFlag),
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       referralTokenAccount: null,
+      poolState: poolState,
     });
-    executeTransaction(context.banksClient, swapAtoBTx, [payer]);
+    await executeTransaction(context.banksClient, swapAtoBTx, [payer]);
 
     // claim position fee
     const claimFeeTx = await ammInstance.claimPositionFee({
@@ -173,7 +174,7 @@ describe("Claim Fee", () => {
       tokenAProgram: getTokenProgram(poolState.tokenAFlag),
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
     });
-    executeTransaction(context.banksClient, claimFeeTx, [payer]);
+    await executeTransaction(context.banksClient, claimFeeTx, [payer]);
   });
 
   it("Claim position fee to receiver", async () => {
@@ -192,8 +193,9 @@ describe("Claim Fee", () => {
       tokenAProgram: getTokenProgram(poolState.tokenAFlag),
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       referralTokenAccount: null,
+      poolState: poolState,
     });
-    executeTransaction(context.banksClient, swapAtoBTx, [payer]);
+    await executeTransaction(context.banksClient, swapAtoBTx, [payer]);
 
     // claim position fee
     const claimFeeReceiverTx = await ammInstance.claimPositionFee({
@@ -211,7 +213,7 @@ describe("Claim Fee", () => {
       tokenAProgram: getTokenProgram(poolState.tokenAFlag),
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
     });
-    executeTransaction(context.banksClient, claimFeeReceiverTx, [
+    await executeTransaction(context.banksClient, claimFeeReceiverTx, [
       payer,
       tempWSolAccountKP,
     ]);

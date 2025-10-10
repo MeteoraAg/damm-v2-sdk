@@ -130,24 +130,32 @@ export async function setupTestContext(
     .fill(7)
     .map(() => Keypair.generate());
 
-  await Promise.all(
-    [
-      admin.publicKey,
-      payer.publicKey,
-      user.publicKey,
-      funder.publicKey,
-      operator.publicKey,
-      partner.publicKey,
-      poolCreator.publicKey,
-    ].map((publicKey) =>
-      transferSol(
-        banksClient,
-        rootKeypair,
-        publicKey,
-        new BN(1_000 * LAMPORTS_PER_SOL)
-      )
-    )
-  );
+  const recipients = [
+    admin.publicKey,
+    payer.publicKey,
+    user.publicKey,
+    funder.publicKey,
+    operator.publicKey,
+    partner.publicKey,
+    poolCreator.publicKey,
+  ];
+
+  const transaction = new Transaction();
+  const [recentBlockhash] = await banksClient.getLatestBlockhash();
+  transaction.recentBlockhash = recentBlockhash;
+
+  for (const recipient of recipients) {
+    transaction.add(
+      SystemProgram.transfer({
+        fromPubkey: rootKeypair.publicKey,
+        toPubkey: recipient,
+        lamports: BigInt((1_000 * LAMPORTS_PER_SOL).toString()),
+      })
+    );
+  }
+
+  transaction.sign(rootKeypair);
+  await banksClient.processTransaction(transaction);
 
   //
   const rawAmount = 100_000_000 * 10 ** DECIMALS; // 1 millions

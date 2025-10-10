@@ -149,7 +149,7 @@ describe("Swap", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [payer]);
 
       // swap
       const swapParams: SwapParams = {
@@ -166,9 +166,10 @@ describe("Swap", () => {
         tokenAProgram: getTokenProgram(poolState.tokenAFlag),
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
         referralTokenAccount: null,
+        poolState: poolState,
       };
       const swapTx = await ammInstance.swap(swapParams);
-      executeTransaction(context.banksClient, swapTx, [payer]);
+      await executeTransaction(context.banksClient, swapTx, [payer]);
     });
   });
 
@@ -294,7 +295,7 @@ describe("Swap", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [payer]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [payer]);
 
       // swap
       const swapParams: SwapParams = {
@@ -311,9 +312,10 @@ describe("Swap", () => {
         tokenAProgram: getTokenProgram(poolState.tokenAFlag),
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
         referralTokenAccount: null,
+        poolState: poolState,
       };
       const swapTx = await ammInstance.swap(swapParams);
-      executeTransaction(context.banksClient, swapTx, [payer]);
+      await executeTransaction(context.banksClient, swapTx, [payer]);
     });
   });
 });

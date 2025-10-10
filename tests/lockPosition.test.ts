@@ -150,7 +150,7 @@ describe("Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // lock position
       const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
@@ -312,7 +312,7 @@ describe("Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // lock position
       const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));

@@ -157,8 +157,9 @@ describe("Claim Fee 2", () => {
       tokenAProgram: getTokenProgram(poolState.tokenAFlag),
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       referralTokenAccount: null,
+      poolState: poolState,
     });
-    executeTransaction(context.banksClient, swapAtoBTx, [payer]);
+    await executeTransaction(context.banksClient, swapAtoBTx, [payer]);
 
     // swap B -> A
     const swapBtoATx = await ammInstance.swap({
@@ -175,8 +176,9 @@ describe("Claim Fee 2", () => {
       tokenAProgram: getTokenProgram(poolState.tokenAFlag),
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       referralTokenAccount: null,
+      poolState: poolState,
     });
-    executeTransaction(context.banksClient, swapBtoATx, [payer]);
+    await executeTransaction(context.banksClient, swapBtoATx, [payer]);
     // claim position fee
     const claimFeeReceiverTx = await ammInstance.claimPositionFee2({
       receiver: recipientKP.publicKey,
@@ -192,9 +194,6 @@ describe("Claim Fee 2", () => {
       tokenAProgram: getTokenProgram(poolState.tokenAFlag),
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
     });
-    executeTransaction(context.banksClient, claimFeeReceiverTx, [
-      payer,
-      tempWSolAccountKP,
-    ]);
+    await executeTransaction(context.banksClient, claimFeeReceiverTx, [payer]);
   });
 });

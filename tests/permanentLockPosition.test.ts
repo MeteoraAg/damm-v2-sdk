@@ -149,7 +149,7 @@ describe("Permanant Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // permanant lock position
 
@@ -291,7 +291,7 @@ describe("Permanant Lock Postion", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // permanant lock position
 

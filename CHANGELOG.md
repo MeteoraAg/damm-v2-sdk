@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.1.8] [PR #76](https://github.com/MeteoraAg/damm-v2-sdk/pull/77)
+
+### Added
+
+- Added `poolState` to `SwapParams` and `Swap2Params` to allow passing in the pool state to atomically fetch the pool state
+
 ## damm_v2_sdk [1.1.7] [PR #76](https://github.com/MeteoraAg/damm-v2-sdk/pull/76)
 
 ### Changed

@@ -2104,7 +2104,8 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
-    const poolState = await this.fetchPoolState(pool);
+    let { poolState } = params;
+    poolState = poolState ?? (await this.fetchPoolState(pool));
 
     const currentPoint = await getCurrentPoint(
       this._program.provider.connection,
@@ -2237,7 +2238,8 @@ export class CpAmm {
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
-    const poolState = await this.fetchPoolState(pool);
+    let { poolState } = params;
+    poolState = poolState ?? (await this.fetchPoolState(pool));
 
     const currentPoint = await getCurrentPoint(
       this._program.provider.connection,

@@ -54,7 +54,6 @@ export function validateFeeScheduler(
   const minFeeNumerator = getMinBaseFeeNumerator(
     cliffFeeNumerator,
     numberOfPeriod,
-    periodFrequency,
     reductionFactor,
     baseFeeMode
   );

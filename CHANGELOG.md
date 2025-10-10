@@ -2,7 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
-## damm_v2_sdk [1.1.8] [PR #76](https://github.com/MeteoraAg/damm-v2-sdk/pull/77)
+## damm_v2_sdk [1.1.8] [PR #78](https://github.com/MeteoraAg/damm-v2-sdk/pull/78)
+
+### Fixed
+
+- Fixed fee scheduler validation for `getMinBaseFeeNumerator`
+- Added checks for Alpha Vault fee in `getBaseFeeNumerator`
+
+## damm_v2_sdk [1.1.8] [PR #77](https://github.com/MeteoraAg/damm-v2-sdk/pull/77)
 
 ### Added
 

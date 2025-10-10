@@ -46,14 +46,12 @@
 
 - [Helper Functions](#helper-functions)
   - [preparePoolCreationParams](#preparepoolcreationparams)
-  - [getProgram](#getprogram)
   - [isVestingComplete](#isvestingcomplete)
   - [getTotalLockedLiquidity](#gettotallockedliquidity)
   - [getAvailableVestingLiquidity](#getavailablevestingliquidity)
   - [getMaxAmountWithSlippage](#getmaxamountwithslippage)
   - [getMinAmountWithSlippage](#getminamountwithslippage)
   - [getPriceImpact](#getpriceimpact)
-  - [getPriceChange](#getpricechange)
   - [getPriceFromSqrtPrice](#getpricefromsqrtprice)
   - [getSqrtPriceFromPrice](#getsqrtpricefromprice)
   - [getUnClaimReward](#getunclaimreward)
@@ -188,10 +186,10 @@ interface InitializeCustomizeablePoolParams {
 interface PoolFees {
   baseFee: {
     cliffFeeNumerator: BN; // Initial fee numerator
-    numberOfPeriod: number; // Number of fee reduction periods
-    reductionFactor: BN; // How much fee reduces each period
-    periodFrequency: number; // How often fees change
-    feeSchedulerMode: number; // 0: Linear, 1: Exponential
+    firstFactor: number; // Number of fee reduction periods
+    secondFactor: number[]; // How often fees change
+    thirdFactor: BN; // How much fee reduces each period
+    baseFeeMode: number; // 0: Fee Scheduler Linear, 1: Fee Scheduler Exponential, 2: Rate Limiter
   };
   dynamicFee?: {
     // Optional dynamic fee configuration
@@ -227,11 +225,11 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
 
 const poolFees = {
   baseFee: {
-    feeSchedulerMode: 0, // 0: Linear, 1: Exponential
+    baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
     cliffFeeNumerator: 1_000_000,
-    numberOfPeriod: 0,
-    reductionFactor: 0,
-    periodFrequency: 0
+    firstFactor: 50,
+    secondFactor: [0, 0, 0, 0, 0, 0, 0, 0],
+    thirdFactor: new BN(0),
   },
   partnerFee: {
     partnerAddress: partnerWallet.publicKey,
@@ -344,7 +342,19 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.getLiquidityDelta({
   sqrtPrice,
 });
 
-const baseFeeParams = getBaseFeeParams(25, 25, FeeSchedulerMode.Linear, 0, 0); // base fee: 0.25%
+const baseFeeParams = getBaseFeeParams(
+  {
+    baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
+    feeSchedulerParam: {
+      startingFeeBps: 5000,
+      endingFeeBps: 25,
+      numberOfPeriod: 50,
+      totalDuration: 300,
+    },
+  },
+  9,
+  ActivationType.Timestamp
+);
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee 0.25%
 const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
@@ -2708,16 +2718,19 @@ Calculates the current base fee numerator based on the configured fee scheduler 
 
 ```typescript
 function getBaseFeeNumerator(
-  feeSchedulerMode: FeeSchedulerMode,
   cliffFeeNumerator: BN,
-  period: BN,
-  reductionFactor: BN
+  numberOfPeriod: number,
+  periodFrequency: BN,
+  reductionFactor: BN,
+  baseFeeMode: BaseFeeMode,
+  currentPoint: BN,
+  activationPoint: BN
 ): BN;
 ```
 
 **Parameters**
 
-- `feeSchedulerMode`: The fee reduction mode (Linear or Exponential)
+- `baseFeeMode`: The fee reduction mode (Fee Scheduler Linear or Exponential)
 - `cliffFeeNumerator`: The initial maximum fee numerator (starting point)
 - `period`: The number of elapsed periods since fee reduction began
 - `reductionFactor`: The rate of fee reduction per period
@@ -2800,6 +2813,7 @@ Calculates the initial parameters for a base fee
 **Key Features**
 
 - Supports both linear and exponential fee reduction
+- Supports rate limiter
 - Validates parameter consistency
 - Calculates period frequency and reduction factors
 

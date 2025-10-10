@@ -10,7 +10,6 @@
   - [createPosition](#createposition)
   - [getLiquidityDelta](#getliquiditydelta)
   - [getQuote](#getquote)
-  - [getQuoteExactOut](#getquoteexactout)
   - [getDepositQuote](#getdepositquote)
   - [getWithdrawQuote](#getwithdrawquote)
   - [swap](#swap)
@@ -793,6 +792,7 @@ interface SwapParams {
   tokenAProgram: PublicKey; // Token program for token A
   tokenBProgram: PublicKey; // Token program for token B
   referralTokenAccount?: PublicKey; // Optional referral account for fees
+  poolState?: PoolState; // Optional pool state to pass in to atomically fetch the pool state
 }
 ```
 
@@ -868,6 +868,7 @@ interface SwapParams {
   tokenAProgram: PublicKey; // Token program for token A
   tokenBProgram: PublicKey; // Token program for token B
   referralTokenAccount?: PublicKey; // Optional referral account for fees
+  poolState?: PoolState; // Optional pool state to pass in to atomically fetch the pool state
   swapMode: SwapMode; // The swap mode
   amountIn?: BN; // The amount of input token to swap (for ExactIn and PartialFill modes)
   amountOut?: BN; // The amount of output token to swap (for ExactOut mode)

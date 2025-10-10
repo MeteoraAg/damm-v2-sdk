@@ -150,7 +150,7 @@ describe("Remove liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidity
       let removeLiquidityParams: RemoveLiquidityParams = {
@@ -166,7 +166,9 @@ describe("Remove liquidity", () => {
         removeLiquidityParams
       );
 
-      executeTransaction(context.banksClient, removeLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, removeLiquidityTx, [
+        creator,
+      ]);
     });
   });
 
@@ -292,7 +294,7 @@ describe("Remove liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
       let removeLiquidityParams: RemoveLiquidityParams = {
@@ -307,7 +309,9 @@ describe("Remove liquidity", () => {
         removeLiquidityParams
       );
 
-      executeTransaction(context.banksClient, removeLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, removeLiquidityTx, [
+        creator,
+      ]);
     });
   });
 });

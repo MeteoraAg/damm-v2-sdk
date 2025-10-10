@@ -140,7 +140,7 @@ describe("Merge position", () => {
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
     };
     const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-    executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+    await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
     // create position 2
 
@@ -182,9 +182,11 @@ describe("Merge position", () => {
     const addLiquiditySecondPositionTx = await ammInstance.addLiquidity(
       addLiquidityParamsSecondPosition
     );
-    executeTransaction(context.banksClient, addLiquiditySecondPositionTx, [
-      creator,
-    ]);
+    await executeTransaction(
+      context.banksClient,
+      addLiquiditySecondPositionTx,
+      [creator]
+    );
 
     // // merge two position
     const secondPositionState = await getPosition(

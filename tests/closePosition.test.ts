@@ -142,7 +142,7 @@ describe("Remove liquidity & Close position", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       let removeLiquidityParams: RemoveAllLiquidityParams = {
         ...addLiquidityParams,
@@ -157,7 +157,9 @@ describe("Remove liquidity & Close position", () => {
         removeLiquidityParams
       );
 
-      executeTransaction(context.banksClient, removeAllLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, removeAllLiquidityTx, [
+        creator,
+      ]);
 
       // close position
       const closePositionTx = await ammInstance.closePosition({
@@ -167,7 +169,7 @@ describe("Remove liquidity & Close position", () => {
         positionNftMint: positionNft.publicKey,
         positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
       });
-      executeTransaction(context.banksClient, closePositionTx, [creator]);
+      await executeTransaction(context.banksClient, closePositionTx, [creator]);
     });
   });
 
@@ -287,7 +289,7 @@ describe("Remove liquidity & Close position", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
 
       // remove liquidiy
       let removeLiquidityParams: RemoveAllLiquidityParams = {
@@ -303,7 +305,9 @@ describe("Remove liquidity & Close position", () => {
         removeLiquidityParams
       );
 
-      executeTransaction(context.banksClient, removeAllLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, removeAllLiquidityTx, [
+        creator,
+      ]);
 
       // close position
       const closePositionTx = await ammInstance.closePosition({
@@ -313,7 +317,7 @@ describe("Remove liquidity & Close position", () => {
         positionNftMint: positionNft.publicKey,
         positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
       });
-      executeTransaction(context.banksClient, closePositionTx, [creator]);
+      await executeTransaction(context.banksClient, closePositionTx, [creator]);
     });
   });
 });

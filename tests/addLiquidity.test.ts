@@ -142,7 +142,7 @@ describe("Add liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
     });
   });
 
@@ -263,7 +263,7 @@ describe("Add liquidity", () => {
         tokenBProgram: getTokenProgram(poolState.tokenBFlag),
       };
       const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
     });
   });
 });

@@ -205,7 +205,7 @@ describe("Create position", () => {
       const { tx: transaction, pool } = await ammInstance.createCustomPool(
         params
       );
-      executeTransaction(context.banksClient, transaction, [
+      await executeTransaction(context.banksClient, transaction, [
         payer,
         positionNft,
       ]);

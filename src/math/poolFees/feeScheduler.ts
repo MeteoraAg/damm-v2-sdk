@@ -24,14 +24,13 @@ export function getMaxBaseFeeNumerator(cliffFeeNumerator: BN): BN {
 export function getMinBaseFeeNumerator(
   cliffFeeNumerator: BN,
   numberOfPeriod: number,
-  periodFrequency: BN,
   reductionFactor: BN,
   feeSchedulerMode: BaseFeeMode
 ): BN {
   return getBaseFeeNumeratorByPeriod(
     cliffFeeNumerator,
     numberOfPeriod,
-    periodFrequency,
+    new BN(numberOfPeriod),
     reductionFactor,
     feeSchedulerMode
   );
@@ -114,7 +113,6 @@ export function getFeeNumeratorOnExponentialFeeScheduler(
     return cliffFeeNumerator;
   }
 
-  // make reduction_factor into Q64x64, and divided by BASIS_POINT_MAX
   const basisPointMax = new BN(BASIS_POINT_MAX);
   const bps = new BN(reductionFactor).shln(64).div(basisPointMax);
 
@@ -151,7 +149,18 @@ export function getBaseFeeNumerator(
     return cliffFeeNumerator;
   }
 
-  const period = currentPoint.sub(activationPoint).div(periodFrequency);
+  let period: BN;
+
+  if (currentPoint.lt(activationPoint)) {
+    period = new BN(numberOfPeriod);
+  } else {
+    period = currentPoint.sub(activationPoint).div(periodFrequency);
+
+    // clamp to maximum period
+    if (period.gt(new BN(numberOfPeriod))) {
+      period = new BN(numberOfPeriod);
+    }
+  }
 
   return getBaseFeeNumeratorByPeriod(
     cliffFeeNumerator,

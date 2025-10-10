@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## damm_v2_sdk [1.1.8] [PR #78](https://github.com/MeteoraAg/damm-v2-sdk/pull/78)
+## damm_v2_sdk [1.1.9] [PR #78](https://github.com/MeteoraAg/damm-v2-sdk/pull/78)
 
 ### Fixed
 

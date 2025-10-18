@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.0] [PR #80](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
+
+### Changed
+
+- Changed the IDL export type
+
 ## damm_v2_sdk [1.1.9] [PR #78](https://github.com/MeteoraAg/damm-v2-sdk/pull/78)
 
 ### Fixed

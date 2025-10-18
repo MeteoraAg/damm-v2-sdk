@@ -5,5 +5,4 @@ export * from "./constants";
 export * from "./helpers";
 export * from "./math";
 export type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
-import CpAmmIDL from "./idl/cp_amm.json";
-export default CpAmmIDL;
+export { default as CpAmmIdl } from "./idl/cp_amm.json";

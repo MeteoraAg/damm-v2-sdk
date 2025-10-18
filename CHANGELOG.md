@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## damm_v2_sdk [1.2.0] [PR #80](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
+## damm_v2_sdk [1.2.1] [PR #80](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
+
+### Fixed
+
+- Fixed rate limiter parameters in `getBaseFeeParams`
+
+## damm_v2_sdk [1.2.0] [PR #79](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
 
 ### Changed
 

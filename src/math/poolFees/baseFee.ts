@@ -215,8 +215,8 @@ export function getBaseFeeHandler(
       const feeRateLimiter = new FeeRateLimiter(
         cliffFeeNumerator,
         firstFactor,
-        maxLimiterDuration,
         maxFeeBps,
+        maxLimiterDuration,
         thirdFactor
       );
       return feeRateLimiter;

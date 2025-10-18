@@ -231,10 +231,7 @@ const poolFees = {
     secondFactor: [0, 0, 0, 0, 0, 0, 0, 0],
     thirdFactor: new BN(0),
   },
-  partnerFee: {
-    partnerAddress: partnerWallet.publicKey,
-    partnerFeeNumerator: 1000,
-  },
+  padding: [],
   dynamicFee: {
     binStep: 1,
     binStepU128: new BN("1844674407370955"),
@@ -567,7 +564,7 @@ async getQuote2(params: GetQuote2Params): Promise<{
   nextSqrtPrice: BN;
   tradingFee: BN;
   protocolFee: BN;
-  partnerFee: BN;
+  partnerFee: BN; // Deprecating soon
   referralFee: BN;
   priceImpact: Decimal;
   minimumAmountOut?: BN;
@@ -611,7 +608,7 @@ An object containing:
 - `nextSqrtPrice`: The next sqrt price after the swap
 - `tradingFee`: The trading fee charged for the swap
 - `protocolFee`: The protocol fee charged for the swap
-- `partnerFee`: The partner fee charged for the swap
+- `partnerFee`: The partner fee charged for the swap (Deprecating soon)
 - `referralFee`: The referral fee charged for the swap
 - `priceImpact`: The price impact of the swap
 - `minimumAmountOut` (optional): The minimum output amount guaranteed (for ExactIn and PartialFill modes)
@@ -1596,7 +1593,7 @@ const claimFeeTx = await cpAmm.claimPositionFee2({
 
 ### claimPartnerFee
 
-Claims partner fee rewards.
+Claims partner fee rewards. (Deprecating soon)
 
 **Function**
 

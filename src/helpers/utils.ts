@@ -1,7 +1,7 @@
 import { BN } from "@coral-xyz/anchor";
 import { BASIS_POINT_MAX, LIQUIDITY_SCALE } from "../constants";
 import Decimal from "decimal.js";
-import { PoolState, PositionState, SwapMode } from "../types";
+import { PoolState, PositionState, RewardInfo, SwapMode } from "../types";
 
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
@@ -197,7 +197,7 @@ export const getSqrtPriceFromPrice = (
  * @param positionState - The position state
  * @returns The unclaimed reward
  */
-export const getUnClaimReward = (
+export const getUnClaimLpFee = (
   poolState: PoolState,
   positionState: PositionState
 ): {
@@ -233,3 +233,163 @@ export const getUnClaimReward = (
         : [],
   };
 };
+
+// update reward_per_token_store
+// refer this implementation in program: https://github.com/MeteoraAg/damm-v2/blob/main/programs/cp-amm/src/state/pool.rs#L256-L281
+function getRewardPerTokenStore(
+  poolReward: RewardInfo,
+  poolLiquidity: BN,
+  currentTime: BN
+): BN {
+  if (poolLiquidity.eq(new BN(0))) {
+    return new BN(0);
+  }
+  const lastTimeRewardApplicable = BN.min(
+    currentTime,
+    poolReward.rewardDurationEnd
+  );
+
+  const timePeriod = lastTimeRewardApplicable.sub(poolReward.lastUpdateTime);
+  const currentTotalReward = timePeriod.mul(poolReward.rewardRate);
+  const rewardPerTokenStore = currentTotalReward.shln(128).div(poolLiquidity);
+
+  const totalRewardPerTokenStore = new BN(
+    Buffer.from(poolReward.rewardPerTokenStored).reverse()
+  ).add(rewardPerTokenStore);
+
+  return totalRewardPerTokenStore;
+}
+
+function getRewardPerPeriod(
+  poolReward: RewardInfo,
+  currentTime: BN,
+  periodTime: BN
+): BN {
+  const timeRewardAppicable = currentTime.add(periodTime);
+  // cap max period in reward duration end
+  const period =
+    timeRewardAppicable <= poolReward.rewardDurationEnd
+      ? periodTime
+      : poolReward.rewardDurationEnd.sub(currentTime);
+  // reward_rate = amount / periodTime
+  const rewardPerPeriod = poolReward.rewardRate.mul(period);
+
+  return rewardPerPeriod;
+}
+
+// get pool reward info
+export function getRewardInfo(
+  poolState: PoolState,
+  rewardIndex: number,
+  periodTime: BN,
+  currentTime: BN
+): {
+  rewardPerPeriod: BN;
+  rewardBalance: BN;
+  totalRewardDistributed: BN;
+} {
+  const poolReward = poolState.rewardInfos[rewardIndex];
+
+  const rewardPerTokenStore = getRewardPerTokenStore(
+    poolReward,
+    poolState.liquidity,
+    currentTime
+  );
+
+  // calculate current reward distributed to user reward.
+  const totalRewardDistributed = rewardPerTokenStore
+    .mul(poolState.liquidity)
+    .shrn(192);
+
+  if (poolReward.rewardDurationEnd <= currentTime) {
+    return {
+      rewardPerPeriod: new BN(0),
+      rewardBalance: new BN(0),
+      totalRewardDistributed,
+    };
+  }
+
+  const rewardPerPeriod = getRewardPerPeriod(
+    poolReward,
+    currentTime,
+    periodTime
+  );
+
+  const remainTime = poolReward.rewardDurationEnd.sub(currentTime);
+  const rewardBalance = poolReward.rewardRate.mul(remainTime).shrn(64);
+
+  if (poolState.liquidity.eq(new BN(0))) {
+    return {
+      rewardPerPeriod,
+      rewardBalance,
+      totalRewardDistributed: new BN(0),
+    };
+  }
+
+  return {
+    rewardPerPeriod: rewardPerPeriod.shrn(64),
+    rewardBalance,
+    totalRewardDistributed,
+  };
+}
+
+// get current pending user reward
+// refer to this implementation: https://github.com/MeteoraAg/damm-v2/blob/main/programs/cp-amm/src/state/position.rs#L28-L44
+export function getUserRewardPending(
+  poolState: PoolState,
+  positionState: PositionState,
+  rewardIndex: number,
+  currentTime: BN,
+  periodTime: BN
+): { userRewardPerPeriod: BN; userPendingReward: BN } {
+  if (poolState.liquidity.eq(new BN(0))) {
+    return {
+      userRewardPerPeriod: new BN(0),
+      userPendingReward: new BN(0),
+    };
+  }
+  const poolReward = poolState.rewardInfos[rewardIndex];
+  const userRewardInfo = positionState.rewardInfos[rewardIndex];
+
+  const rewardPerTokenStore = getRewardPerTokenStore(
+    poolReward,
+    poolState.liquidity,
+    currentTime
+  );
+
+  const totalPositionLiquidity = positionState.unlockedLiquidity
+    .add(positionState.vestedLiquidity)
+    .add(positionState.permanentLockedLiquidity);
+
+  const userRewardPerTokenCheckPoint = new BN(
+    Buffer.from(userRewardInfo.rewardPerTokenCheckpoint).reverse()
+  );
+  const newReward = totalPositionLiquidity
+    .mul(rewardPerTokenStore.sub(userRewardPerTokenCheckPoint))
+    .shrn(192);
+
+  if (poolReward.rewardDurationEnd <= currentTime) {
+    return {
+      userPendingReward: userRewardInfo.rewardPendings.add(newReward),
+      userRewardPerPeriod: new BN(0),
+    };
+  }
+
+  const rewardPerPeriod = getRewardPerPeriod(
+    poolReward,
+    currentTime,
+    periodTime
+  );
+
+  const rewardPerTokenStorePerPeriod = rewardPerPeriod
+    .shln(128)
+    .div(poolState.liquidity);
+  const userRewardPerPeriod = totalPositionLiquidity
+    .mul(rewardPerTokenStorePerPeriod)
+    .shrn(192);
+
+  return {
+    userPendingReward: userRewardInfo.rewardPendings.add(newReward),
+    userRewardPerPeriod: userRewardPerPeriod,
+  };
+}

@@ -23,7 +23,6 @@ import {
   CpAmm,
   derivePositionNftAccount,
   getTokenProgram,
-  getUnClaimReward,
   InitializeCustomizeablePoolParams,
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,

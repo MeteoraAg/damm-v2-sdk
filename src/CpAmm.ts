@@ -68,6 +68,8 @@ import {
   Swap2Params,
   SwapMode,
   GetQuote2Params,
+  InitializeRewardParams,
+  InitializeAndFundReward,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -75,6 +77,7 @@ import {
   derivePoolAuthority,
   derivePositionAddress,
   derivePositionNftAccount,
+  deriveRewardVaultAddress,
   deriveTokenBadgeAddress,
   deriveTokenVaultAddress,
 } from "./pda";
@@ -850,6 +853,11 @@ export class CpAmm {
     return positionResult;
   }
 
+  /**
+   * Retrieves all vesting accounts associated with a position.
+   * @param position - Public key of the position.
+   * @returns Array of vesting account public keys and their states.
+   */
   async getAllVestingsByPosition(position: PublicKey): Promise<
     Array<{
       publicKey: PublicKey;
@@ -863,6 +871,11 @@ export class CpAmm {
     return vestings;
   }
 
+  /**
+   * Checks if a position has any locked liquidity.
+   * @param position - Position state.
+   * @returns True if the position has locked liquidity, false otherwise.
+   */
   isLockedPosition(position: PositionState): boolean {
     const totalLockedLiquidity = position.vestedLiquidity.add(
       position.permanentLockedLiquidity
@@ -871,6 +884,11 @@ export class CpAmm {
     return totalLockedLiquidity.gtn(0);
   }
 
+  /**
+   * Checks if a position is permanently locked.
+   * @param positionState - Position state.
+   * @returns True if the position is permanently locked, false otherwise.
+   */
   isPermanentLockedPosition(positionState: PositionState): boolean {
     return positionState.permanentLockedLiquidity.gtn(0);
   }
@@ -920,6 +938,11 @@ export class CpAmm {
     return { canUnlock: true };
   }
 
+  /**
+   * Checks if a pool exists.
+   * @param pool - Public key of the pool.
+   * @returns True if the pool exists, false otherwise.
+   */
   async isPoolExist(pool: PublicKey): Promise<boolean> {
     const poolState = await this._program.account.pool.fetchNullable(pool);
     return poolState !== null;
@@ -1018,6 +1041,11 @@ export class CpAmm {
     };
   }
 
+  /**
+   * Calculates the expected output amount or input amount for a swap depending on the swap mode.
+   * @param params GetQuote2Params
+   * @returns Quote2Result
+   */
   getQuote2(params: GetQuote2Params): Quote2Result {
     const {
       inputTokenMint,
@@ -1535,6 +1563,11 @@ export class CpAmm {
     return { tx: transaction, pool, position };
   }
 
+  /**
+   * Builds a transaction to create a customizable pool with dynamic config.
+   * @param params InitializeCustomizeablePoolWithDynamicConfigParams
+   * @returns Transaction and related addresses.
+   */
   async createCustomPoolWithDynamicConfig(
     params: InitializeCustomizeablePoolWithDynamicConfigParams
   ): Promise<{
@@ -2163,6 +2196,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to perform a swap in the pool.
+   * @param params Swap2Params
+   * @returns Transaction builder.
+   */
   async swap2(params: Swap2Params): TxBuilder {
     const {
       payer,
@@ -2369,6 +2407,11 @@ export class CpAmm {
     return new Transaction().add(instruction);
   }
 
+  /**
+   * Builds a transaction to close a position.
+   * @param params ClosePositionParams
+   * @returns Transaction builder.
+   */
   async closePosition(params: ClosePositionParams): TxBuilder {
     const { owner, pool, position, positionNftMint, positionNftAccount } =
       params;
@@ -2664,17 +2707,95 @@ export class CpAmm {
   }
 
   /**
+   * Builds a transaction to initialize a reward for a pool.
+   * @param params InitializeRewardParams
+   * @returns Transaction builder.
+   */
+  async initializeReward(params: InitializeRewardParams): TxBuilder {
+    const {
+      rewardIndex,
+      rewardDuration,
+      funder,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      rewardMintProgram,
+    } = params;
+
+    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+
+    return await this._program.methods
+      .initializeReward(rewardIndex, rewardDuration, funder)
+      .accountsPartial({
+        poolAuthority: this.poolAuthority,
+        pool,
+        rewardVault,
+        rewardMint,
+        signer: creator,
+        payer,
+        tokenProgram: rewardMintProgram,
+      })
+      .transaction();
+  }
+
+  /**
+   * Builds a transaction to initialize and fund a reward for a pool.
+   * @param params InitializeAndFundReward
+   * @returns Transaction builder.
+   */
+  async initializeAndFundReward(params: InitializeAndFundReward): TxBuilder {
+    const {
+      rewardIndex,
+      rewardDuration,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      carryForward,
+      amount,
+      rewardMintProgram,
+    } = params;
+
+    const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+
+    const initializeRewardTx = await this.initializeReward({
+      rewardIndex,
+      rewardDuration,
+      funder: payer,
+      pool,
+      creator,
+      payer,
+      rewardMint,
+      rewardMintProgram,
+    });
+
+    // fund reward
+    const fundRewardTx = await this.fundReward({
+      rewardIndex,
+      carryForward,
+      pool,
+      funder: payer,
+      amount,
+      rewardMint,
+      rewardVault,
+      rewardMintProgram,
+    });
+
+    return new Transaction().add(initializeRewardTx).add(fundRewardTx);
+  }
+  /**
    * Builds a transaction to update reward duration.
    * @param {UpdateRewardDurationParams} params - Parameters including pool and new duration.
    * @returns Transaction builder.
    */
   async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
-    const { pool, admin, rewardIndex, newDuration } = params;
+    const { pool, signer, rewardIndex, newDuration } = params;
     return await this._program.methods
       .updateRewardDuration(rewardIndex, newDuration)
       .accountsPartial({
         pool,
-        signer: admin,
+        signer,
       })
       .transaction();
   }
@@ -2685,12 +2806,12 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder {
-    const { pool, admin, rewardIndex, newFunder } = params;
+    const { pool, signer, rewardIndex, newFunder } = params;
     return await this._program.methods
       .updateRewardFunder(rewardIndex, newFunder)
       .accountsPartial({
         pool,
-        signer: admin,
+        signer,
       })
       .transaction();
   }
@@ -3012,9 +3133,9 @@ export class CpAmm {
       position,
       positionNftAccount,
       rewardIndex,
-      skipReward,
       poolState,
       positionState,
+      isSkipReward,
     } = params;
 
     const rewardInfo = poolState.rewardInfos[rewardIndex];
@@ -3037,6 +3158,7 @@ export class CpAmm {
       const closeWrappedSOLIx = await unwrapSOLInstruction(user);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
+    const skipReward = isSkipReward ? 1 : 0;
     return await this._program.methods
       .claimReward(rewardIndex, skipReward)
       .accountsPartial({
@@ -3055,6 +3177,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to split a position into two positions.
+   * @param params SplitPositionParams
+   * @returns Transaction builder.
+   */
   async splitPosition(params: SplitPositionParams): TxBuilder {
     const {
       firstPositionOwner,
@@ -3094,6 +3221,11 @@ export class CpAmm {
       .transaction();
   }
 
+  /**
+   * Builds a transaction to split a position into two positions.
+   * @param params SplitPosition2Params
+   * @returns Transaction builder.
+   */
   async splitPosition2(params: SplitPosition2Params): TxBuilder {
     const {
       firstPositionOwner,

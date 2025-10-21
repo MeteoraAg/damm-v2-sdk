@@ -24,7 +24,13 @@
   - [claimPositionFee](#claimpositionfee)
   - [claimPositionFee2](#claimpositionfee2)
   - [claimPartnerFee](#claimpartnerfee)
+  - [initializeReward](#initializereward)
+  - [initializeAndFundReward](#initializeandfundreward)
+  - [updateRewardDuration](#updaterewardduration)
+  - [updateRewardFunder](#updaterewardfunder)
+  - [fundReward](#fundreward)
   - [claimReward](#claimreward)
+  - [withdrawIneligibleReward](#withdrawineligiblereward)
   - [closePosition](#closeposition)
   - [splitPosition](#splitposition)
   - [splitPosition2](#splitposition2)
@@ -54,7 +60,7 @@
   - [getPriceImpact](#getpriceimpact)
   - [getPriceFromSqrtPrice](#getpricefromsqrtprice)
   - [getSqrtPriceFromPrice](#getsqrtpricefromprice)
-  - [getUnClaimReward](#getunclaimreward)
+  - [getUnClaimLpFee](#getunclaimlpfee)
   - [getBaseFeeNumerator](#getbasefeenumerator)
   - [getDynamicFeeNumerator](#getdynamicfeenumerator)
   - [bpsToFeeNumerator](#bpstofeenumerator)
@@ -1639,6 +1645,259 @@ const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
 
 ---
 
+### initializeReward
+
+Initializes a reward for a pool.
+
+**Function**
+
+```typescript
+async initializeReward(params: InitializeRewardParams): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface InitializeRewardParams {
+  rewardIndex: number; // 0: for creators, 1: for admins
+  rewardDuration: BN; // Duration of the reward
+  pool: PublicKey; // The pool address
+  rewardMint: PublicKey; // The reward mint address
+  funder: PublicKey; // The
+  payer: PublicKey; // The payer address
+  creator: PublicKey; // The creator address
+  rewardMintProgram: PublicKey; // The reward mint program address
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const initializeRewardTx = await cpAmm.initializeReward({
+  rewardIndex: 0,
+  rewardDuration: new BN(1000000000),
+  pool: poolAddress,
+  rewardMint: rewardMintAddress,
+  funder: wallet.publicKey,
+  payer: wallet.publicKey,
+  creator: wallet.publicKey,
+  rewardMintProgram: rewardMintProgramAddress,
+});
+```
+
+**Notes**
+
+- Only the pool creator can initialize a reward
+- The funder is the account that will fund the reward
+- The payer is the account that will pay for the initialize reward transaction
+- The creator is the account that is the creator of the pool
+- The reward mint program is the program that will mint the reward
+- Pool creators can only initialize rewards for `rewardIndex` = 0. `rewardIndex` = 1 is a permissioned reward initialization for admins only.
+
+---
+
+### initializeAndFundReward
+
+Initializes and funds a reward for a pool.
+
+**Function**
+
+```typescript
+async initializeAndFundReward(params: InitializeAndFundReward): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface InitializeAndFundRewardParams {
+  rewardIndex: number; // 0: for creators, 1: for admins
+  rewardDuration: BN; // Duration of the reward
+  pool: PublicKey; // The pool address
+  creator: PublicKey; // The creator address
+  payer: PublicKey; // The payer address
+  rewardMint: PublicKey; // The reward mint address
+  carryForward: boolean; // Whether to carry forward the reward
+  amount: BN; // The amount to fund
+  rewardMintProgram: PublicKey; // The reward mint program address
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const initializeAndFundRewardTx = await cpAmm.initializeAndFundReward({
+  rewardIndex: 0,
+  rewardDuration: new BN(1000000000),
+  pool: poolAddress,
+  creator: wallet.publicKey,
+  payer: wallet.publicKey,
+  rewardMint: rewardMintAddress,
+  carryForward: true,
+  amount: new BN(1000000000),
+  rewardMintProgram: rewardMintProgramAddress,
+});
+```
+
+**Notes**
+
+- Only the pool creator can initialize a reward
+- The creator in this case is also the funder of the reward
+- The payer is the account that will pay for the initialize reward transaction
+- The reward mint program is the program that will mint the reward
+- Pool creators can only initialize rewards for `rewardIndex` = 0. `rewardIndex` = 1 is a permissioned reward initialization for admins only.
+- The carryForward parameter specifies whether to carry forward the reward
+
+---
+
+### updateRewardDuration
+
+Updates the duration of a reward.
+
+**Function**
+
+```typescript
+async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface UpdateRewardDurationParams {
+  pool: PublicKey; // The pool address
+  signer: PublicKey; // The signer of the transaction
+  rewardIndex: number; // Index of the reward to update
+  newDuration: BN; // New duration of the reward
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const updateRewardDurationTx = await cpAmm.updateRewardDuration({
+  pool: poolAddress,
+  signer: wallet.publicKey,
+  rewardIndex: 0,
+  newDuration: new BN(1000000000),
+});
+```
+
+**Notes**
+
+- Only the pool creator or admin can update the duration of a reward
+- The new duration must be greater than the current duration
+- The signer must be the pool creator or admin depending on the `rewardIndex`
+
+---
+
+### updateRewardFunder
+
+Updates the funder of a reward.
+
+**Function**
+
+```typescript
+async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface UpdateRewardFunderParams {
+  pool: PublicKey; // The pool address
+  signer: PublicKey; // The signer of the transaction
+  rewardIndex: number; // Index of the reward to update
+  newFunder: PublicKey; // The new funder of the reward
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const updateRewardFunderTx = await cpAmm.updateRewardFunder({
+  pool: poolAddress,
+  signer: wallet.publicKey,
+  rewardIndex: 0,
+  newFunder: newFunderAddress,
+});
+```
+
+**Notes**
+
+- Only the pool creator can update the funder of a reward
+- The new funder must be a valid public key
+- The signer must be the pool creator or admin depending on the `rewardIndex`
+
+---
+
+### fundReward
+
+Funds a reward for a pool.
+
+**Function**
+
+```typescript
+async fundReward(params: FundRewardParams): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface FundRewardParams {
+  funder: PublicKey; // The funder address
+  rewardIndex: number; // Index of the reward to fund
+  pool: PublicKey; // The pool address
+  carryForward: boolean; // Whether to carry forward the reward
+  amount: BN; // The amount to fund
+  rewardMint: PublicKey; // The reward token mint address
+  rewardVault: PublicKey; // The reward vault address
+  rewardMintProgram: PublicKey; // The reward mint's program id
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const fundRewardTx = await cpAmm.fundReward({
+  funder: wallet.publicKey,
+  rewardIndex: 0,
+  pool: poolAddress,
+  carryForward: true,
+  amount: new BN(1000000000),
+  rewardMint: rewardMintAddress,
+  rewardVault: rewardVaultAddress,
+  rewardMintProgram: rewardMintProgramAddress,
+});
+```
+
+**Notes**
+
+- Only the pool creator can fund rewards
+- The rewardIndex parameter specifies which reward token to fund
+- The carryForward parameter specifies whether to carry forward the reward
+- The amount parameter specifies the amount to fund
+
+---
+
 ### claimReward
 
 Claims reward tokens from a position.
@@ -1655,11 +1914,12 @@ async claimReward(params: ClaimRewardParams): TxBuilder
 interface ClaimRewardParams {
   user: PublicKey; // The user claiming rewards
   position: PublicKey; // The position address
-  positionNftAccount: PublicKey; // The position NFT account
-  rewardIndex: number; // Index of the reward to claim
-  skipReward: number; // Skip reward transfer (0: transfer reward, 1: skip reward)
   poolState: PoolState; // The current pool state
   positionState: PositionState; // The current position state
+  positionNftAccount: PublicKey; // The position NFT account
+  rewardIndex: number; // Index of the reward to claim
+  isSkipReward: boolean; // Whether to skip reward transfer
+  feePayer?: PublicKey; // Specific fee payer for transaction. Default fee payer is user
 }
 ```
 
@@ -1677,11 +1937,12 @@ const positionState = await cpAmm.fetchPositionState(positionAddress);
 const claimRewardTx = await cpAmm.claimReward({
   user: wallet.publicKey,
   position: positionAddress,
-  positionNftAccount: positionNftAccount,
-  rewardIndex: 0,
-  skipReward: 0,
   poolState: poolState,
   positionState: positionState,
+  positionNftAccount: positionNftAccount,
+  rewardIndex: 0,
+  isSkipReward: false,
+  feePayer: wallet.publicKey,
 });
 ```
 
@@ -1692,6 +1953,48 @@ const claimRewardTx = await cpAmm.claimReward({
 - Rewards accrue based on the amount of liquidity provided and duration
 - Only the position owner can claim rewards
 - The SDK handles wrapping/unwrapping of SOL automatically
+
+---
+
+### withdrawIneligibleReward
+
+Withdraws ineligible reward tokens from a pool.
+
+**Function**
+
+```typescript
+async withdrawIneligibleReward(params: WithdrawIneligibleRewardParams): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface WithdrawIneligibleRewardParams {
+  rewardIndex: number; // Index of the reward to withdraw
+  pool: PublicKey; // The pool address
+  funder: PublicKey; // The funder address to withdraw to
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const withdrawIneligibleRewardTx = await cpAmm.withdrawIneligibleReward({
+  rewardIndex: 0,
+  pool: poolAddress,
+  funder: wallet.publicKey,
+});
+```
+
+**Notes**
+
+- Only the pool creator can withdraw ineligible rewards
+- The rewardIndex parameter specifies which reward token to withdraw
+- The funder parameter specifies the address to withdraw to
 
 ---
 
@@ -2663,14 +2966,14 @@ console.log(`Sqrt price in Q64 format: ${sqrtPrice.toString()}`);
 
 ## Fee Calculation Utilities
 
-### getUnClaimReward
+### getUnClaimLpFee
 
 Calculates unclaimed fees and rewards for a position.
 
 **Function**
 
 ```typescript
-function getUnClaimReward(
+function getUnClaimLpFee(
   poolState: PoolState,
   positionState: PositionState
 ): {
@@ -2699,7 +3002,7 @@ An object containing:
 const poolState = await cpAmm.fetchPoolState(poolAddress);
 const positionState = await cpAmm.fetchPositionState(positionAddress);
 
-const unclaimed = getUnClaimReward(poolState, positionState);
+const unclaimed = getUnClaimLpFee(poolState, positionState);
 console.log(`Unclaimed token A fees: ${unclaimed.feeTokenA.toString()}`);
 console.log(`Unclaimed token B fees: ${unclaimed.feeTokenB.toString()}`);
 unclaimed.rewards.forEach((reward, i) => {

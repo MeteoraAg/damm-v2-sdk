@@ -37,9 +37,10 @@ export function getTokenProgram(flag: number): PublicKey {
  */
 export const getTokenDecimals = async (
   connection: Connection,
-  mint: PublicKey
+  mint: PublicKey,
+  tokenProgram: PublicKey
 ): Promise<number> => {
-  return (await getMint(connection, mint)).decimals;
+  return (await getMint(connection, mint, "confirmed", tokenProgram)).decimals;
 };
 
 /**

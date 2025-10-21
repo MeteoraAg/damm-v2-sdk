@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.2] [PR #81](https://github.com/MeteoraAg/damm-v2-sdk/pull/81)
+
+### Fixed
+
+- Added `tokenProgram` parameter to `getTokenDecimals`
+
 ## damm_v2_sdk [1.2.1] [PR #80](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
 
 ### Fixed

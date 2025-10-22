@@ -594,7 +594,7 @@ export type ClosePositionInstructionParams = {
 };
 
 export type InitializeRewardParams = {
-  rewardIndex: number; // 0: for creators, 1: for admins
+  rewardIndex: number; // 0: for creators or admins, 1: for admins only
   rewardDuration: BN;
   pool: PublicKey;
   rewardMint: PublicKey;
@@ -605,7 +605,7 @@ export type InitializeRewardParams = {
 };
 
 export type InitializeAndFundReward = {
-  rewardIndex: number; // 0: for creators, 1: for admins
+  rewardIndex: number; // 0: for creators or admins, 1: for admins only
   rewardDuration: BN;
   pool: PublicKey;
   creator: PublicKey;

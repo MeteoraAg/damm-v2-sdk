@@ -1659,7 +1659,7 @@ async initializeReward(params: InitializeRewardParams): TxBuilder
 
 ```typescript
 interface InitializeRewardParams {
-  rewardIndex: number; // 0: for creators, 1: for admins
+  rewardIndex: number; // 0: for creators or admins, 1: for admins only
   rewardDuration: BN; // Duration of the reward
   pool: PublicKey; // The pool address
   rewardMint: PublicKey; // The reward mint address
@@ -1714,7 +1714,7 @@ async initializeAndFundReward(params: InitializeAndFundReward): TxBuilder
 
 ```typescript
 interface InitializeAndFundRewardParams {
-  rewardIndex: number; // 0: for creators, 1: for admins
+  rewardIndex: number; // 0: for creators or admins, 1: for admins only
   rewardDuration: BN; // Duration of the reward
   pool: PublicKey; // The pool address
   creator: PublicKey; // The creator address

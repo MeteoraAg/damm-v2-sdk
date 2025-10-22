@@ -235,7 +235,7 @@ export const getUnClaimLpFee = (
 };
 
 // update reward_per_token_store
-// refer this implementation in program: https://github.com/MeteoraAg/damm-v2/blob/689a3264484799d833c505523f4ff4e4990690aa/programs/cp-amm/src/state/position.rs#L29 
+// refer this implementation in program: https://github.com/MeteoraAg/damm-v2/blob/689a3264484799d833c505523f4ff4e4990690aa/programs/cp-amm/src/state/pool.rs#L315
 function getRewardPerTokenStore(
   poolReward: RewardInfo,
   poolLiquidity: BN,
@@ -334,7 +334,7 @@ export function getRewardInfo(
 }
 
 // get current pending user reward
-// refer to this implementation: https://github.com/MeteoraAg/damm-v2/blob/main/programs/cp-amm/src/state/position.rs#L28-L44
+// refer to this implementation: https://github.com/MeteoraAg/damm-v2/blob/689a3264484799d833c505523f4ff4e4990690aa/programs/cp-amm/src/state/position.rs#L29
 export function getUserRewardPending(
   poolState: PoolState,
   positionState: PositionState,

@@ -78,6 +78,7 @@ export type TokenBadgeState = IdlAccounts<CpAmmTypes>["tokenBadge"];
 // export type InitCustomizePoolParams =
 //   IdlTypes<CpAmm>["InitializeCustomizablePoolParameters"];
 export type RewardInfo = IdlTypes<CpAmmTypes>["rewardInfo"];
+export type UserRewardInfo = IdlTypes<CpAmmTypes>["userRewardInfo"];
 
 /**
  * Dynamic fee parameters
@@ -593,23 +594,38 @@ export type ClosePositionInstructionParams = {
 };
 
 export type InitializeRewardParams = {
-  rewardIndex: number;
+  rewardIndex: number; // 0: for creators or admins, 1: for admins only
   rewardDuration: BN;
   pool: PublicKey;
   rewardMint: PublicKey;
+  funder: PublicKey;
   payer: PublicKey;
+  creator: PublicKey;
+  rewardMintProgram: PublicKey;
+};
+
+export type InitializeAndFundReward = {
+  rewardIndex: number; // 0: for creators or admins, 1: for admins only
+  rewardDuration: BN;
+  pool: PublicKey;
+  creator: PublicKey;
+  payer: PublicKey;
+  rewardMint: PublicKey;
+  carryForward: boolean;
+  amount: BN;
+  rewardMintProgram: PublicKey;
 };
 
 export type UpdateRewardDurationParams = {
   pool: PublicKey;
-  admin: PublicKey;
+  signer: PublicKey;
   rewardIndex: number;
   newDuration: BN;
 };
 
 export type UpdateRewardFunderParams = {
   pool: PublicKey;
-  admin: PublicKey;
+  signer: PublicKey;
   rewardIndex: number;
   newFunder: PublicKey;
 };
@@ -620,6 +636,9 @@ export type FundRewardParams = {
   pool: PublicKey;
   carryForward: boolean;
   amount: BN;
+  rewardMint: PublicKey;
+  rewardVault: PublicKey;
+  rewardMintProgram: PublicKey;
 };
 
 export type WithdrawIneligibleRewardParams = {
@@ -645,7 +664,7 @@ export type ClaimRewardParams = {
   positionState: PositionState;
   positionNftAccount: PublicKey;
   rewardIndex: number;
-  skipReward: number;
+  isSkipReward: boolean;
   feePayer?: PublicKey;
 };
 

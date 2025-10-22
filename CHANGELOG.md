@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.3] [PR #80](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
+
+### Added
+
+- Added `initializeReward` endpoint to initialize a reward for a pool
+- Added `initializeAndFundReward` endpoint to initialize and fund a reward for a pool
+
+### Changed
+
+- Changed `getUnclaimReward` helper function name to `getUnClaimLpFee`
+- Included `funder`, `creator` and `rewardMintProgram` parameters to `InitializeRewardParams`
+- Changed from `admin` to `signer` in `updateRewardDuration` and `updateRewardFunder` endpoints
+- Included `rewardMint`, `rewardVault` and `rewardMintProgram` parameters to `fundReward` endpoint
+- Changed from `skipReward` to `isSkipReward` in `withdrawIneligbleReward` endpoint
+
 ## damm_v2_sdk [1.2.2]
 
 ### Fixed
@@ -14,7 +29,7 @@ All notable changes to this project will be documented in this file.
 
 - Fixed rate limiter parameters in `getBaseFeeParams`
 
-## damm_v2_sdk [1.2.0] [PR #79](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
+## damm_v2_sdk [1.2.0] [PR #79](https://github.com/MeteoraAg/damm-v2-sdk/pull/79)
 
 ### Changed
 

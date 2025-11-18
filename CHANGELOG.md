@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.5] [PR #82](https://github.com/MeteoraAg/damm-v2-sdk/pull/82)
+
+### Added
+
+- Added `removeLiquidity2` endpoint to remove liquidity from a position to include a receiver and fee payer
+
 ## damm_v2_sdk [1.2.4] [PR #81](https://github.com/MeteoraAg/damm-v2-sdk/pull/81)
 
 ### Added

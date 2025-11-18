@@ -15,6 +15,7 @@
   - [swap](#swap)
   - [addLiquidity](#addliquidity)
   - [removeLiquidity](#removeliquidity)
+  - [removeLiquidity2](#removeliquidity2)
   - [removeAllLiquidity](#removeallliquidity)
   - [removeAllLiquidityAndClosePosition](#removeallliquidityandcloseposition)
   - [mergePosition](#mergeposition)
@@ -1098,6 +1099,90 @@ const removeLiquidityTx = await cpAmm.removeLiquidity({
 - The SDK handles wrapping/unwrapping of SOL automatically
 - Token accounts are created automatically if they don't exist
 - Set appropriate thresholds to protect against slippage
+- Removing all liquidity doesn't close the position
+
+---
+
+### removeLiquidity2
+
+Removes a specific amount of liquidity from an existing position. This function is similar to `removeLiquidity`, but allows you to specify a receiver and fee payer.
+
+**Function**
+
+```typescript
+async removeLiquidity2(params: RemoveLiquidityParams2): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface RemoveLiquidityParams2 {
+  owner: PublicKey; // The owner of the position
+  pool: PublicKey; // The pool address
+  position: PublicKey; // The position address
+  positionNftAccount?: PublicKey; // The position NFT account
+  liquidityDelta: BN; // The amount of liquidity to remove in Q64 format
+  tokenAAmountThreshold: BN; // Minimum acceptable token A amount (slippage protection)
+  tokenBAmountThreshold: BN; // Minimum acceptable token B amount (slippage protection)
+  tokenAMint: PublicKey; // The mint of token A
+  tokenBMint: PublicKey; // The mint of token B
+  tokenAVault: PublicKey; // The pool's token A vault
+  tokenBVault: PublicKey; // The pool's token B vault
+  tokenAProgram: PublicKey; // Token program for token A
+  tokenBProgram: PublicKey; // Token program for token B
+  vestings?: Array<{ account: PublicKey }>; // Optional vesting accounts to refresh
+  receiver: PublicKey; // The receiver of the liquidity
+  feePayer: PublicKey; // The fee payer of the transaction
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+
+// Get withdraw quote for half of the liquidity
+const liquidityToRemove = positionState.unlockedLiquidity.div(new BN(2));
+const withdrawQuote = await cpAmm.getWithdrawQuote({
+  liquidityDelta: liquidityToRemove,
+  sqrtPrice: poolState.sqrtPrice,
+  minSqrtPrice: poolState.sqrtMinPrice,
+  maxSqrtPrice: poolState.sqrtMaxPrice,
+});
+
+const removeLiquidity2Tx = await cpAmm.removeLiquidity2({
+  owner: wallet.publicKey,
+  receiver: receiverAddress,
+  feePayer: feePayerAddress,
+  pool: poolAddress,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  liquidityDelta: liquidityToRemove,
+  tokenAAmountThreshold: new BN(0),
+  tokenBAmountThreshold: new BN(0),
+  tokenAMint: poolState.tokenAMint,
+  tokenBMint: poolState.tokenBMint,
+  tokenAVault: poolState.tokenAVault,
+  tokenBVault: poolState.tokenBVault,
+  tokenAProgram,
+  tokenBProgram,
+});
+```
+
+**Notes**
+
+- You can only remove unlocked liquidity
+- The receiver will receive the liquidity
+- The fee payer will pay for the transaction
+- You still require the owner to sign the transaction
+- The SDK handles wrapping/unwrapping of SOL automatically
+- Token accounts are created automatically if they don't exist
+- Set appropriate thresholds to protect against slippage for the receiver
 - Removing all liquidity doesn't close the position
 
 ---

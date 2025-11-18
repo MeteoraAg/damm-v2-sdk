@@ -96,6 +96,7 @@ import {
   getAllPositionNftAccountByOwner,
   parseRateLimiterSecondFactor,
   getCurrentPoint,
+  offsetBasedFilter,
 } from "./helpers";
 import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
@@ -704,6 +705,19 @@ export class CpAmm {
     invariant(poolState, `Pool account: ${pool} not found`);
 
     return poolState;
+  }
+
+  /**
+   * Fetches all Pool states by tokenAMint.
+   * @param tokenAMint - Public key of the tokenA mint.
+   * @returns Array of matched pool accounts and their state.
+   */
+  async fetchPoolStatesByTokenAMint(
+    tokenAMint: PublicKey
+  ): Promise<Array<{ publicKey: PublicKey; account: PoolState }>> {
+    const filters = offsetBasedFilter(tokenAMint, 168);
+    const pools = await this._program.account.pool.all(filters);
+    return pools;
   }
 
   /**

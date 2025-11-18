@@ -2297,7 +2297,7 @@ console.log(`Liquidity: ${poolState.liquidity.toString()}`);
 
 ---
 
-### fetchPoolState
+### fetchPoolStatesByTokenAMint
 
 Fetches all Pool states by tokenAMint.
 

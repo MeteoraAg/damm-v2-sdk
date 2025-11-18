@@ -39,6 +39,7 @@
 
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
+  - [fetchPoolStatesByTokenAMint](#fetchpoolstatesbytokenamint)
   - [fetchPositionState](#fetchpositionstate)
   - [getAllConfigs](#getallconfigs)
   - [getAllPools](#getallpools)
@@ -2293,6 +2294,42 @@ console.log(`Liquidity: ${poolState.liquidity.toString()}`);
 
 - Throws an error if the pool account does not exist
 - Contains all essential information about the pool including prices, liquidity, and fees
+
+---
+
+### fetchPoolState
+
+Fetches all Pool states by tokenAMint.
+
+**Function**
+
+```typescript
+async fetchPoolStatesByTokenAMint(tokenAMint: PublicKey): Promise<Array<{ publicKey: PublicKey; account: PoolState }>>
+```
+
+**Parameters**
+
+- `tokenAMint`: Public key of the tokenA mint.
+
+**Returns**
+
+Array of matched pool accounts and their state.
+
+**Example**
+
+```typescript
+const poolStates = await cpAmm.fetchPoolStatesByTokenAMint(tokenAMint);
+console.log(`Found ${poolStates.length} pools`);
+poolStates.forEach((pool, i) => {
+  console.log(`Pool ${i}: ${pool.publicKey.toString()}`);
+  console.log(`- Pool State: ${JSON.stringify(pool.account)}`);
+});
+```
+
+**Notes**
+
+- Returns an empty array if no pools are found for the given tokenAMint
+- Contains all essential information about the pool including pool address, prices, liquidity, and fees
 
 ---
 

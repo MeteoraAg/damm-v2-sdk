@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.4] [PR #81](https://github.com/MeteoraAg/damm-v2-sdk/pull/81)
+
+### Added
+
+- Added `fetchPoolStatesByTokenAMint` endpoint to fetch all Pool states by tokenAMint
+
 ## damm_v2_sdk [1.2.3] [PR #80](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
 
 ### Added

@@ -31,3 +31,25 @@ export const vestingByPositionFilter = (
     },
   };
 };
+
+/**
+ * Create a memcmp filter for offset-based filtering
+ * @param value - The value to filter by
+ * @param offset - The offset where the value field is located in the account data
+ * @returns A GetProgramAccountsFilter array with the value filter
+ */
+export function offsetBasedFilter(
+  value: PublicKey | string,
+  offset: number
+): GetProgramAccountsFilter[] {
+  const valueKey = typeof value === "string" ? new PublicKey(value) : value;
+  return [
+    {
+      memcmp: {
+        offset,
+        bytes: valueKey.toBase58(),
+        encoding: "base58",
+      },
+    },
+  ];
+}

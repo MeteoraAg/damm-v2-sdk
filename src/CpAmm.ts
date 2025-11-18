@@ -70,6 +70,7 @@ import {
   GetQuote2Params,
   InitializeRewardParams,
   InitializeAndFundReward,
+  RemoveLiquidityParams2,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -1942,6 +1943,94 @@ export class CpAmm {
       payer: owner,
       tokenAOwner: owner,
       tokenBOwner: owner,
+      tokenAMint,
+      tokenBMint,
+      tokenAProgram,
+      tokenBProgram,
+    });
+
+    const postInstructions: TransactionInstruction[] = [];
+    if (
+      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
+        NATIVE_MINT.toBase58()
+      )
+    ) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    if (vestings.length > 0) {
+      const refreshVestingInstruction =
+        await this.buildRefreshVestingInstruction({
+          owner,
+          position,
+          positionNftAccount,
+          pool,
+          vestingAccounts: vestings.map((item) => item.account),
+        });
+      refreshVestingInstruction &&
+        preInstructions.push(refreshVestingInstruction);
+    }
+
+    return await this._program.methods
+      .removeLiquidity({
+        liquidityDelta,
+        tokenAAmountThreshold,
+        tokenBAmountThreshold,
+      })
+      .accountsPartial({
+        poolAuthority: this.poolAuthority,
+        pool,
+        position,
+        positionNftAccount,
+        owner,
+        tokenAAccount,
+        tokenBAccount,
+        tokenAMint,
+        tokenBMint,
+        tokenAVault,
+        tokenBVault,
+        tokenAProgram,
+        tokenBProgram,
+      })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  /**
+   * Builds a transaction to remove liquidity from a position.
+   * @param {RemoveLiquidityParams} params - Parameters for removing liquidity.
+   * @returns Transaction builder.
+   */
+  async removeLiquidity2(params: RemoveLiquidityParams2): TxBuilder {
+    const {
+      owner,
+      receiver,
+      feePayer,
+      pool,
+      position,
+      positionNftAccount,
+      liquidityDelta,
+      tokenAAmountThreshold,
+      tokenBAmountThreshold,
+      tokenAMint,
+      tokenBMint,
+      tokenAVault,
+      tokenBVault,
+      tokenAProgram,
+      tokenBProgram,
+      vestings,
+    } = params;
+
+    const {
+      tokenAAta: tokenAAccount,
+      tokenBAta: tokenBAccount,
+      instructions: preInstructions,
+    } = await this.prepareTokenAccounts({
+      payer: feePayer,
+      tokenAOwner: receiver,
+      tokenBOwner: receiver,
       tokenAMint,
       tokenBMint,
       tokenAProgram,

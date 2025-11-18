@@ -303,6 +303,11 @@ export type RemoveLiquidityParams = {
   currentPoint: BN;
 };
 
+export type RemoveLiquidityParams2 = RemoveLiquidityParams & {
+  receiver: PublicKey;
+  feePayer: PublicKey;
+};
+
 export type RemoveAllLiquidityParams = Omit<
   RemoveLiquidityParams,
   "liquidityDelta"

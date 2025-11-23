@@ -70,6 +70,7 @@ import {
   GetQuote2Params,
   InitializeRewardParams,
   InitializeAndFundReward,
+  BaseFeeMode,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -2164,15 +2165,18 @@ export class CpAmm {
     );
 
     // check if rate limiter is applied
-    const rateLimiterApplied = isRateLimiterApplied(
-      poolState.poolFees.baseFee.thirdFactor,
-      maxLimiterDuration,
-      maxFeeBps,
-      poolState.poolFees.baseFee.firstFactor,
-      currentPoint,
-      poolState.activationPoint,
-      tradeDirection
-    );
+    let rateLimiterApplied = false;
+    if (poolState.poolFees.baseFee.baseFeeMode === BaseFeeMode.RateLimiter) {
+      rateLimiterApplied = isRateLimiterApplied(
+        poolState.poolFees.baseFee.thirdFactor,
+        maxLimiterDuration,
+        maxFeeBps,
+        poolState.poolFees.baseFee.firstFactor,
+        currentPoint,
+        poolState.activationPoint,
+        tradeDirection
+      );
+    }
 
     // add remaining accounts if rate limiter is applied
     const remainingAccounts = rateLimiterApplied
@@ -2303,15 +2307,18 @@ export class CpAmm {
     );
 
     // check if rate limiter is applied
-    const rateLimiterApplied = isRateLimiterApplied(
-      poolState.poolFees.baseFee.thirdFactor,
-      maxLimiterDuration,
-      maxFeeBps,
-      poolState.poolFees.baseFee.firstFactor,
-      currentPoint,
-      poolState.activationPoint,
-      tradeDirection
-    );
+    let rateLimiterApplied = false;
+    if (poolState.poolFees.baseFee.baseFeeMode === BaseFeeMode.RateLimiter) {
+      rateLimiterApplied = isRateLimiterApplied(
+        poolState.poolFees.baseFee.thirdFactor,
+        maxLimiterDuration,
+        maxFeeBps,
+        poolState.poolFees.baseFee.firstFactor,
+        currentPoint,
+        poolState.activationPoint,
+        tradeDirection
+      );
+    }
 
     // add remaining accounts if rate limiter is applied
     const remainingAccounts = rateLimiterApplied

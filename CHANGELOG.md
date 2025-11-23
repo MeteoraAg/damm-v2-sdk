@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.5] [PR #84](https://github.com/MeteoraAg/damm-v2-sdk/pull/84)
+
+### Added
+
+- Added an `if` statement to check if the `baseFeeMode` is `RateLimiter` in `swap` and `swap2` endpoints
+
 ## damm_v2_sdk [1.2.4] [PR #81](https://github.com/MeteoraAg/damm-v2-sdk/pull/81)
 
 ### Added

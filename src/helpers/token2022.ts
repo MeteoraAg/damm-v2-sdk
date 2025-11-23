@@ -6,7 +6,10 @@ import {
   MAX_FEE_BASIS_POINTS,
   Mint,
   TransferFee,
+  TOKEN_2022_PROGRAM_ID,
+  unpackMint,
 } from "@solana/spl-token";
+import { Connection, PublicKey } from "@solana/web3.js";
 
 interface TransferFeeIncludedAmount {
   amount: BN;
@@ -150,4 +153,108 @@ export function calculateTransferFeeExcludedAmount(
     amount: transferFeeExcludedAmount,
     transferFee: new BN(transferFee.toString()),
   };
+}
+
+/**
+ * Interface for transfer hook extension state
+ */
+export interface TransferHookState {
+  authority: string;
+  programId: string;
+}
+
+/**
+ * Checks if a Token 2022 mint has a transfer hook extension
+ * Transfer hooks prevent permissionless pool creation as they require
+ * the hook program to approve transfers, which pool creation cannot satisfy.
+ * 
+ * @param connection - The connection to the Solana cluster
+ * @param mint - The mint address to check
+ * @returns Object containing whether transfer hook exists and its state if found
+ */
+export async function hasTransferHookExtension(
+  connection: Connection,
+  mint: PublicKey
+): Promise<{
+  hasTransferHook: boolean;
+  transferHookState?: TransferHookState;
+}> {
+  try {
+    // First check if it's a Token 2022 mint
+    const mintAccountInfo = await connection.getAccountInfo(mint);
+    if (!mintAccountInfo) {
+      return { hasTransferHook: false };
+    }
+
+    const isToken2022 = mintAccountInfo.owner.equals(TOKEN_2022_PROGRAM_ID);
+    if (!isToken2022) {
+      return { hasTransferHook: false };
+    }
+
+    // Try to get parsed account info which includes extensions
+    const parsedInfo = await connection.getParsedAccountInfo(mint);
+    if (parsedInfo.value && 'parsed' in parsedInfo.value.data) {
+      const parsedData = parsedInfo.value.data.parsed;
+      if (parsedData && parsedData.info && parsedData.info.extensions) {
+        const extensions = parsedData.info.extensions;
+        
+        // Check if transferHook extension exists
+        const transferHookExtension = extensions.find(
+          (ext: any) => ext.extension === 'transferHook'
+        );
+        
+        if (transferHookExtension && transferHookExtension.state) {
+          return {
+            hasTransferHook: true,
+            transferHookState: {
+              authority: transferHookExtension.state.authority,
+              programId: transferHookExtension.state.programId,
+            },
+          };
+        }
+      }
+    }
+
+    return { hasTransferHook: false };
+  } catch (error) {
+    // If we can't determine, assume no transfer hook to avoid false positives
+    // The actual pool creation will fail with error 3007 if transfer hook exists
+    return { hasTransferHook: false };
+  }
+}
+
+/**
+ * Validates that tokens don't have transfer hook extensions before pool creation
+ * Throws an error if either token has a transfer hook extension
+ * 
+ * @param connection - The connection to the Solana cluster
+ * @param tokenAMint - The first token mint address
+ * @param tokenBMint - The second token mint address
+ * @throws Error if either token has a transfer hook extension
+ */
+export async function validateNoTransferHook(
+  connection: Connection,
+  tokenAMint: PublicKey,
+  tokenBMint: PublicKey 
+): Promise<void> {
+  const [tokenACheck, tokenBCheck] = await Promise.all([
+    hasTransferHookExtension(connection, tokenAMint),
+    hasTransferHookExtension(connection, tokenBMint),
+  ]);
+
+  if (tokenACheck.hasTransferHook) {
+    throw new Error(
+      `Token A (${tokenAMint.toBase58()}) has a transfer hook extension. ` +
+      `Transfer hook might prevent permissionless pool creation. ` +
+      `Transfer hook program: ${tokenACheck.transferHookState?.programId}`
+    );
+  }
+
+  if (tokenBCheck.hasTransferHook) {
+    throw new Error(
+      `Token B (${tokenBMint.toBase58()}) has a transfer hook extension. ` +
+      `Transfer hook might prevent permissionless pool creation. ` +
+      `Transfer hook program: ${tokenBCheck.transferHookState?.programId}`
+    );
+  }
 }

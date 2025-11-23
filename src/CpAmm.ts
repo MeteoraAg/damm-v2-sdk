@@ -2155,11 +2155,6 @@ export class CpAmm {
     let { poolState } = params;
     poolState = poolState ?? (await this.fetchPoolState(pool));
 
-    const currentPoint = await getCurrentPoint(
-      this._program.provider.connection,
-      poolState.activationType
-    );
-
     const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
       poolState.poolFees.baseFee.secondFactor
     );
@@ -2167,6 +2162,11 @@ export class CpAmm {
     // check if rate limiter is applied
     let rateLimiterApplied = false;
     if (poolState.poolFees.baseFee.baseFeeMode === BaseFeeMode.RateLimiter) {
+      const currentPoint = await getCurrentPoint(
+        this._program.provider.connection,
+        poolState.activationType
+      );
+
       rateLimiterApplied = isRateLimiterApplied(
         poolState.poolFees.baseFee.thirdFactor,
         maxLimiterDuration,
@@ -2297,11 +2297,6 @@ export class CpAmm {
     let { poolState } = params;
     poolState = poolState ?? (await this.fetchPoolState(pool));
 
-    const currentPoint = await getCurrentPoint(
-      this._program.provider.connection,
-      poolState.activationType
-    );
-
     const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
       poolState.poolFees.baseFee.secondFactor
     );
@@ -2309,6 +2304,11 @@ export class CpAmm {
     // check if rate limiter is applied
     let rateLimiterApplied = false;
     if (poolState.poolFees.baseFee.baseFeeMode === BaseFeeMode.RateLimiter) {
+      const currentPoint = await getCurrentPoint(
+        this._program.provider.connection,
+        poolState.activationType
+      );
+
       rateLimiterApplied = isRateLimiterApplied(
         poolState.poolFees.baseFee.thirdFactor,
         maxLimiterDuration,

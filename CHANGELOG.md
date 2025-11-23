@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.6] [PR #85](https://github.com/MeteoraAg/damm-v2-sdk/pull/85)
+
+### Changed
+
+- Moved `getCurrentPoint` in `if` statement to reduce unnecessary RPC calls
+
 ## damm_v2_sdk [1.2.5] [PR #84](https://github.com/MeteoraAg/damm-v2-sdk/pull/84)
 
 ### Added

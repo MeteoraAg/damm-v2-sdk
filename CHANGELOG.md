@@ -12,10 +12,10 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Added `connection` and `feeMarketCapSchedulerParam` parameters to `getBaseFeeParams` function
+- Added `feeMarketCapSchedulerParam` parameters to `getBaseFeeParams` function
 - Changed `feeSchedulerParam` to `feeTimeSchedulerParam` in `getBaseFeeParams` function
 - Improved validation for pool fee parameters
-- Chanaged `getBaseFeeHandler` interface
+- Changed `getBaseFeeHandler` interface
 - Bumped Pool Version from V0 (Max fee 50%) to V1 (Max fee 99%)
 
 ## damm_v2_sdk [1.2.6]

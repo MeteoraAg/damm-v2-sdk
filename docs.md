@@ -229,8 +229,8 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
 
 const baseFeeParams = getBaseFeeParams(
   {
-    baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
-    feeSchedulerParam: {
+    baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+    feeTimeSchedulerParam: {
       startingFeeBps: 5000,
       endingFeeBps: 25,
       numberOfPeriod: 50,
@@ -345,8 +345,8 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.getLiquidityDelta({
 
 const baseFeeParams = getBaseFeeParams(
   {
-    baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
-    feeSchedulerParam: {
+    baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+    feeTimeSchedulerParam: {
       startingFeeBps: 5000,
       endingFeeBps: 25,
       numberOfPeriod: 50,
@@ -3148,7 +3148,6 @@ Get and prepares the base fee parameters of the pool.
 
 ```typescript
 getBaseFeeParams(
-  connection: Connection,
   baseFeeParams: {
     baseFeeMode: BaseFeeMode;
     rateLimiterParam?: {
@@ -3215,7 +3214,6 @@ The base fee parameters in encoded Borsh format. (data: number[])
 
 ```typescript
 const baseFee = getBaseFeeParams(
-  connection,
   {
     baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
     feeMarketCapSchedulerParam: {

@@ -1,4 +1,4 @@
-import { BN } from "bn.js";
+import BN from "bn.js";
 import {
   BaseFeeMode,
   BorshFeeMarketCapScheduler,
@@ -14,13 +14,11 @@ import { FEE_PADDING } from "../constants";
 
 export function encodeFeeTimeSchedulerParams(
   program: Program<CpAmm>,
-  cliffFeeNumerator: bigint,
+  cliffFeeNumerator: BN,
   numberOfPeriod: number,
-  periodFrequency: bigint,
-  reductionFactor: bigint,
-  baseFeeMode:
-    | BaseFeeMode.FeeTimeSchedulerLinear
-    | BaseFeeMode.FeeTimeSchedulerExponential
+  periodFrequency: BN,
+  reductionFactor: BN,
+  baseFeeMode: BaseFeeMode
 ): Buffer {
   const feeTimeScheduler: BorshFeeTimeScheduler = {
     cliffFeeNumerator: new BN(cliffFeeNumerator.toString()),
@@ -50,14 +48,12 @@ export function decodePodAlignedFeeTimeScheduler(
 
 export function encodeFeeMarketCapSchedulerParams(
   program: Program<CpAmm>,
-  cliffFeeNumerator: bigint,
+  cliffFeeNumerator: BN,
   numberOfPeriod: number,
   sqrtPriceStepBps: number,
   schedulerExpirationDuration: number,
-  reductionFactor: bigint,
-  baseFeeMode:
-    | BaseFeeMode.FeeMarketCapSchedulerExponential
-    | BaseFeeMode.FeeMarketCapSchedulerLinear
+  reductionFactor: BN,
+  baseFeeMode: BaseFeeMode
 ): Buffer {
   const feeMarketCapScheduler: BorshFeeMarketCapScheduler = {
     cliffFeeNumerator: new BN(cliffFeeNumerator.toString()),
@@ -91,12 +87,12 @@ export function decodePodAlignedFeeMarketCapScheduler(
 
 export function encodeFeeRateLimiterParams(
   program: Program<CpAmm>,
-  cliffFeeNumerator: bigint,
+  cliffFeeNumerator: BN,
   feeIncrementBps: number,
   maxLimiterDuration: number,
   maxFeeBps: number,
-  referenceAmount: bigint
-) {
+  referenceAmount: BN
+): Buffer {
   const feeRateLimiter: BorshFeeRateLimiter = {
     cliffFeeNumerator: new BN(cliffFeeNumerator.toString()),
     feeIncrementBps,

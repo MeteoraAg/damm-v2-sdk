@@ -98,6 +98,8 @@ import {
   getCurrentPoint,
   offsetBasedFilter,
   decodePodAlignedFeeRateLimiter,
+  decodePodAlignedFeeTimeScheduler,
+  decodePodAlignedFeeMarketCapScheduler,
 } from "./helpers";
 import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
@@ -719,6 +721,41 @@ export class CpAmm {
     const filters = offsetBasedFilter(tokenAMint, 168);
     const pools = await this._program.account.pool.all(filters);
     return pools;
+  }
+
+  async fetchPoolFees(pool: PublicKey) {
+    const poolState = await this._program.account.pool.fetchNullable(pool);
+
+    if (!poolState) {
+      throw new Error(`Pool account: ${pool} not found`);
+    }
+
+    const data = Buffer.from(poolState.poolFees.baseFee.baseFeeInfo.data);
+    const modeIndex = data.readUInt8(8); // offset 8 for poolFees pod format
+    const baseFeeMode = modeIndex as BaseFeeMode;
+
+    switch (baseFeeMode) {
+      case BaseFeeMode.FeeTimeSchedulerLinear:
+      case BaseFeeMode.FeeTimeSchedulerExponential: {
+        const poolFees = decodePodAlignedFeeTimeScheduler(this._program, data);
+        return poolFees;
+      }
+      case BaseFeeMode.RateLimiter: {
+        const poolFees = decodePodAlignedFeeRateLimiter(this._program, data);
+        return poolFees;
+      }
+      case BaseFeeMode.FeeMarketCapSchedulerLinear:
+      case BaseFeeMode.FeeMarketCapSchedulerExponential: {
+        const poolFees = decodePodAlignedFeeMarketCapScheduler(
+          this._program,
+          data
+        );
+        return poolFees;
+      }
+      default: {
+        throw new Error(`Invalid base fee mode: ${baseFeeMode}`);
+      }
+    }
   }
 
   /**

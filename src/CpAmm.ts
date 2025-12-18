@@ -737,19 +737,16 @@ export class CpAmm {
     switch (baseFeeMode) {
       case BaseFeeMode.FeeTimeSchedulerLinear:
       case BaseFeeMode.FeeTimeSchedulerExponential: {
-        const poolFees = decodePodAlignedFeeTimeScheduler(this._program, data);
+        const poolFees = decodePodAlignedFeeTimeScheduler(data);
         return poolFees;
       }
       case BaseFeeMode.RateLimiter: {
-        const poolFees = decodePodAlignedFeeRateLimiter(this._program, data);
+        const poolFees = decodePodAlignedFeeRateLimiter(data);
         return poolFees;
       }
       case BaseFeeMode.FeeMarketCapSchedulerLinear:
       case BaseFeeMode.FeeMarketCapSchedulerExponential: {
-        const poolFees = decodePodAlignedFeeMarketCapScheduler(
-          this._program,
-          data
-        );
+        const poolFees = decodePodAlignedFeeMarketCapScheduler(data);
         return poolFees;
       }
       default: {
@@ -2208,10 +2205,7 @@ export class CpAmm {
         poolState.activationType
       );
 
-      const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(
-        this._program,
-        data
-      );
+      const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(data);
 
       rateLimiterApplied = isRateLimiterApplied(
         rateLimiterPoolFees.referenceAmount,
@@ -2355,10 +2349,7 @@ export class CpAmm {
         poolState.activationType
       );
 
-      const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(
-        this._program,
-        data
-      );
+      const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(data);
 
       rateLimiterApplied = isRateLimiterApplied(
         rateLimiterPoolFees.referenceAmount,

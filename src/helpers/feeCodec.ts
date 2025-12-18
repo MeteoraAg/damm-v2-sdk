@@ -8,46 +8,44 @@ import {
   PodAlignedFeeRateLimiter,
   PodAlignedFeeTimeScheduler,
 } from "../types";
-import { Program } from "@coral-xyz/anchor";
-import { CpAmm } from "../idl/cp_amm";
+import { BorshCoder, Idl } from "@coral-xyz/anchor";
+import CpAmmIDL from "../idl/cp_amm.json";
 import { FEE_PADDING } from "../constants";
 
+export const cpAmmCoder = new BorshCoder(CpAmmIDL as Idl);
+
 export function encodeFeeTimeSchedulerParams(
-  program: Program<CpAmm>,
   cliffFeeNumerator: BN,
   numberOfPeriod: number,
   periodFrequency: BN,
   reductionFactor: BN,
   baseFeeMode: BaseFeeMode
 ): Buffer {
-  const feeTimeScheduler: BorshFeeTimeScheduler = {
-    cliffFeeNumerator: new BN(cliffFeeNumerator.toString()),
-    numberOfPeriod,
-    periodFrequency: new BN(periodFrequency.toString()),
-    reductionFactor: new BN(reductionFactor.toString()),
-    baseFeeMode,
+  const feeTimeScheduler = {
+    cliff_fee_numerator: new BN(cliffFeeNumerator.toString()),
+    number_of_period: numberOfPeriod,
+    period_frequency: new BN(periodFrequency.toString()),
+    reduction_factor: new BN(reductionFactor.toString()),
+    base_fee_mode: baseFeeMode,
     padding: FEE_PADDING,
   };
 
-  return program.coder.types.encode("borshFeeTimeScheduler", feeTimeScheduler);
+  return cpAmmCoder.types.encode("BorshFeeTimeScheduler", feeTimeScheduler);
 }
 
 export function decodeFeeTimeSchedulerParams(
-  program: Program<CpAmm>,
   data: Buffer
 ): BorshFeeTimeScheduler {
-  return program.coder.types.decode("borshFeeTimeScheduler", data);
+  return cpAmmCoder.types.decode("BorshFeeTimeScheduler", data);
 }
 
 export function decodePodAlignedFeeTimeScheduler(
-  program: Program<CpAmm>,
   data: Buffer
 ): PodAlignedFeeTimeScheduler {
-  return program.coder.types.decode("podAlignedFeeTimeScheduler", data);
+  return cpAmmCoder.types.decode("PodAlignedFeeTimeScheduler", data);
 }
 
 export function encodeFeeMarketCapSchedulerParams(
-  program: Program<CpAmm>,
   cliffFeeNumerator: BN,
   numberOfPeriod: number,
   sqrtPriceStepBps: number,
@@ -55,67 +53,60 @@ export function encodeFeeMarketCapSchedulerParams(
   reductionFactor: BN,
   baseFeeMode: BaseFeeMode
 ): Buffer {
-  const feeMarketCapScheduler: BorshFeeMarketCapScheduler = {
-    cliffFeeNumerator: new BN(cliffFeeNumerator.toString()),
-    numberOfPeriod,
-    sqrtPriceStepBps,
-    schedulerExpirationDuration,
-    reductionFactor: new BN(reductionFactor.toString()),
-    baseFeeMode,
+  const feeMarketCapScheduler = {
+    cliff_fee_numerator: new BN(cliffFeeNumerator.toString()),
+    number_of_period: numberOfPeriod,
+    sqrt_price_step_bps: sqrtPriceStepBps,
+    scheduler_expiration_duration: schedulerExpirationDuration,
+    reduction_factor: new BN(reductionFactor.toString()),
+    base_fee_mode: baseFeeMode,
     padding: FEE_PADDING,
   };
 
-  return program.coder.types.encode(
-    "borshFeeMarketCapScheduler",
+  return cpAmmCoder.types.encode(
+    "BorshFeeMarketCapScheduler",
     feeMarketCapScheduler
   );
 }
 
 export function decodeFeeMarketCapSchedulerParams(
-  program: Program<CpAmm>,
   data: Buffer
 ): BorshFeeMarketCapScheduler {
-  return program.coder.types.decode("borshFeeMarketCapScheduler", data);
+  return cpAmmCoder.types.decode("BorshFeeMarketCapScheduler", data);
 }
 
 export function decodePodAlignedFeeMarketCapScheduler(
-  program: Program<CpAmm>,
   data: Buffer
 ): PodAlignedFeeMarketCapScheduler {
-  return program.coder.types.decode("podAlignedFeeMarketCapScheduler", data);
+  return cpAmmCoder.types.decode("PodAlignedFeeMarketCapScheduler", data);
 }
 
 export function encodeFeeRateLimiterParams(
-  program: Program<CpAmm>,
   cliffFeeNumerator: BN,
   feeIncrementBps: number,
   maxLimiterDuration: number,
   maxFeeBps: number,
   referenceAmount: BN
 ): Buffer {
-  const feeRateLimiter: BorshFeeRateLimiter = {
-    cliffFeeNumerator: new BN(cliffFeeNumerator.toString()),
-    feeIncrementBps,
-    maxLimiterDuration,
-    maxFeeBps,
-    referenceAmount: new BN(referenceAmount.toString()),
+  const feeRateLimiter = {
+    cliff_fee_numerator: new BN(cliffFeeNumerator.toString()),
+    fee_increment_bps: feeIncrementBps,
+    max_limiter_duration: maxLimiterDuration,
+    max_fee_bps: maxFeeBps,
+    reference_amount: new BN(referenceAmount.toString()),
+    base_fee_mode: BaseFeeMode.RateLimiter,
     padding: FEE_PADDING,
-    baseFeeMode: BaseFeeMode.RateLimiter,
   };
 
-  return program.coder.types.encode("borshFeeRateLimiter", feeRateLimiter);
+  return cpAmmCoder.types.encode("BorshFeeRateLimiter", feeRateLimiter);
 }
 
-export function decodeFeeRateLimiterParams(
-  program: Program<CpAmm>,
-  data: Buffer
-): BorshFeeRateLimiter {
-  return program.coder.types.decode("borshFeeRateLimiter", data);
+export function decodeFeeRateLimiterParams(data: Buffer): BorshFeeRateLimiter {
+  return cpAmmCoder.types.decode("BorshFeeRateLimiter", data);
 }
 
 export function decodePodAlignedFeeRateLimiter(
-  program: Program<CpAmm>,
   data: Buffer
 ): PodAlignedFeeRateLimiter {
-  return program.coder.types.decode("podAlignedFeeRateLimiter", data);
+  return cpAmmCoder.types.decode("PodAlignedFeeRateLimiter", data);
 }

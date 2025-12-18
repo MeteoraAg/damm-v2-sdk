@@ -86,7 +86,6 @@ async function createPool(
   tokenBMint: PublicKey
 ): Promise<{ pool: PublicKey; position: PublicKey }> {
   const baseFee = getBaseFeeParams(
-    new Connection(clusterApiUrl("devnet")),
     {
       baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
       feeTimeSchedulerParam: {

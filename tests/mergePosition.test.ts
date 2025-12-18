@@ -53,7 +53,6 @@ describe("Merge position", () => {
 
   it("Success merge two position", async () => {
     const baseFee = getBaseFeeParams(
-      new Connection(clusterApiUrl("devnet")),
       {
         baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
         feeTimeSchedulerParam: {

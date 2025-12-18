@@ -76,7 +76,6 @@ describe("Claim Fee 2", () => {
     ammInstance = new CpAmm(connection);
 
     const baseFee = getBaseFeeParams(
-      new Connection(clusterApiUrl("devnet")),
       {
         baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
         feeTimeSchedulerParam: {

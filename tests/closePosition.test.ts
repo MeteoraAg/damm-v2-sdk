@@ -56,7 +56,6 @@ describe("Remove liquidity & Close position", () => {
 
     it("Success case", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {
@@ -211,7 +210,6 @@ describe("Remove liquidity & Close position", () => {
 
     it("Success case", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {

@@ -33,7 +33,7 @@ import {
     endingFeeBps: 25, // 0.25%
     useDynamicFee: true,
     isLockLiquidity: true,
-    baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
+    baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
     numberOfPeriod: 60, // 60 peridos
     totalDuration: 3600, // 60 * 60
   };
@@ -89,7 +89,7 @@ import {
   const baseFeeParams = getBaseFeeParams(
     {
       baseFeeMode: POOL_CONFIG.baseFeeMode,
-      feeSchedulerParam: {
+      feeTimeSchedulerParam: {
         startingFeeBps: POOL_CONFIG.startingFeeBps,
         endingFeeBps: POOL_CONFIG.endingFeeBps,
         numberOfPeriod: POOL_CONFIG.numberOfPeriod,

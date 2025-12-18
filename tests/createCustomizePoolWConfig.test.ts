@@ -65,7 +65,6 @@ describe("Initialize customizable pool with dynamic config", () => {
 
     it("Initialize customizeable pool with spl token", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {
@@ -173,7 +172,6 @@ describe("Initialize customizable pool with dynamic config", () => {
 
     it("Initialize customizeable pool with spl token", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {

@@ -57,7 +57,6 @@ describe("Permanant Lock Postion", () => {
 
     it("Permanant lock Position", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {
@@ -207,7 +206,6 @@ describe("Permanant Lock Postion", () => {
 
     it("Permanant lock position", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {

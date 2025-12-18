@@ -52,7 +52,6 @@ describe("Create position", () => {
       ammInstance = new CpAmm(connection);
 
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {
@@ -164,7 +163,6 @@ describe("Create position", () => {
       ammInstance = new CpAmm(connection);
 
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {

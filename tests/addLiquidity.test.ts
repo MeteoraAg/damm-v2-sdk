@@ -55,7 +55,6 @@ describe("Add liquidity", () => {
 
     it("Add liqudity", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {
@@ -184,7 +183,6 @@ describe("Add liquidity", () => {
 
     it("Add liquidity", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {

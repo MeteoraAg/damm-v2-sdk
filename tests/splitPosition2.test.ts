@@ -60,7 +60,6 @@ describe("Split Position 2", () => {
 
     it("Should successfully split position 2 between poolCreator and user", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {
@@ -223,7 +222,6 @@ describe("Split Position 2", () => {
 
     it("Should successfully split position 2 between poolCreator and user with Token 2022", async () => {
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {

@@ -61,7 +61,6 @@ describe("Split Position", () => {
       const tokenBDecimal = 9;
       const activationType = ActivationType.Timestamp;
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {
@@ -231,7 +230,6 @@ describe("Split Position", () => {
       const tokenBDecimal = 9;
       const activationType = ActivationType.Timestamp;
       const baseFee = getBaseFeeParams(
-        new Connection(clusterApiUrl("devnet")),
         {
           baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
           feeTimeSchedulerParam: {

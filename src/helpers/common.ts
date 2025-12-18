@@ -7,7 +7,6 @@ import {
   DynamicFee,
   PoolState,
   PoolStatus,
-  PoolVersion,
 } from "../types";
 import {
   BASIS_POINT_MAX,
@@ -31,9 +30,6 @@ import {
   encodeFeeRateLimiterParams,
   encodeFeeTimeSchedulerParams,
 } from "./feeCodec";
-import { Program } from "@coral-xyz/anchor";
-import { CpAmm } from "../idl/cp_amm";
-import { createDammV2Program } from "./program";
 
 /**
  * Checks if the partner is valid
@@ -190,7 +186,6 @@ export function fromDecimalToBN(value: Decimal): BN {
  * @returns The fee scheduler parameters
  */
 export function getFeeTimeSchedulerParams(
-  program: Program<CpAmm>,
   startingBaseFeeBps: number,
   endingBaseFeeBps: number,
   baseFeeMode: BaseFeeMode,
@@ -203,7 +198,6 @@ export function getFeeTimeSchedulerParams(
     }
 
     const data = encodeFeeTimeSchedulerParams(
-      program,
       bpsToFeeNumerator(startingBaseFeeBps),
       0,
       new BN(0),
@@ -258,7 +252,6 @@ export function getFeeTimeSchedulerParams(
   }
 
   const data = encodeFeeTimeSchedulerParams(
-    program,
     maxBaseFeeNumerator,
     numberOfPeriod,
     periodFrequency,
@@ -272,7 +265,6 @@ export function getFeeTimeSchedulerParams(
 }
 
 export function getFeeMarketCapSchedulerParams(
-  program: Program<CpAmm>,
   startingBaseFeeBps: number,
   endingBaseFeeBps: number,
   baseFeeMode: BaseFeeMode,
@@ -324,7 +316,6 @@ export function getFeeMarketCapSchedulerParams(
   }
 
   const data = encodeFeeMarketCapSchedulerParams(
-    program,
     maxBaseFeeNumerator,
     numberOfPeriod,
     sqrtPriceStepBps,
@@ -351,7 +342,6 @@ export function getFeeMarketCapSchedulerParams(
  * @returns The rate limiter parameters
  */
 export function getRateLimiterParams(
-  program: Program<CpAmm>,
   baseFeeBps: number,
   feeIncrementBps: number,
   referenceAmount: number,
@@ -429,7 +419,6 @@ export function getRateLimiterParams(
   );
 
   const data = encodeFeeRateLimiterParams(
-    program,
     cliffFeeNumerator,
     feeIncrementBps,
     maxLimiterDuration,
@@ -451,7 +440,6 @@ export function getRateLimiterParams(
  * @returns The base fee parameters
  */
 export function getBaseFeeParams(
-  connection: Connection,
   baseFeeParams: {
     baseFeeMode: BaseFeeMode;
     rateLimiterParam?: {
@@ -478,8 +466,6 @@ export function getBaseFeeParams(
   tokenBDecimal: number,
   activationType: ActivationType
 ): BaseFee {
-  const program = createDammV2Program(connection);
-
   switch (baseFeeParams.baseFeeMode) {
     case BaseFeeMode.FeeTimeSchedulerLinear:
     case BaseFeeMode.FeeTimeSchedulerExponential: {
@@ -491,7 +477,6 @@ export function getBaseFeeParams(
       const { startingFeeBps, endingFeeBps, numberOfPeriod, totalDuration } =
         baseFeeParams.feeTimeSchedulerParam;
       return getFeeTimeSchedulerParams(
-        program,
         startingFeeBps,
         endingFeeBps,
         baseFeeParams.baseFeeMode,
@@ -513,7 +498,6 @@ export function getBaseFeeParams(
         maxFeeBps,
       } = baseFeeParams.rateLimiterParam;
       return getRateLimiterParams(
-        program,
         baseFeeBps,
         feeIncrementBps,
         referenceAmount,
@@ -538,7 +522,6 @@ export function getBaseFeeParams(
         schedulerExpirationDuration,
       } = baseFeeParams.feeMarketCapSchedulerParam;
       return getFeeMarketCapSchedulerParams(
-        program,
         startingFeeBps,
         endingFeeBps,
         baseFeeParams.baseFeeMode,

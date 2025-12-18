@@ -61,18 +61,20 @@ describe("Split Position", () => {
       const tokenBDecimal = 9;
       const activationType = ActivationType.Timestamp;
       const baseFee = getBaseFeeParams(
+        new Connection(clusterApiUrl("devnet")),
         {
-          baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
-          feeSchedulerParam: {
-            startingFeeBps: 100,
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
             endingFeeBps: 100,
-            numberOfPeriod: 0,
-            totalDuration: 0,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
         },
-        tokenBDecimal,
-        activationType
+        6,
+        ActivationType.Timestamp
       );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],
@@ -229,18 +231,20 @@ describe("Split Position", () => {
       const tokenBDecimal = 9;
       const activationType = ActivationType.Timestamp;
       const baseFee = getBaseFeeParams(
+        new Connection(clusterApiUrl("devnet")),
         {
-          baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
-          feeSchedulerParam: {
-            startingFeeBps: 100,
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
             endingFeeBps: 100,
-            numberOfPeriod: 0,
-            totalDuration: 0,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
         },
-        tokenBDecimal,
-        activationType
+        6,
+        ActivationType.Timestamp
       );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],

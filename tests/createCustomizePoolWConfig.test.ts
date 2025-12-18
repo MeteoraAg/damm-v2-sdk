@@ -20,9 +20,10 @@ import {
 } from "@solana/spl-token";
 
 import {
-  BaseFee,
-  convertToFeeSchedulerSecondFactor,
+  ActivationType,
+  BaseFeeMode,
   CpAmm,
+  getBaseFeeParams,
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,
   PoolFeesParams,
@@ -63,13 +64,21 @@ describe("Initialize customizable pool with dynamic config", () => {
     });
 
     it("Initialize customizeable pool with spl token", async () => {
-      const baseFee: BaseFee = {
-        cliffFeeNumerator: new BN(1_000_000), // 1%
-        firstFactor: 10,
-        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-        thirdFactor: new BN(2),
-        baseFeeMode: 0, // Linear
-      };
+      const baseFee = getBaseFeeParams(
+        new Connection(clusterApiUrl("devnet")),
+        {
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
+          },
+        },
+        6,
+        ActivationType.Timestamp
+      );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],
@@ -163,13 +172,21 @@ describe("Initialize customizable pool with dynamic config", () => {
     });
 
     it("Initialize customizeable pool with spl token", async () => {
-      const baseFee: BaseFee = {
-        cliffFeeNumerator: new BN(1_000_000), // 1%
-        firstFactor: 10,
-        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-        thirdFactor: new BN(2),
-        baseFeeMode: 0, // Linear
-      };
+      const baseFee = getBaseFeeParams(
+        new Connection(clusterApiUrl("devnet")),
+        {
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
+          },
+        },
+        6,
+        ActivationType.Timestamp
+      );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],

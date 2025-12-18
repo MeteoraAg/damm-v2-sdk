@@ -2,7 +2,6 @@ import { ProgramTestContext } from "solana-bankrun";
 import {
   executeTransaction,
   getPool,
-  getPosition,
   setupTestContext,
   startTest,
   transferSol,
@@ -18,10 +17,13 @@ import BN from "bn.js";
 import { NATIVE_MINT, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
+  ActivationType,
   BaseFee,
+  BaseFeeMode,
   convertToFeeSchedulerSecondFactor,
   CpAmm,
   derivePositionNftAccount,
+  getBaseFeeParams,
   getTokenProgram,
   InitializeCustomizeablePoolParams,
   MAX_SQRT_PRICE,
@@ -73,13 +75,21 @@ describe("Claim Fee 2", () => {
     const connection = new Connection(clusterApiUrl("devnet"));
     ammInstance = new CpAmm(connection);
 
-    const baseFee: BaseFee = {
-      cliffFeeNumerator: new BN(500_000_000), // 50%
-      firstFactor: 10,
-      secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-      thirdFactor: new BN(2),
-      baseFeeMode: 0, // Linear
-    };
+    const baseFee = getBaseFeeParams(
+      new Connection(clusterApiUrl("devnet")),
+      {
+        baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+        feeTimeSchedulerParam: {
+          startingFeeBps: 5000,
+          endingFeeBps: 100,
+          numberOfPeriod: 180,
+          totalDuration: 180,
+        },
+      },
+      6,
+      ActivationType.Timestamp
+    );
+
     const poolFees: PoolFeesParams = {
       baseFee,
       padding: [],

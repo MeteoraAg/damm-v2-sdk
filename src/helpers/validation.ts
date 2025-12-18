@@ -8,9 +8,10 @@ import {
 import {
   getFeeNumeratorFromIncludedFeeAmount,
   getMaxBaseFeeNumerator,
-  getMinBaseFeeNumerator,
+  getFeeTimeMinBaseFeeNumerator,
   isNonZeroRateLimiter,
   isZeroRateLimiter,
+  getFeeMarketCapMinBaseFeeNumerator,
 } from "../math/poolFees";
 import {
   FEE_DENOMINATOR,
@@ -27,9 +28,12 @@ import { getMaxFeeBps, getMaxFeeNumerator } from "../math";
  * @param periodFrequency Period frequency
  * @param reductionFactor Reduction factor
  * @param cliffFeeNumerator Cliff fee numerator
- * @returns Validation result
+ * @param baseFeeMode Base fee mode
+ * @param poolVersion Pool version
+ * @throws Error if the fee time scheduler is invalid.
+ * @returns True if the fee time scheduler is valid, otherwise false.
  */
-export function validateFeeScheduler(
+export function validateFeeTimeScheduler(
   numberOfPeriod: number,
   periodFrequency: BN,
   reductionFactor: BN,
@@ -47,11 +51,11 @@ export function validateFeeScheduler(
       periodFrequency.eq(new BN(0)) ||
       reductionFactor.eq(new BN(0))
     ) {
-      return false;
+      throw new Error("PoolError::InvalidFeeTimeScheduler");
     }
   }
 
-  const minFeeNumerator = getMinBaseFeeNumerator(
+  const minFeeNumerator = getFeeTimeMinBaseFeeNumerator(
     cliffFeeNumerator,
     numberOfPeriod,
     reductionFactor,
@@ -69,6 +73,110 @@ export function validateFeeScheduler(
   }
 
   return true;
+}
+
+/**
+ * Validates whether the base fee is static based on the scheduler's expiration.
+ * @param currentPoint - The current point as BN.
+ * @param activationPoint - The activation point as BN.
+ * @param numberOfPeriod - The total number of periods as BN.
+ * @param periodFrequency - The period frequency as BN.
+ * @returns True if the base fee is static, otherwise false.
+ */
+export function validateFeeTimeSchedulerBaseFeeIsStatic(
+  currentPoint: BN,
+  activationPoint: BN,
+  numberOfPeriod: BN,
+  periodFrequency: BN
+): boolean {
+  // schedulerExpirationPoint = activationPoint + (numberOfPeriod * periodFrequency)
+  const schedulerExpirationPoint = activationPoint.add(
+    numberOfPeriod.mul(periodFrequency)
+  );
+
+  return currentPoint.gt(schedulerExpirationPoint);
+}
+
+/**
+ * Validates the Market Cap Fee Scheduler parameters.
+ * This checks for non-zero scheduler fields and validates fee fractions and limits, following the Rust logic.
+ * @param cliffFeeNumerator - The cliff fee numerator as BN.
+ * @param numberOfPeriod - Number of periods (number).
+ * @param sqrtPriceStepBps - The sqrt price step in basis points (BN).
+ * @param reductionFactor - The reduction factor as BN.
+ * @param schedulerExpirationDuration - The scheduler expiration duration as BN.
+ * @param feeMarketCapSchedulerMode - The fee scheduler mode (BaseFeeMode).
+ * @param poolVersion - The pool version.
+ * @throws Error if validation fails.
+ * @returns True if the fee market cap scheduler is valid, otherwise false.
+ */
+export function validateFeeMarketCapScheduler(
+  cliffFeeNumerator: BN,
+  numberOfPeriod: number,
+  sqrtPriceStepBps: BN,
+  reductionFactor: BN,
+  schedulerExpirationDuration: BN,
+  feeMarketCapSchedulerMode: BaseFeeMode,
+  poolVersion: PoolVersion
+): boolean {
+  // doesn't allow zero fee marketcap scheduler
+  if (reductionFactor.lte(new BN(0))) {
+    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+  }
+
+  if (sqrtPriceStepBps.lte(new BN(0))) {
+    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+  }
+
+  if (schedulerExpirationDuration.lte(new BN(0))) {
+    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+  }
+
+  if (numberOfPeriod <= 0) {
+    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+  }
+
+  const minFeeNumerator = getFeeMarketCapMinBaseFeeNumerator(
+    cliffFeeNumerator,
+    numberOfPeriod,
+    reductionFactor,
+    feeMarketCapSchedulerMode
+  );
+  const maxFeeNumerator = cliffFeeNumerator;
+
+  validateFeeFraction(minFeeNumerator, new BN(FEE_DENOMINATOR));
+  validateFeeFraction(maxFeeNumerator, new BN(FEE_DENOMINATOR));
+
+  const maxAllowedFeeNumerator = getMaxFeeNumerator(poolVersion);
+
+  if (
+    minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
+    maxFeeNumerator.gt(maxAllowedFeeNumerator)
+  ) {
+    throw new Error("PoolError::ExceedMaxFeeBps");
+  }
+
+  return true;
+}
+
+/**
+ * Validates whether the base fee is static for market cap fee scheduler, based on scheduler's expiration
+ * @param currentPoint - The current point as BN.
+ * @param activationPoint - The activation point as BN.
+ * @param schedulerExpirationDuration - The scheduler expiration duration as BN.
+ * @returns True if the base fee is static, otherwise false.
+ */
+export function validateFeeMarketCapBaseFeeIsStatic(
+  currentPoint: BN,
+  activationPoint: BN,
+  schedulerExpirationDuration: BN
+): boolean {
+  // schedulerExpirationPoint = activationPoint + schedulerExpirationDuration
+  const schedulerExpirationPoint = activationPoint.add(
+    schedulerExpirationDuration
+  );
+
+  return currentPoint.gt(schedulerExpirationPoint);
 }
 
 /**
@@ -180,6 +288,44 @@ export function validateFeeRateLimiter(
   }
 
   return true;
+}
+
+/**
+ * Validates whether the rate limiter base fee is static based on the current and activation points, as well as the maxLimiterDuration and referenceAmount.
+ * @param currentPoint - The current point as BN.
+ * @param activationPoint - The activation point as BN.
+ * @param maxLimiterDuration - The max limiter duration as number.
+ * @param referenceAmount - The reference amount as BN.
+ * @param maxFeeBps - The max fee in basis points as number.
+ * @param feeIncrementBps - The fee increment in basis points as number.
+ * @returns True if the base fee is static, otherwise false.
+ */
+export function validateFeeRateLimiterBaseFeeIsStatic(
+  currentPoint: BN,
+  activationPoint: BN,
+  maxLimiterDuration: number,
+  referenceAmount: BN,
+  maxFeeBps: number,
+  feeIncrementBps: number
+): boolean {
+  // if the rate limiter is zero, return true
+  if (
+    isZeroRateLimiter(
+      referenceAmount,
+      maxLimiterDuration,
+      maxFeeBps,
+      feeIncrementBps
+    )
+  ) {
+    return true;
+  }
+
+  // last_effective_rate_limiter_point = activationPoint + maxLimiterDuration
+  const lastEffectiveRateLimiterPoint = activationPoint.add(
+    new BN(maxLimiterDuration)
+  );
+
+  return currentPoint.gt(lastEffectiveRateLimiterPoint);
 }
 
 /**

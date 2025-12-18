@@ -49,3 +49,5 @@ export const MAX_RATE_LIMITER_DURATION_IN_SLOTS = 108000; // 12 hours
 export const SPLIT_POSITION_DENOMINATOR = 1_000_000_000;
 
 export const CURRENT_POOL_VERSION = PoolVersion.V0;
+
+export const FEE_PADDING = Array.from(Buffer.alloc(3));

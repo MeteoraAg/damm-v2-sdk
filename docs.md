@@ -192,12 +192,9 @@ interface InitializeCustomizeablePoolParams {
 
 interface PoolFees {
   baseFee: {
-    cliffFeeNumerator: BN; // Initial fee numerator
-    firstFactor: number; // Number of fee reduction periods
-    secondFactor: number[]; // How often fees change
-    thirdFactor: BN; // How much fee reduces each period
-    baseFeeMode: number; // 0: Fee Scheduler Linear, 1: Fee Scheduler Exponential, 2: Rate Limiter
+    data: number[];
   };
+  padding: number[];
   dynamicFee?: {
     // Optional dynamic fee configuration
     binStep: number;
@@ -227,27 +224,27 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
   tokenAAmount: new BN(5_000_000_000),
   tokenBAmount: new BN(20_000_000),
   minSqrtPrice: MIN_SQRT_PRICE,
-  maxSqrtPrice: MAX_SQRT_PRICE
+  maxSqrtPrice: MAX_SQRT_PRICE,
 });
 
-const poolFees = {
-  baseFee: {
+const baseFeeParams = getBaseFeeParams(
+  {
     baseFeeMode: BaseFeeMode.FeeSchedulerExponential,
-    cliffFeeNumerator: 1_000_000,
-    firstFactor: 50,
-    secondFactor: [0, 0, 0, 0, 0, 0, 0, 0],
-    thirdFactor: new BN(0),
+    feeSchedulerParam: {
+      startingFeeBps: 5000,
+      endingFeeBps: 25,
+      numberOfPeriod: 50,
+      totalDuration: 300,
+    },
   },
+  9,
+  ActivationType.Timestamp
+);
+const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
+const poolFees: PoolFeesParams = {
+  baseFee: baseFeeParams,
   padding: [],
-  dynamicFee: {
-    binStep: 1,
-    binStepU128: new BN("1844674407370955"),
-    filterPeriod: 10,
-    decayPeriod: 120,
-    reductionFactor: 5000,
-    variableFeeControl: 2000000,
-    maxVolatilityAccumulator: 100000,
-  };
+  dynamicFee: dynamicFeeParams,
 };
 
 const { tx, pool, position } = await cpAmm.createCustomPool({
@@ -268,7 +265,7 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
   activationPoint: new BN(Date.now()),
   activationType: 1, // 0: slot, 1: timestamp
   tokenAProgram,
-  tokenBProgram
+  tokenBProgram,
 });
 ```
 
@@ -359,12 +356,12 @@ const baseFeeParams = getBaseFeeParams(
   9,
   ActivationType.Timestamp
 );
-const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee 0.25%
+const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
-    baseFee: baseFeeParams,
-    padding: [],
-    dynamicFee: dynamicFeeParams,
-  };
+  baseFee: baseFeeParams,
+  padding: [],
+  dynamicFee: dynamicFeeParams,
+};
 
 const { tx, pool, position } = await cpAmm.createCustomPoolWithDynamicConfig({
   payer
@@ -3145,18 +3142,102 @@ bps = (feeNumerator × BASIS_POINT_MAX) ÷ FEE_DENOMINATOR
 
 ### getBaseFeeParams
 
-Calculates the initial parameters for a base fee
+Get and prepares the base fee parameters of the pool.
 
-**Key Features**
+**Function**
 
-- Supports both linear and exponential fee reduction
-- Supports rate limiter
-- Validates parameter consistency
-- Calculates period frequency and reduction factors
+```typescript
+getBaseFeeParams(
+  connection: Connection,
+  baseFeeParams: {
+    baseFeeMode: BaseFeeMode;
+    rateLimiterParam?: {
+      baseFeeBps: number;
+      feeIncrementBps: number;
+      referenceAmount: number;
+      maxLimiterDuration: number;
+      maxFeeBps: number;
+    };
+    feeTimeSchedulerParam?: {
+      startingFeeBps: number;
+      endingFeeBps: number;
+      numberOfPeriod: number;
+      totalDuration: number;
+    };
+    feeMarketCapSchedulerParam?: {
+      startingFeeBps: number;
+      endingFeeBps: number;
+      numberOfPeriod: number;
+      sqrtPriceStepBps: number;
+      schedulerExpirationDuration: number;
+    };
+  },
+  tokenBDecimal: number,
+  activationType: ActivationType): BaseFee
+```
+
+**Parameters**
+
+```typescript
+connection: Connection, // rpc connection
+baseFeeParams: {
+  baseFeeMode: BaseFeeMode; // base fee mode
+  rateLimiterParam?: { // if you choose BaseFeeMode.RateLimiter mode
+    baseFeeBps: number; // base fee in basis points
+    feeIncrementBps: number; // fee increment in basis points
+    referenceAmount: number; // reference amount (in terms of quote token)
+    maxLimiterDuration: number; // max limiter duration in seconds
+    maxFeeBps: number; // max fee in basis points
+  };
+  feeTimeSchedulerParam?: { // if you choose BaseFeeMode.FeeTimeSchedulerLinear or BaseFeeMode.FeeTimeSchedulerExponential mode
+    startingFeeBps: number; // starting fee in basis points
+    endingFeeBps: number; // ending fee in basis points
+    numberOfPeriod: number; // number of periods
+    totalDuration: number; // total duration in seconds
+  };
+  feeMarketCapSchedulerParam?: { // if you choose BaseFeeMode.FeeMarketCapSchedulerLinear or BaseFeeMode.FeeMarketCapSchedulerExponential mode
+    startingFeeBps: number; // starting fee in basis points
+    endingFeeBps: number; // ending fee in basis points
+    numberOfPeriod: number; // number of periods
+    sqrtPriceStepBps: number; // sqrt price step in basis points
+    schedulerExpirationDuration: number; // scheduler expiration duration in seconds
+  };
+},
+tokenBDecimal: number, // token B decimal
+activationType: ActivationType // activation type
+```
+
+**Returns**
+
+The base fee parameters in encoded Borsh format. (data: number[])
+
+**Example**
+
+```typescript
+const baseFee = getBaseFeeParams(
+  connection,
+  {
+    baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
+    feeMarketCapSchedulerParam: {
+      startingFeeBps: 5000,
+      endingFeeBps: 100,
+      numberOfPeriod: 180,
+      sqrtPriceStepBps: 200,
+      schedulerExpirationDuration: 2592000,
+    },
+  },
+  6,
+  ActivationType.Timestamp
+);
+```
+
+**Notes**
+
+- Returns the base fee parameters in encoded Borsh format. (data: number[])
 
 ### getDynamicFeeParams
 
-Calculates the parameters needed for dynamic fee.
+Calculates the parameters needed for dynamic fee. This function will always return dynamic fee parameters that are configured to be 20% of the feeBps that you input in.
 
 **Key Features**
 

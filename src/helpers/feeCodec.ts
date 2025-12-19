@@ -36,13 +36,29 @@ export function encodeFeeTimeSchedulerParams(
 export function decodeFeeTimeSchedulerParams(
   data: Buffer
 ): BorshFeeTimeScheduler {
-  return cpAmmCoder.types.decode("BorshFeeTimeScheduler", data);
+  const decoded = cpAmmCoder.types.decode("BorshFeeTimeScheduler", data);
+  return {
+    cliffFeeNumerator: decoded.cliff_fee_numerator,
+    numberOfPeriod: decoded.number_of_period,
+    periodFrequency: decoded.period_frequency,
+    reductionFactor: decoded.reduction_factor,
+    baseFeeMode: decoded.base_fee_mode,
+    padding: decoded.padding,
+  };
 }
 
 export function decodePodAlignedFeeTimeScheduler(
   data: Buffer
 ): PodAlignedFeeTimeScheduler {
-  return cpAmmCoder.types.decode("PodAlignedFeeTimeScheduler", data);
+  const decoded = cpAmmCoder.types.decode("PodAlignedFeeTimeScheduler", data);
+  return {
+    cliffFeeNumerator: decoded.cliff_fee_numerator,
+    numberOfPeriod: decoded.number_of_period,
+    periodFrequency: decoded.period_frequency,
+    reductionFactor: decoded.reduction_factor,
+    baseFeeMode: decoded.base_fee_mode,
+    padding: decoded.padding,
+  };
 }
 
 export function encodeFeeMarketCapSchedulerParams(
@@ -72,13 +88,34 @@ export function encodeFeeMarketCapSchedulerParams(
 export function decodeFeeMarketCapSchedulerParams(
   data: Buffer
 ): BorshFeeMarketCapScheduler {
-  return cpAmmCoder.types.decode("BorshFeeMarketCapScheduler", data);
+  const decoded = cpAmmCoder.types.decode("BorshFeeMarketCapScheduler", data);
+  return {
+    cliffFeeNumerator: decoded.cliff_fee_numerator,
+    numberOfPeriod: decoded.number_of_period,
+    sqrtPriceStepBps: decoded.sqrt_price_step_bps,
+    schedulerExpirationDuration: decoded.scheduler_expiration_duration,
+    reductionFactor: decoded.reduction_factor,
+    baseFeeMode: decoded.base_fee_mode,
+    padding: decoded.padding,
+  };
 }
 
 export function decodePodAlignedFeeMarketCapScheduler(
   data: Buffer
 ): PodAlignedFeeMarketCapScheduler {
-  return cpAmmCoder.types.decode("PodAlignedFeeMarketCapScheduler", data);
+  const decoded = cpAmmCoder.types.decode(
+    "PodAlignedFeeMarketCapScheduler",
+    data
+  );
+  return {
+    cliffFeeNumerator: decoded.cliff_fee_numerator,
+    numberOfPeriod: decoded.number_of_period,
+    sqrtPriceStepBps: decoded.sqrt_price_step_bps,
+    schedulerExpirationDuration: decoded.scheduler_expiration_duration,
+    reductionFactor: decoded.reduction_factor,
+    baseFeeMode: decoded.base_fee_mode,
+    padding: decoded.padding,
+  };
 }
 
 export function encodeFeeRateLimiterParams(
@@ -102,11 +139,29 @@ export function encodeFeeRateLimiterParams(
 }
 
 export function decodeFeeRateLimiterParams(data: Buffer): BorshFeeRateLimiter {
-  return cpAmmCoder.types.decode("BorshFeeRateLimiter", data);
+  const decoded = cpAmmCoder.types.decode("BorshFeeRateLimiter", data);
+  return {
+    cliffFeeNumerator: decoded.cliff_fee_numerator,
+    feeIncrementBps: decoded.fee_increment_bps,
+    maxLimiterDuration: decoded.max_limiter_duration,
+    maxFeeBps: decoded.max_fee_bps,
+    referenceAmount: decoded.reference_amount,
+    baseFeeMode: decoded.base_fee_mode,
+    padding: decoded.padding,
+  };
 }
 
 export function decodePodAlignedFeeRateLimiter(
   data: Buffer
 ): PodAlignedFeeRateLimiter {
-  return cpAmmCoder.types.decode("PodAlignedFeeRateLimiter", data);
+  const decoded = cpAmmCoder.types.decode("PodAlignedFeeRateLimiter", data);
+  return {
+    cliffFeeNumerator: decoded.cliff_fee_numerator,
+    feeIncrementBps: decoded.fee_increment_bps,
+    maxLimiterDuration: decoded.max_limiter_duration,
+    maxFeeBps: decoded.max_fee_bps,
+    referenceAmount: decoded.reference_amount,
+    baseFeeMode: decoded.base_fee_mode,
+    padding: decoded.padding,
+  };
 }

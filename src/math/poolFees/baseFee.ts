@@ -333,7 +333,7 @@ export function getBaseFeeHandler(
   switch (baseFeeMode) {
     case BaseFeeMode.FeeTimeSchedulerLinear:
     case BaseFeeMode.FeeTimeSchedulerExponential: {
-      const poolFees = decodePodAlignedFeeTimeScheduler(program, data);
+      const poolFees = decodePodAlignedFeeTimeScheduler(data);
       return new FeeTimeScheduler(
         poolFees.cliffFeeNumerator,
         poolFees.numberOfPeriod,
@@ -343,7 +343,7 @@ export function getBaseFeeHandler(
       );
     }
     case BaseFeeMode.RateLimiter: {
-      const poolFees = decodePodAlignedFeeRateLimiter(program, data);
+      const poolFees = decodePodAlignedFeeRateLimiter(data);
       return new FeeRateLimiter(
         poolFees.cliffFeeNumerator,
         poolFees.feeIncrementBps,
@@ -354,7 +354,7 @@ export function getBaseFeeHandler(
     }
     case BaseFeeMode.FeeMarketCapSchedulerLinear:
     case BaseFeeMode.FeeMarketCapSchedulerExponential: {
-      const poolFees = decodePodAlignedFeeMarketCapScheduler(program, data);
+      const poolFees = decodePodAlignedFeeMarketCapScheduler(data);
       return new FeeMarketCapScheduler(
         poolFees.cliffFeeNumerator,
         poolFees.numberOfPeriod,

@@ -7,6 +7,10 @@
 	"source": "./src/index.ts",
 	"types": "./dist/index.d.ts",
 	"author": "Minh Do <minh@raccoons.dev>",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/MeteoraAg/damm-v2-sdk.git"
+	},
 	"files": [
 		"dist/**"
 	],

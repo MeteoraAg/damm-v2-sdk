@@ -736,6 +736,56 @@ export class CpAmm {
   }
 
   /**
+   * Fetches multiple Config states.
+   * @param configs - Array of public keys of config accounts.
+   * @returns Array of parsed ConfigState.
+   */
+  async getMultipleConfigs(configs: PublicKey[]): Promise<ConfigState[]> {
+    const configStates =
+      await this._program.account.config.fetchMultiple(configs);
+
+    configStates.forEach((configState, index) => {
+      invariant(configState, `Config account: ${configs[index]} not found`);
+    });
+
+    return configStates;
+  }
+
+  /**
+   * Fetches multiple Pool states.
+   * @param pools - Array of public keys of pool accounts.
+   * @returns Array of parsed PoolState.
+   */
+  async getMultiplePools(pools: PublicKey[]): Promise<PoolState[]> {
+    const poolStates = await this._program.account.pool.fetchMultiple(pools);
+
+    poolStates.forEach((poolState, index) => {
+      invariant(poolState, `Pool account: ${pools[index]} not found`);
+    });
+
+    return poolStates;
+  }
+
+  /**
+   * Fetches multiple Position states.
+   * @param positions - Array of public keys of position accounts.
+   * @returns Array of parsed PositionState.
+   */
+  async getMultiplePositions(positions: PublicKey[]): Promise<PositionState[]> {
+    const positionStates =
+      await this._program.account.position.fetchMultiple(positions);
+
+    positionStates.forEach((positionState, index) => {
+      invariant(
+        positionState,
+        `Position account: ${positions[index]} not found`,
+      );
+    });
+
+    return positionStates;
+  }
+
+  /**
    * Retrieves all config accounts.
    * @returns Array of config public keys and their states.
    */

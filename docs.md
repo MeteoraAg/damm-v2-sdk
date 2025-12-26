@@ -57,7 +57,7 @@
   - [getTotalLockedLiquidity](#gettotallockedliquidity)
   - [getAvailableVestingLiquidity](#getavailablevestingliquidity)
   - [getMaxAmountWithSlippage](#getmaxamountwithslippage)
-  - [getMinAmountWithSlippage](#getminamountwithslippage)
+  - [getAmountWithSlippage](#getamountwithslippage)
   - [getPriceImpact](#getpriceimpact)
   - [getPriceFromSqrtPrice](#getpricefromsqrtprice)
   - [getSqrtPriceFromPrice](#getsqrtpricefromprice)
@@ -2832,38 +2832,47 @@ console.log(`Maximum amount with slippage: ${maxAmount.toString()}`);
 
 ---
 
-### getMinAmountWithSlippage
+### getAmountWithSlippage
 
 Calculates the minimum amount after applying a slippage rate.
 
 **Function**
 
 ```typescript
-function getMinAmountWithSlippage(amount: BN, rate: number): BN;
+function getAmountWithSlippage(
+  amount: BN,
+  slippageBps: number,
+  swapMode: SwapMode
+): BN;
 ```
 
 **Parameters**
 
 - `amount`: The base amount as a BN
-- `rate`: The slippage rate as a percentage (e.g., 0.5 for 0.5%)
+- `slippageBps`: The slippage rate in basis points (e.g., 100 bps for 1%)
+- `swapMode`: The swap mode (ExactIn, PartialFill, ExactOut)
 
 **Returns**
 
-The minimum amount after applying slippage as a BN.
+The minimum amount after applying slippage as a BN (for ExactIn/PartialFill) or maximum amount in (for ExactOut).
 
 **Example**
 
 ```typescript
 const expectedOutput = new BN(1_000_000_000); // 1,000 tokens
-const slippageRate = 0.5; // 0.5% slippage allowance
-const minAmount = getMinAmountWithSlippage(expectedOutput, slippageRate);
-console.log(`Minimum amount with slippage: ${minAmount.toString()}`);
+const slippageBps = 50; // 0.5% slippage allowance
+const amountWithSlippage = getAmountWithSlippage(
+  expectedOutput,
+  slippageBps,
+  SwapMode.ExactIn
+);
+console.log(`Amount with slippage: ${amountWithSlippage.toString()}`);
 ```
 
 **Notes**
 
 - Used when you need to calculate the lower bound of an amount with slippage tolerance
-- Formula: amount \* (100 - rate) / 100
+- Formula: amount \* (100 - slippageBps) / 100 (for ExactIn/PartialFill) or amount \* (100 + slippageBps) / 100 (for ExactOut)
 - Common use case: Setting a minimum output amount when swapping tokens
 - Slippage rate is expressed as a percentage and supports up to 2 decimal places
 

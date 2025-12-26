@@ -9,42 +9,6 @@ import {
 } from "./feeScheduler";
 
 /**
- * Converts a BorshFeeTimeScheduler object to a PodAlignedFeeTimeScheduler object,
- * @param borshFeeScheduler The BorshFeeTimeScheduler instance to convert.
- * @returns The corresponding PodAlignedFeeTimeScheduler object.
- */
-export function toPodAlignedFeeTimeScheduler(
-  borshFeeScheduler: BorshFeeTimeScheduler
-): PodAlignedFeeTimeScheduler {
-  return {
-    cliffFeeNumerator: borshFeeScheduler.cliffFeeNumerator,
-    baseFeeMode: borshFeeScheduler.baseFeeMode,
-    padding: new Array(16).fill(0), // Assumes default/rust alignment of 16
-    numberOfPeriod: borshFeeScheduler.numberOfPeriod,
-    periodFrequency: borshFeeScheduler.periodFrequency,
-    reductionFactor: borshFeeScheduler.reductionFactor,
-  };
-}
-
-/**
- * Converts a PodAlignedFeeTimeScheduler object to a BorshFeeTimeScheduler object,
- * @param podAlignedFeeScheduler The PodAlignedFeeTimeScheduler instance to convert.
- * @returns The corresponding BorshFeeTimeScheduler object.
- */
-export function toBorshFeeTimeScheduler(
-  podAlignedFeeScheduler: PodAlignedFeeTimeScheduler
-): BorshFeeTimeScheduler {
-  return {
-    cliffFeeNumerator: podAlignedFeeScheduler.cliffFeeNumerator,
-    numberOfPeriod: podAlignedFeeScheduler.numberOfPeriod,
-    periodFrequency: podAlignedFeeScheduler.periodFrequency,
-    reductionFactor: podAlignedFeeScheduler.reductionFactor,
-    baseFeeMode: podAlignedFeeScheduler.baseFeeMode,
-    padding: new Array(16).fill(0), // Assumes default/rust alignment of 16
-  };
-}
-
-/**
  * Gets the base fee numerator by period for the time fee scheduler.
  * @param cliffFeeNumerator - The cliff fee numerator.
  * @param numberOfPeriod - The number of periods.

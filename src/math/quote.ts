@@ -32,7 +32,6 @@ import {
   getNextSqrtPriceFromOutput,
 } from "./curve";
 import { Mint } from "@solana/spl-token";
-import { CpAmm } from "../idl/cp_amm";
 
 /**
  * Gets the swap result from exact input

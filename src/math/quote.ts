@@ -32,7 +32,6 @@ import {
   getNextSqrtPriceFromOutput,
 } from "./curve";
 import { Mint } from "@solana/spl-token";
-import { Program } from "@coral-xyz/anchor";
 import { CpAmm } from "../idl/cp_amm";
 
 /**
@@ -45,7 +44,6 @@ import { CpAmm } from "../idl/cp_amm";
  * @returns The swap result from exact input
  */
 export function getSwapResultFromExactInput(
-  program: Program<CpAmm>,
   poolState: PoolState,
   amountIn: BN,
   feeMode: FeeMode,
@@ -64,7 +62,6 @@ export function getSwapResultFromExactInput(
   // (a.k.a TradeDirection::QuoteToBase + CollectFeeMode::QuoteToken)
   // For the rest of the time, the fee rate is not dependent on amount.
   const tradeFeeNumerator = getTotalTradingFeeFromIncludedFeeAmount(
-    program,
     poolState.poolFees,
     currentPoint,
     poolState.activationPoint,
@@ -230,7 +227,6 @@ export function calculateBtoAFromAmountIn(
  * @returns The swap result from partial input
  */
 export function getSwapResultFromPartialInput(
-  program: Program<CpAmm>,
   poolState: PoolState,
   amountIn: BN,
   feeMode: FeeMode,
@@ -245,7 +241,6 @@ export function getSwapResultFromPartialInput(
   const maxFeeNumerator = getMaxFeeNumerator(poolState.version);
 
   const tradeFeeNumerator = getTotalTradingFeeFromIncludedFeeAmount(
-    program,
     poolState.poolFees,
     currentPoint,
     poolState.activationPoint,
@@ -297,7 +292,6 @@ export function getSwapResultFromPartialInput(
 
     if (feeMode.feesOnInput) {
       const tradeFeeNumerator = getTotalTradingFeeFromExcludedFeeAmount(
-        program,
         poolState.poolFees,
         currentPoint,
         poolState.activationPoint,
@@ -482,7 +476,6 @@ export function calculateBtoAFromPartialAmountIn(
  * @returns The swap result from exact output
  */
 export function getSwapResultFromExactOutput(
-  program: Program<CpAmm>,
   poolState: PoolState,
   amountOut: BN,
   feeMode: FeeMode,
@@ -501,7 +494,6 @@ export function getSwapResultFromExactOutput(
     includedFeeAmountOut = amountOut;
   } else {
     const tradeFeeNumerator = getTotalTradingFeeFromExcludedFeeAmount(
-      program,
       poolState.poolFees,
       currentPoint,
       poolState.activationPoint,
@@ -549,7 +541,6 @@ export function getSwapResultFromExactOutput(
   let includedFeeInputAmount: BN;
   if (feeMode.feesOnInput) {
     const tradeFeeNumerator = getTotalTradingFeeFromExcludedFeeAmount(
-      program,
       poolState.poolFees,
       currentPoint,
       poolState.activationPoint,
@@ -678,7 +669,6 @@ export function calculateBtoAFromAmountOut(
  * @returns The swap quote exact input
  */
 export function swapQuoteExactInput(
-  program: Program<CpAmm>,
   pool: PoolState,
   currentPoint: BN,
   amountIn: BN,
@@ -718,7 +708,6 @@ export function swapQuoteExactInput(
   }
 
   const swapResult = getSwapResultFromExactInput(
-    program,
     pool,
     actualAmountIn,
     feeMode,
@@ -772,7 +761,6 @@ export function swapQuoteExactInput(
  * @returns The swap quote exact output
  */
 export function swapQuoteExactOutput(
-  program: Program<CpAmm>,
   pool: PoolState,
   currentPoint: BN,
   amountOut: BN,
@@ -812,7 +800,6 @@ export function swapQuoteExactOutput(
   }
 
   const swapResult = getSwapResultFromExactOutput(
-    program,
     pool,
     actualAmountOut,
     feeMode,
@@ -866,7 +853,6 @@ export function swapQuoteExactOutput(
  * @returns The swap quote partial input
  */
 export function swapQuotePartialInput(
-  program: Program<CpAmm>,
   pool: PoolState,
   currentPoint: BN,
   amountIn: BN,
@@ -906,7 +892,6 @@ export function swapQuotePartialInput(
   }
 
   const swapResult = getSwapResultFromPartialInput(
-    program,
     pool,
     actualAmountIn,
     feeMode,

@@ -1,4 +1,4 @@
-import { BN, Program } from "@coral-xyz/anchor";
+import { BN } from "@coral-xyz/anchor";
 import {
   BASIS_POINT_MAX,
   FEE_DENOMINATOR,
@@ -9,7 +9,6 @@ import {
   ONE_Q64,
   SCALE_OFFSET,
   U128_MAX,
-  U64_MAX,
 } from "../constants";
 import { mulDiv, pow } from "./utilsMath";
 import {
@@ -23,7 +22,6 @@ import {
   TradeDirection,
 } from "../types";
 import { getBaseFeeHandler, getDynamicFeeNumerator } from "./poolFees";
-import { CpAmm } from "../idl/cp_amm";
 
 /**
  * Converts basis points to a numerator
@@ -157,7 +155,6 @@ export function getTotalFeeNumerator(
  * @returns The total trading fee from included fee amount
  */
 export function getTotalTradingFeeFromIncludedFeeAmount(
-  program: Program<CpAmm>,
   poolFees: PoolFeesStruct,
   currentPoint: BN,
   activationPoint: BN,
@@ -167,10 +164,7 @@ export function getTotalTradingFeeFromIncludedFeeAmount(
   initSqrtPrice: BN,
   currentSqrtPrice: BN
 ): BN {
-  const baseFeeHandler = getBaseFeeHandler(
-    program,
-    poolFees.baseFee.baseFeeInfo.data
-  );
+  const baseFeeHandler = getBaseFeeHandler(poolFees.baseFee.baseFeeInfo.data);
 
   // get the base fee numerator from the included fee amount
   const baseFeeNumerator =
@@ -198,7 +192,6 @@ export function getTotalTradingFeeFromIncludedFeeAmount(
  * @returns The total trading fee from excluded fee amount
  */
 export function getTotalTradingFeeFromExcludedFeeAmount(
-  program: Program<CpAmm>,
   poolFees: PoolFeesStruct,
   currentPoint: BN,
   activationPoint: BN,
@@ -208,10 +201,7 @@ export function getTotalTradingFeeFromExcludedFeeAmount(
   initSqrtPrice: BN,
   currentSqrtPrice: BN
 ): BN {
-  const baseFeeHandler = getBaseFeeHandler(
-    program,
-    poolFees.baseFee.baseFeeInfo.data
-  );
+  const baseFeeHandler = getBaseFeeHandler(poolFees.baseFee.baseFeeInfo.data);
 
   // get the base fee numerator from the excluded fee amount
   const baseFeeNumerator =

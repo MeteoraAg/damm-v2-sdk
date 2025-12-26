@@ -31,8 +31,6 @@ import {
   decodePodAlignedFeeTimeScheduler,
   decodePodAlignedFeeMarketCapScheduler,
 } from "../../helpers";
-import { Program } from "@coral-xyz/anchor";
-import { CpAmm } from "../../idl/cp_amm";
 
 /**
  * Fee Rate Limiter class
@@ -318,14 +316,10 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
 
 /**
  * Get base fee handler based on base fee mode
- * @param program Program instance
  * @param rawData Raw data
  * @returns Base fee handler instance
  */
-export function getBaseFeeHandler(
-  program: Program<CpAmm>,
-  rawData: number[]
-): BaseFeeHandler {
+export function getBaseFeeHandler(rawData: number[]): BaseFeeHandler {
   const data = Buffer.from(rawData);
   const modeIndex = data.readUInt8(8); // offset 8 for poolFees pod format
   const baseFeeMode = modeIndex as BaseFeeMode;

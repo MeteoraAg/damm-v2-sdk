@@ -71,6 +71,7 @@ import {
   InitializeRewardParams,
   InitializeAndFundReward,
   BaseFeeMode,
+  DecodedPoolFees,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -723,7 +724,7 @@ export class CpAmm {
     return pools;
   }
 
-  async fetchPoolFees(pool: PublicKey) {
+  async fetchPoolFees(pool: PublicKey): Promise<DecodedPoolFees | null> {
     const poolState = await this._program.account.pool.fetchNullable(pool);
 
     if (!poolState) {
@@ -1065,7 +1066,6 @@ export class CpAmm {
       : new BN(currentSlot);
 
     const swapResult = swapQuoteExactInput(
-      this._program,
       poolState,
       currentPoint,
       inAmount,
@@ -1116,7 +1116,6 @@ export class CpAmm {
       case SwapMode.ExactIn:
         if ("amountIn" in params) {
           return swapQuoteExactInput(
-            this._program,
             poolState,
             currentPoint,
             params.amountIn,
@@ -1134,7 +1133,6 @@ export class CpAmm {
       case SwapMode.ExactOut:
         if ("amountOut" in params) {
           return swapQuoteExactOutput(
-            this._program,
             poolState,
             currentPoint,
             params.amountOut,
@@ -1152,7 +1150,6 @@ export class CpAmm {
       case SwapMode.PartialFill:
         if ("amountIn" in params) {
           return swapQuotePartialInput(
-            this._program,
             poolState,
             currentPoint,
             params.amountIn,

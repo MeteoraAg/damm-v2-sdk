@@ -151,6 +151,11 @@ export type BaseFee = IdlTypes<CpAmmTypes>["baseFeeParameters"];
 
 export type PoolFeesStruct = IdlTypes<CpAmmTypes>["poolFeesStruct"];
 
+export type DecodedPoolFees =
+  | PodAlignedFeeTimeScheduler
+  | PodAlignedFeeRateLimiter
+  | PodAlignedFeeMarketCapScheduler;
+
 export type PoolFeesParams = {
   baseFee: BaseFee;
   padding: number[];

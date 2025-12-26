@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.8]
+
+### Changed
+
+- Cleaned up unused parameters in `getBaseFeeHandler`, `getTotalTradingFeeFromIncludedFeeAmount` and `getTotalTradingFeeFromExcludedFeeAmount` functions
+- Cleaned up unused parameters in `getQuote2` function
+- Cleaned up unused parameters in `swapQuoteExactInput`, `swapQuoteExactOutput`, `swapQuotePartialInput` functions
+- Created a type `DecodedPoolFees` to store the decoded pool fees from Pod Aligned format
+
 ## damm_v2_sdk [1.2.7] [PR #85](https://github.com/MeteoraAg/damm-v2-sdk/pull/85)
 
 ### Added

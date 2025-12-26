@@ -95,9 +95,11 @@ import {
   getAvailableVestingLiquidity,
   isVestingComplete,
   getAllPositionNftAccountByOwner,
-  parseRateLimiterSecondFactor,
   getCurrentPoint,
   offsetBasedFilter,
+  decodePodAlignedFeeRateLimiter,
+  decodePodAlignedFeeTimeScheduler,
+  decodePodAlignedFeeMarketCapScheduler,
 } from "./helpers";
 import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
@@ -721,6 +723,38 @@ export class CpAmm {
     return pools;
   }
 
+  async fetchPoolFees(pool: PublicKey) {
+    const poolState = await this._program.account.pool.fetchNullable(pool);
+
+    if (!poolState) {
+      throw new Error(`Pool account: ${pool} not found`);
+    }
+
+    const data = Buffer.from(poolState.poolFees.baseFee.baseFeeInfo.data);
+    const modeIndex = data.readUInt8(8); // offset 8 for poolFees pod format
+    const baseFeeMode = modeIndex as BaseFeeMode;
+
+    switch (baseFeeMode) {
+      case BaseFeeMode.FeeTimeSchedulerLinear:
+      case BaseFeeMode.FeeTimeSchedulerExponential: {
+        const poolFees = decodePodAlignedFeeTimeScheduler(data);
+        return poolFees;
+      }
+      case BaseFeeMode.RateLimiter: {
+        const poolFees = decodePodAlignedFeeRateLimiter(data);
+        return poolFees;
+      }
+      case BaseFeeMode.FeeMarketCapSchedulerLinear:
+      case BaseFeeMode.FeeMarketCapSchedulerExponential: {
+        const poolFees = decodePodAlignedFeeMarketCapScheduler(data);
+        return poolFees;
+      }
+      default: {
+        throw new Error(`Invalid base fee mode: ${baseFeeMode}`);
+      }
+    }
+  }
+
   /**
    * Fetches the Position state.
    * @param position - Public key of the position.
@@ -1031,6 +1065,7 @@ export class CpAmm {
       : new BN(currentSlot);
 
     const swapResult = swapQuoteExactInput(
+      this._program,
       poolState,
       currentPoint,
       inAmount,
@@ -1081,6 +1116,7 @@ export class CpAmm {
       case SwapMode.ExactIn:
         if ("amountIn" in params) {
           return swapQuoteExactInput(
+            this._program,
             poolState,
             currentPoint,
             params.amountIn,
@@ -1098,6 +1134,7 @@ export class CpAmm {
       case SwapMode.ExactOut:
         if ("amountOut" in params) {
           return swapQuoteExactOutput(
+            this._program,
             poolState,
             currentPoint,
             params.amountOut,
@@ -1115,6 +1152,7 @@ export class CpAmm {
       case SwapMode.PartialFill:
         if ("amountIn" in params) {
           return swapQuotePartialInput(
+            this._program,
             poolState,
             currentPoint,
             params.amountIn,
@@ -2155,23 +2193,25 @@ export class CpAmm {
     let { poolState } = params;
     poolState = poolState ?? (await this.fetchPoolState(pool));
 
-    const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
-      poolState.poolFees.baseFee.secondFactor
-    );
+    const data = Buffer.from(poolState.poolFees.baseFee.baseFeeInfo.data);
+    const modeIndex = data.readUInt8(8); // offset 8 for poolFees pod format
+    const baseFeeMode = modeIndex as BaseFeeMode;
 
     // check if rate limiter is applied
     let rateLimiterApplied = false;
-    if (poolState.poolFees.baseFee.baseFeeMode === BaseFeeMode.RateLimiter) {
+    if (baseFeeMode === BaseFeeMode.RateLimiter) {
       const currentPoint = await getCurrentPoint(
         this._program.provider.connection,
         poolState.activationType
       );
 
+      const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(data);
+
       rateLimiterApplied = isRateLimiterApplied(
-        poolState.poolFees.baseFee.thirdFactor,
-        maxLimiterDuration,
-        maxFeeBps,
-        poolState.poolFees.baseFee.firstFactor,
+        rateLimiterPoolFees.referenceAmount,
+        rateLimiterPoolFees.maxLimiterDuration,
+        rateLimiterPoolFees.maxFeeBps,
+        rateLimiterPoolFees.feeIncrementBps,
         currentPoint,
         poolState.activationPoint,
         tradeDirection
@@ -2297,23 +2337,25 @@ export class CpAmm {
     let { poolState } = params;
     poolState = poolState ?? (await this.fetchPoolState(pool));
 
-    const { maxLimiterDuration, maxFeeBps } = parseRateLimiterSecondFactor(
-      poolState.poolFees.baseFee.secondFactor
-    );
+    const data = Buffer.from(poolState.poolFees.baseFee.baseFeeInfo.data);
+    const modeIndex = data.readUInt8(8); // offset 8 for poolFees pod format
+    const baseFeeMode = modeIndex as BaseFeeMode;
 
     // check if rate limiter is applied
     let rateLimiterApplied = false;
-    if (poolState.poolFees.baseFee.baseFeeMode === BaseFeeMode.RateLimiter) {
+    if (baseFeeMode === BaseFeeMode.RateLimiter) {
       const currentPoint = await getCurrentPoint(
         this._program.provider.connection,
         poolState.activationType
       );
 
+      const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(data);
+
       rateLimiterApplied = isRateLimiterApplied(
-        poolState.poolFees.baseFee.thirdFactor,
-        maxLimiterDuration,
-        maxFeeBps,
-        poolState.poolFees.baseFee.firstFactor,
+        rateLimiterPoolFees.referenceAmount,
+        rateLimiterPoolFees.maxLimiterDuration,
+        rateLimiterPoolFees.maxFeeBps,
+        rateLimiterPoolFees.feeIncrementBps,
         currentPoint,
         poolState.activationPoint,
         tradeDirection

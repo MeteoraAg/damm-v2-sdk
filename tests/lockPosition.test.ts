@@ -15,11 +15,12 @@ import {
 } from "@solana/spl-token";
 
 import {
+  ActivationType,
   AddLiquidityParams,
-  BaseFee,
-  convertToFeeSchedulerSecondFactor,
+  BaseFeeMode,
   CpAmm,
   derivePositionNftAccount,
+  getBaseFeeParams,
   getTokenProgram,
   InitializeCustomizeablePoolParams,
   LockPositionParams,
@@ -56,19 +57,25 @@ describe("Lock Postion", () => {
     });
 
     it("Lock Position", async () => {
-      const baseFee: BaseFee = {
-        cliffFeeNumerator: new BN(1_000_000), // 1%
-        firstFactor: 10,
-        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-        thirdFactor: new BN(2),
-        baseFeeMode: 0, // Linear
-      };
+      const baseFee = getBaseFeeParams(
+        {
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
+          },
+        },
+        6,
+        ActivationType.Timestamp
+      );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],
         dynamicFee: null,
       };
-
       const positionNft = Keypair.generate();
 
       const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
@@ -218,13 +225,20 @@ describe("Lock Postion", () => {
     });
 
     it("Lock position", async () => {
-      const baseFee: BaseFee = {
-        cliffFeeNumerator: new BN(1_000_000), // 1%
-        firstFactor: 10,
-        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-        thirdFactor: new BN(2),
-        baseFeeMode: 0, // Linear
-      };
+      const baseFee = getBaseFeeParams(
+        {
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
+          },
+        },
+        6,
+        ActivationType.Timestamp
+      );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],

@@ -7,7 +7,6 @@ import {
   DynamicFee,
   PoolState,
   PoolStatus,
-  PoolVersion,
 } from "../types";
 import {
   BASIS_POINT_MAX,
@@ -26,6 +25,11 @@ import {
 } from "../constants";
 import { getMaxFeeBps, getMaxFeeNumerator } from "../math";
 import Decimal from "decimal.js";
+import {
+  encodeFeeMarketCapSchedulerParams,
+  encodeFeeRateLimiterParams,
+  encodeFeeTimeSchedulerParams,
+} from "./feeCodec";
 
 /**
  * Checks if the partner is valid
@@ -181,7 +185,7 @@ export function fromDecimalToBN(value: Decimal): BN {
  * @param poolVersion - The pool version
  * @returns The fee scheduler parameters
  */
-export function getFeeSchedulerParams(
+export function getFeeTimeSchedulerParams(
   startingBaseFeeBps: number,
   endingBaseFeeBps: number,
   baseFeeMode: BaseFeeMode,
@@ -193,12 +197,16 @@ export function getFeeSchedulerParams(
       throw new Error("numberOfPeriod and totalDuration must both be zero");
     }
 
+    const data = encodeFeeTimeSchedulerParams(
+      bpsToFeeNumerator(startingBaseFeeBps),
+      0,
+      new BN(0),
+      new BN(0),
+      BaseFeeMode.FeeTimeSchedulerLinear
+    );
+
     return {
-      cliffFeeNumerator: bpsToFeeNumerator(startingBaseFeeBps),
-      firstFactor: 0,
-      secondFactor: Array.from(new BN(0).toArrayLike(Buffer, "le", 8)),
-      thirdFactor: new BN(0),
-      baseFeeMode: BaseFeeMode.FeeSchedulerLinear,
+      data: Array.from(data),
     };
   }
 
@@ -232,10 +240,8 @@ export function getFeeSchedulerParams(
 
   const periodFrequency = new BN(totalDuration / numberOfPeriod);
 
-  const secondFactor = convertToFeeSchedulerSecondFactor(periodFrequency);
-
   let reductionFactor: BN;
-  if (baseFeeMode == BaseFeeMode.FeeSchedulerLinear) {
+  if (baseFeeMode == BaseFeeMode.FeeTimeSchedulerLinear) {
     const totalReduction = maxBaseFeeNumerator.sub(minBaseFeeNumerator);
     reductionFactor = totalReduction.divn(numberOfPeriod);
   } else {
@@ -245,12 +251,81 @@ export function getFeeSchedulerParams(
     reductionFactor = new BN(BASIS_POINT_MAX * (1 - decayBase));
   }
 
+  const data = encodeFeeTimeSchedulerParams(
+    maxBaseFeeNumerator,
+    numberOfPeriod,
+    periodFrequency,
+    reductionFactor,
+    baseFeeMode
+  );
+
   return {
-    cliffFeeNumerator: maxBaseFeeNumerator,
-    firstFactor: numberOfPeriod,
-    secondFactor,
-    thirdFactor: reductionFactor,
-    baseFeeMode,
+    data: Array.from(data),
+  };
+}
+
+export function getFeeMarketCapSchedulerParams(
+  startingBaseFeeBps: number,
+  endingBaseFeeBps: number,
+  baseFeeMode: BaseFeeMode,
+  numberOfPeriod: number,
+  sqrtPriceStepBps: number,
+  schedulerExpirationDuration: number
+): BaseFee {
+  if (numberOfPeriod <= 0) {
+    throw new Error("Total periods must be greater than zero");
+  }
+
+  const poolMaxFeeBps = getMaxFeeBps(CURRENT_POOL_VERSION);
+
+  if (startingBaseFeeBps <= endingBaseFeeBps) {
+    throw new Error(
+      `startingBaseFeeBps (${startingBaseFeeBps} bps) must be greater than endingBaseFeeBps (${endingBaseFeeBps} bps)`
+    );
+  }
+
+  if (startingBaseFeeBps > poolMaxFeeBps) {
+    throw new Error(
+      `startingBaseFeeBps (${startingBaseFeeBps} bps) exceeds maximum allowed value of ${poolMaxFeeBps} bps`
+    );
+  }
+
+  if (
+    numberOfPeriod == 0 ||
+    sqrtPriceStepBps == 0 ||
+    schedulerExpirationDuration == 0
+  ) {
+    throw new Error(
+      "numberOfPeriod, sqrtPriceStepBps, and schedulerExpirationDuration must be greater than zero"
+    );
+  }
+
+  const maxBaseFeeNumerator = bpsToFeeNumerator(startingBaseFeeBps);
+  const minBaseFeeNumerator = bpsToFeeNumerator(endingBaseFeeBps);
+
+  let reductionFactor: BN;
+
+  if (baseFeeMode == BaseFeeMode.FeeMarketCapSchedulerLinear) {
+    const totalReduction = maxBaseFeeNumerator.sub(minBaseFeeNumerator);
+    reductionFactor = totalReduction.divn(numberOfPeriod);
+  } else {
+    const ratio =
+      minBaseFeeNumerator.toNumber() / maxBaseFeeNumerator.toNumber();
+    const decayBase = Math.pow(ratio, 1 / numberOfPeriod);
+    reductionFactor = new BN(BASIS_POINT_MAX * (1 - decayBase));
+  }
+
+  const data = encodeFeeMarketCapSchedulerParams(
+    maxBaseFeeNumerator,
+    numberOfPeriod,
+    sqrtPriceStepBps,
+    schedulerExpirationDuration,
+    reductionFactor,
+    baseFeeMode
+  );
+
+  return {
+    data: Array.from(data),
   };
 }
 
@@ -343,17 +418,16 @@ export function getRateLimiterParams(
     tokenBDecimal
   );
 
-  const secondFactor = convertToRateLimiterSecondFactor(
-    new BN(maxLimiterDuration),
-    new BN(maxFeeBps)
+  const data = encodeFeeRateLimiterParams(
+    cliffFeeNumerator,
+    feeIncrementBps,
+    maxLimiterDuration,
+    maxFeeBps,
+    referenceAmountInLamports
   );
 
   return {
-    cliffFeeNumerator,
-    firstFactor: feeIncrementBps,
-    secondFactor,
-    thirdFactor: new BN(referenceAmountInLamports),
-    baseFeeMode: BaseFeeMode.RateLimiter,
+    data: Array.from(data),
   };
 }
 
@@ -375,55 +449,89 @@ export function getBaseFeeParams(
       maxLimiterDuration: number;
       maxFeeBps: number;
     };
-    feeSchedulerParam?: {
+    feeTimeSchedulerParam?: {
       startingFeeBps: number;
       endingFeeBps: number;
       numberOfPeriod: number;
       totalDuration: number;
     };
+    feeMarketCapSchedulerParam?: {
+      startingFeeBps: number;
+      endingFeeBps: number;
+      numberOfPeriod: number;
+      sqrtPriceStepBps: number;
+      schedulerExpirationDuration: number;
+    };
   },
   tokenBDecimal: number,
   activationType: ActivationType
 ): BaseFee {
-  if (baseFeeParams.baseFeeMode === BaseFeeMode.RateLimiter) {
-    if (!baseFeeParams.rateLimiterParam) {
-      throw new Error(
-        "Rate limiter parameters are required for RateLimiter mode"
+  switch (baseFeeParams.baseFeeMode) {
+    case BaseFeeMode.FeeTimeSchedulerLinear:
+    case BaseFeeMode.FeeTimeSchedulerExponential: {
+      if (!baseFeeParams.feeTimeSchedulerParam) {
+        throw new Error(
+          "Fee scheduler parameters are required for FeeTimeScheduler mode"
+        );
+      }
+      const { startingFeeBps, endingFeeBps, numberOfPeriod, totalDuration } =
+        baseFeeParams.feeTimeSchedulerParam;
+      return getFeeTimeSchedulerParams(
+        startingFeeBps,
+        endingFeeBps,
+        baseFeeParams.baseFeeMode,
+        numberOfPeriod,
+        totalDuration
       );
     }
-    const {
-      baseFeeBps,
-      feeIncrementBps,
-      referenceAmount,
-      maxLimiterDuration,
-      maxFeeBps,
-    } = baseFeeParams.rateLimiterParam;
-
-    return getRateLimiterParams(
-      baseFeeBps,
-      feeIncrementBps,
-      referenceAmount,
-      maxLimiterDuration,
-      maxFeeBps,
-      tokenBDecimal,
-      activationType
-    );
-  } else {
-    if (!baseFeeParams.feeSchedulerParam) {
-      throw new Error(
-        "Fee scheduler parameters are required for FeeScheduler mode"
+    case BaseFeeMode.RateLimiter: {
+      if (!baseFeeParams.rateLimiterParam) {
+        throw new Error(
+          "Rate limiter parameters are required for RateLimiter mode"
+        );
+      }
+      const {
+        baseFeeBps,
+        feeIncrementBps,
+        referenceAmount,
+        maxLimiterDuration,
+        maxFeeBps,
+      } = baseFeeParams.rateLimiterParam;
+      return getRateLimiterParams(
+        baseFeeBps,
+        feeIncrementBps,
+        referenceAmount,
+        maxLimiterDuration,
+        maxFeeBps,
+        tokenBDecimal,
+        activationType
       );
     }
-    const { startingFeeBps, endingFeeBps, numberOfPeriod, totalDuration } =
-      baseFeeParams.feeSchedulerParam;
-
-    return getFeeSchedulerParams(
-      startingFeeBps,
-      endingFeeBps,
-      baseFeeParams.baseFeeMode,
-      numberOfPeriod,
-      totalDuration
-    );
+    case BaseFeeMode.FeeMarketCapSchedulerLinear:
+    case BaseFeeMode.FeeMarketCapSchedulerExponential: {
+      if (!baseFeeParams.feeMarketCapSchedulerParam) {
+        throw new Error(
+          "Fee scheduler parameters are required for FeeMarketCapScheduler mode"
+        );
+      }
+      const {
+        startingFeeBps,
+        endingFeeBps,
+        numberOfPeriod,
+        sqrtPriceStepBps,
+        schedulerExpirationDuration,
+      } = baseFeeParams.feeMarketCapSchedulerParam;
+      return getFeeMarketCapSchedulerParams(
+        startingFeeBps,
+        endingFeeBps,
+        baseFeeParams.baseFeeMode,
+        numberOfPeriod,
+        sqrtPriceStepBps,
+        schedulerExpirationDuration
+      );
+    }
+    default:
+      throw new Error("Invalid base fee mode");
   }
 }
 

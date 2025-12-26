@@ -14,11 +14,12 @@ import {
 } from "@solana/spl-token";
 
 import {
+  ActivationType,
   AddLiquidityParams,
-  BaseFee,
-  convertToFeeSchedulerSecondFactor,
+  BaseFeeMode,
   CpAmm,
   derivePositionNftAccount,
+  getBaseFeeParams,
   getTokenProgram,
   InitializeCustomizeablePoolParams,
   MAX_SQRT_PRICE,
@@ -53,13 +54,20 @@ describe("Add liquidity", () => {
     });
 
     it("Add liqudity", async () => {
-      const baseFee: BaseFee = {
-        cliffFeeNumerator: new BN(1_000_000), // 1%
-        firstFactor: 10,
-        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-        thirdFactor: new BN(2),
-        baseFeeMode: 0, // Linear
-      };
+      const baseFee = getBaseFeeParams(
+        {
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
+          },
+        },
+        6,
+        ActivationType.Timestamp
+      );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],
@@ -174,13 +182,20 @@ describe("Add liquidity", () => {
     });
 
     it("Add liquidity", async () => {
-      const baseFee: BaseFee = {
-        cliffFeeNumerator: new BN(1_000_000), // 1%
-        firstFactor: 10,
-        secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-        thirdFactor: new BN(2),
-        baseFeeMode: 0, // Linear
-      };
+      const baseFee = getBaseFeeParams(
+        {
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
+          },
+        },
+        6,
+        ActivationType.Timestamp
+      );
+
       const poolFees: PoolFeesParams = {
         baseFee,
         padding: [],

@@ -115,3 +115,12 @@ export function derivePositionNftAccount(
     CP_AMM_PROGRAM_ID
   )[0];
 }
+
+export function deriveOperatorAddress(
+  whitelistedAddress: PublicKey
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("operator"), whitelistedAddress.toBuffer()],
+    CP_AMM_PROGRAM_ID
+  )[0];
+}

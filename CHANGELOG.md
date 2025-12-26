@@ -2,7 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
-## damm_v2_sdk [1.2.6] [PR #85](https://github.com/MeteoraAg/damm-v2-sdk/pull/85)
+## damm_v2_sdk [1.2.7] [PR #85](https://github.com/MeteoraAg/damm-v2-sdk/pull/85)
+
+### Added
+
+- Added `fetchPoolFees` state function to fetch and decode the pool fees from Pod Aligned format
+- Added 2 new base fee modes: `FeeMarketCapSchedulerLinear` and `FeeMarketCapSchedulerExponential`
+- Added encode and decode functions for Fee Time Scheduler, Fee Market Cap Scheduler and Fee Rate Limiter to encode and decode the base fee parameters between Borsh format and Pod Aligned formats
+
+### Changed
+
+- Added `feeMarketCapSchedulerParam` parameters to `getBaseFeeParams` function
+- Changed `feeSchedulerParam` to `feeTimeSchedulerParam` in `getBaseFeeParams` function
+- Improved validation for pool fee parameters
+- Changed `getBaseFeeHandler` interface
+- Bumped Pool Version from V0 (Max fee 50%) to V1 (Max fee 99%)
+
+## damm_v2_sdk [1.2.6]
 
 ### Changed
 

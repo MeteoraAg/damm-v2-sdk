@@ -15,9 +15,10 @@ import BN from "bn.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
-  BaseFee,
-  convertToFeeSchedulerSecondFactor,
+  ActivationType,
+  BaseFeeMode,
   CpAmm,
+  getBaseFeeParams,
   InitializeCustomizeablePoolParams,
   MAX_SQRT_PRICE,
   MIN_SQRT_PRICE,
@@ -84,13 +85,20 @@ async function createPool(
   tokenAMint: PublicKey,
   tokenBMint: PublicKey
 ): Promise<{ pool: PublicKey; position: PublicKey }> {
-  const baseFee: BaseFee = {
-    cliffFeeNumerator: new BN(1_000_000), // 1%
-    firstFactor: 10,
-    secondFactor: convertToFeeSchedulerSecondFactor(new BN(10)),
-    thirdFactor: new BN(2),
-    baseFeeMode: 0, // Linear
-  };
+  const baseFee = getBaseFeeParams(
+    {
+      baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+      feeTimeSchedulerParam: {
+        startingFeeBps: 5000,
+        endingFeeBps: 100,
+        numberOfPeriod: 180,
+        totalDuration: 180,
+      },
+    },
+    6,
+    ActivationType.Timestamp
+  );
+
   const poolFees: PoolFeesParams = {
     baseFee,
     padding: [],

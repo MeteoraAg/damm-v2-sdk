@@ -19,9 +19,29 @@ export enum ActivationPoint {
 }
 
 export enum BaseFeeMode {
-  FeeSchedulerLinear,
-  FeeSchedulerExponential,
+  // fee = cliff_fee_numerator - passed_period * reduction_factor
+  // passed_period = (current_point - activation_point) / period_frequency
+  FeeTimeSchedulerLinear,
+  // fee = cliff_fee_numerator * (1-reduction_factor/BASIS_POINT_MAX)^passed_period
+  FeeTimeSchedulerExponential,
+  // if input_amount <= reference_amount, then fee = input_amount * cliff_fee_numerator
+  // if input_amount > reference_amount:
+  // input_amount = reference_amount + (a * reference_amount + b)
+  // a = (inputAmount - referenceAmount) / referenceAmount
+  // b = (inputAmount - referenceAmount) % referenceAmount
+  // c = cliff_fee_numerator
+  // d = a - max_index
+  // if a < max_index:
+  // fee = x0 * c + x0 * (c + i) + .... + x0 * (c + i*a) + b * (c + i * (a+1))
+  // if a >= max_index:
+  // fee = x0 * (c + c*max_index + i*max_index*(max_index+1)/2) + (d * x0 + b) * MAX_FEE
   RateLimiter,
+  // fee = cliff_fee_numerator - passed_period * reduction_factor
+  // passed_period = changed_price / sqrt_price_step_bps
+  // passed_period = (current_sqrt_price - init_sqrt_price) * BASIS_POINT_MAX / init_sqrt_price / sqrt_price_step_bps
+  FeeMarketCapSchedulerLinear,
+  // fee = cliff_fee_numerator * (1-reduction_factor/BASIS_POINT_MAX)^passed_period
+  FeeMarketCapSchedulerExponential,
 }
 
 export enum CollectFeeMode {
@@ -68,6 +88,19 @@ export type VestingState = IdlAccounts<CpAmmTypes>["vesting"];
 export type ConfigState = IdlAccounts<CpAmmTypes>["config"];
 export type TokenBadgeState = IdlAccounts<CpAmmTypes>["tokenBadge"];
 
+export type BorshFeeTimeScheduler =
+  IdlTypes<CpAmmTypes>["borshFeeTimeScheduler"];
+export type BorshFeeMarketCapScheduler =
+  IdlTypes<CpAmmTypes>["borshFeeMarketCapScheduler"];
+export type BorshFeeRateLimiter = IdlTypes<CpAmmTypes>["borshFeeRateLimiter"];
+
+export type PodAlignedFeeTimeScheduler =
+  IdlTypes<CpAmmTypes>["podAlignedFeeTimeScheduler"];
+export type PodAlignedFeeMarketCapScheduler =
+  IdlTypes<CpAmmTypes>["podAlignedFeeMarketCapScheduler"];
+export type PodAlignedFeeRateLimiter =
+  IdlTypes<CpAmmTypes>["podAlignedFeeRateLimiter"];
+
 // Program params types
 // export type LockPositionParams = IdlTypes<CpAmm>["VestingParameters"];
 // export type AddLiquidityParams = IdlTypes<CpAmm>["AddLiquidityParameters"];
@@ -112,11 +145,7 @@ export type DynamicFeeStruct = IdlTypes<CpAmmTypes>["dynamicFeeStruct"];
 
 /**
  * Base fee parameters
- * @param cliffFeeNumerator
- * @param firstFactor // feeScheduler: numberOfPeriod, rateLimiter: feeIncrementBps
- * @param secondFactor // feeScheduler: periodFrequency, rateLimiter: maxLimiterDuration
- * @param thirdFactor // feeScheduler: reductionFactor, rateLimiter: referenceAmount
- * @param baseFeeMode
+ * @param data // number[]
  */
 export type BaseFee = IdlTypes<CpAmmTypes>["baseFeeParameters"];
 
@@ -454,8 +483,6 @@ export type SwapAmount = {
   nextSqrtPrice: BN;
 };
 
-export type SwapResult = IdlTypes<CpAmmTypes>["swapResult"];
-
 export type SwapResult2 = IdlTypes<CpAmmTypes>["swapResult2"];
 
 export interface Quote2Result extends SwapResult2 {
@@ -771,14 +798,20 @@ export interface BaseFeeHandler {
     currentPoint: BN,
     activationPoint: BN,
     tradeDirection: TradeDirection,
-    includedFeeAmount: BN
+    includedFeeAmount: BN,
+    initSqrtPrice: BN,
+    currentSqrtPrice: BN
   ): BN;
   getBaseFeeNumeratorFromExcludedFeeAmount(
     currentPoint: BN,
     activationPoint: BN,
     tradeDirection: TradeDirection,
-    excludedFeeAmount: BN
+    excludedFeeAmount: BN,
+    initSqrtPrice: BN,
+    currentSqrtPrice: BN
   ): BN;
+  validateBaseFeeIsStatic(currentPoint: BN, activationPoint: BN): boolean;
+  getMinBaseFeeNumerator(): BN;
 }
 
 export interface FeeOnAmountResult {

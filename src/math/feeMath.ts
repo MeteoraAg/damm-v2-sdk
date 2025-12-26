@@ -1,4 +1,4 @@
-import { BN } from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import {
   BASIS_POINT_MAX,
   FEE_DENOMINATOR,
@@ -23,6 +23,7 @@ import {
   TradeDirection,
 } from "../types";
 import { getBaseFeeHandler, getDynamicFeeNumerator } from "./poolFees";
+import { CpAmm } from "../idl/cp_amm";
 
 /**
  * Converts basis points to a numerator
@@ -156,19 +157,19 @@ export function getTotalFeeNumerator(
  * @returns The total trading fee from included fee amount
  */
 export function getTotalTradingFeeFromIncludedFeeAmount(
+  program: Program<CpAmm>,
   poolFees: PoolFeesStruct,
   currentPoint: BN,
   activationPoint: BN,
   includedFeeAmount: BN,
   tradeDirection: TradeDirection,
-  maxFeeNumerator: BN
+  maxFeeNumerator: BN,
+  initSqrtPrice: BN,
+  currentSqrtPrice: BN
 ): BN {
   const baseFeeHandler = getBaseFeeHandler(
-    poolFees.baseFee.cliffFeeNumerator,
-    poolFees.baseFee.firstFactor,
-    poolFees.baseFee.secondFactor,
-    poolFees.baseFee.thirdFactor,
-    poolFees.baseFee.baseFeeMode
+    program,
+    poolFees.baseFee.baseFeeInfo.data
   );
 
   // get the base fee numerator from the included fee amount
@@ -177,7 +178,9 @@ export function getTotalTradingFeeFromIncludedFeeAmount(
       currentPoint,
       activationPoint,
       tradeDirection,
-      includedFeeAmount
+      includedFeeAmount,
+      initSqrtPrice,
+      currentSqrtPrice
     );
 
   // get the total fee numerator, capped at maxFeeNumerator
@@ -195,19 +198,19 @@ export function getTotalTradingFeeFromIncludedFeeAmount(
  * @returns The total trading fee from excluded fee amount
  */
 export function getTotalTradingFeeFromExcludedFeeAmount(
+  program: Program<CpAmm>,
   poolFees: PoolFeesStruct,
   currentPoint: BN,
   activationPoint: BN,
   excludedFeeAmount: BN,
   tradeDirection: TradeDirection,
-  maxFeeNumerator: BN
+  maxFeeNumerator: BN,
+  initSqrtPrice: BN,
+  currentSqrtPrice: BN
 ): BN {
   const baseFeeHandler = getBaseFeeHandler(
-    poolFees.baseFee.cliffFeeNumerator,
-    poolFees.baseFee.firstFactor,
-    poolFees.baseFee.secondFactor,
-    poolFees.baseFee.thirdFactor,
-    poolFees.baseFee.baseFeeMode
+    program,
+    poolFees.baseFee.baseFeeInfo.data
   );
 
   // get the base fee numerator from the excluded fee amount
@@ -216,7 +219,9 @@ export function getTotalTradingFeeFromExcludedFeeAmount(
       currentPoint,
       activationPoint,
       tradeDirection,
-      excludedFeeAmount
+      excludedFeeAmount,
+      initSqrtPrice,
+      currentSqrtPrice
     );
 
   // get the total fee numerator, capped at maxFeeNumerator

@@ -6,3 +6,4 @@ export * from "./token2022";
 export * from "./vestings";
 export * from "./validation";
 export * from "./common";
+export * from "./feeCodec";

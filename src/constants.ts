@@ -3,7 +3,7 @@ import BN from "bn.js";
 import { PoolVersion } from "./types";
 
 export const CP_AMM_PROGRAM_ID = new PublicKey(
-  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
+  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
 );
 
 export const LIQUIDITY_SCALE = 128;

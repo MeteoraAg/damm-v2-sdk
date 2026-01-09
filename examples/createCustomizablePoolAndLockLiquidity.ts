@@ -39,14 +39,14 @@ import {
   };
 
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(Uint8Array.from(require(POOL_CONFIG.keypairPath)))
+    Uint8Array.from(Uint8Array.from(require(POOL_CONFIG.keypairPath))),
   );
 
   const connection = new Connection(POOL_CONFIG.rpcUrl);
   const cpAmm = new CpAmm(connection);
 
   const tokenAAccountInfo = await connection.getAccountInfo(
-    POOL_CONFIG.tokenAMint
+    POOL_CONFIG.tokenAMint,
   );
 
   let tokenAProgram = TOKEN_PROGRAM_ID;
@@ -57,7 +57,7 @@ import {
       connection,
       POOL_CONFIG.tokenAMint,
       connection.commitment,
-      tokenAProgram
+      tokenAProgram,
     );
     const epochInfo = await connection.getEpochInfo();
     tokenAInfo = {
@@ -67,15 +67,15 @@ import {
   }
 
   const tokenAAmountInLamport = new BN(POOL_CONFIG.maxTokenAAmount).mul(
-    new BN(10 ** POOL_CONFIG.tokenADecimals)
+    new BN(10 ** POOL_CONFIG.tokenADecimals),
   );
   const tokenBAmountInLamport = new BN(POOL_CONFIG.maxTokenBAmount).mul(
-    new BN(10 ** POOL_CONFIG.tokenBDecimals)
+    new BN(10 ** POOL_CONFIG.tokenBDecimals),
   );
   const initSqrtPrice = getSqrtPriceFromPrice(
     POOL_CONFIG.initialPrice.toString(),
     POOL_CONFIG.tokenADecimals,
-    POOL_CONFIG.tokenBDecimals
+    POOL_CONFIG.tokenBDecimals,
   );
   const liquidityDelta = cpAmm.getLiquidityDelta({
     maxAmountTokenA: tokenAAmountInLamport,
@@ -97,7 +97,7 @@ import {
       },
     },
     POOL_CONFIG.tokenBDecimals,
-    ActivationType.Timestamp
+    ActivationType.Timestamp,
   );
   const dynamicFeeParams = POOL_CONFIG.useDynamicFee
     ? getDynamicFeeParams(POOL_CONFIG.endingFeeBps)

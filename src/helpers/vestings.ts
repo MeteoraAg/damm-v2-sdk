@@ -10,7 +10,7 @@ import { min } from "bn.js";
  */
 export function isVestingComplete(
   vestingData: VestingState,
-  currentPoint: BN
+  currentPoint: BN,
 ): boolean {
   const cliffPoint = vestingData.cliffPoint;
   const periodFrequency = vestingData.periodFrequency;
@@ -28,7 +28,7 @@ export function isVestingComplete(
  */
 export function getTotalLockedLiquidity(vestingData: VestingState): BN {
   return vestingData.cliffUnlockLiquidity.add(
-    vestingData.liquidityPerPeriod.mul(new BN(vestingData.numberOfPeriod))
+    vestingData.liquidityPerPeriod.mul(new BN(vestingData.numberOfPeriod)),
   );
 }
 
@@ -41,7 +41,7 @@ export function getTotalLockedLiquidity(vestingData: VestingState): BN {
  */
 export function getAvailableVestingLiquidity(
   vestingData: VestingState,
-  currentPoint: BN
+  currentPoint: BN,
 ): BN {
   const {
     cliffPoint,
@@ -66,10 +66,10 @@ export function getAvailableVestingLiquidity(
 
   // total unlocked liquidity: cliff + (periods * per_period)
   const unlockedLiquidity = cliffUnlockLiquidity.add(
-    passedPeriod.mul(liquidityPerPeriod)
+    passedPeriod.mul(liquidityPerPeriod),
   );
   const availableReleasingLiquidity = unlockedLiquidity.sub(
-    totalReleasedLiquidity
+    totalReleasedLiquidity,
   );
 
   return availableReleasingLiquidity;

@@ -47,7 +47,7 @@ export function getSwapResultFromExactInput(
   amountIn: BN,
   feeMode: FeeMode,
   tradeDirection: TradeDirection,
-  currentPoint: BN
+  currentPoint: BN,
 ): SwapResult2 {
   let actualProtocolFee = new BN(0);
   let actualTradingFee = new BN(0);
@@ -68,7 +68,7 @@ export function getSwapResultFromExactInput(
     tradeDirection,
     maxFeeNumerator,
     poolState.poolFees.initSqrtPrice,
-    poolState.sqrtPrice
+    poolState.sqrtPrice,
   );
 
   let actualAmountIn: BN;
@@ -79,7 +79,7 @@ export function getSwapResultFromExactInput(
         amountIn,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState)
+        hasPartner(poolState),
       );
 
     actualProtocolFee = protocolFee;
@@ -110,7 +110,7 @@ export function getSwapResultFromExactInput(
         outputAmount,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState)
+        hasPartner(poolState),
       );
 
     actualProtocolFee = protocolFee;
@@ -142,7 +142,7 @@ export function getSwapResultFromExactInput(
  */
 export function calculateAtoBFromAmountIn(
   poolState: PoolState,
-  amountIn: BN
+  amountIn: BN,
 ): {
   outputAmount: BN;
   nextSqrtPrice: BN;
@@ -153,7 +153,7 @@ export function calculateAtoBFromAmountIn(
     poolState.sqrtPrice,
     poolState.liquidity,
     amountIn,
-    true
+    true,
   );
 
   if (nextSqrtPrice.lt(poolState.sqrtMinPrice)) {
@@ -165,7 +165,7 @@ export function calculateAtoBFromAmountIn(
     nextSqrtPrice,
     poolState.sqrtPrice,
     poolState.liquidity,
-    Rounding.Down
+    Rounding.Down,
   );
 
   return {
@@ -183,7 +183,7 @@ export function calculateAtoBFromAmountIn(
  */
 export function calculateBtoAFromAmountIn(
   poolState: PoolState,
-  amountIn: BN
+  amountIn: BN,
 ): {
   outputAmount: BN;
   nextSqrtPrice: BN;
@@ -194,7 +194,7 @@ export function calculateBtoAFromAmountIn(
     poolState.sqrtPrice,
     poolState.liquidity,
     amountIn,
-    false
+    false,
   );
 
   if (nextSqrtPrice.gt(poolState.sqrtMaxPrice)) {
@@ -206,7 +206,7 @@ export function calculateBtoAFromAmountIn(
     poolState.sqrtPrice,
     nextSqrtPrice,
     poolState.liquidity,
-    Rounding.Down
+    Rounding.Down,
   );
 
   return {
@@ -230,7 +230,7 @@ export function getSwapResultFromPartialInput(
   amountIn: BN,
   feeMode: FeeMode,
   tradeDirection: TradeDirection,
-  currentPoint: BN
+  currentPoint: BN,
 ): SwapResult2 {
   let actualProtocolFee = new BN(0);
   let actualTradingFee = new BN(0);
@@ -247,7 +247,7 @@ export function getSwapResultFromPartialInput(
     tradeDirection,
     maxFeeNumerator,
     poolState.poolFees.initSqrtPrice,
-    poolState.sqrtPrice
+    poolState.sqrtPrice,
   );
 
   let actualAmountIn: BN;
@@ -258,7 +258,7 @@ export function getSwapResultFromPartialInput(
         amountIn,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState)
+        hasPartner(poolState),
       );
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
@@ -274,12 +274,12 @@ export function getSwapResultFromPartialInput(
   if (tradeDirection === TradeDirection.AtoB) {
     swapAmountFromInput = calculateAtoBFromPartialAmountIn(
       poolState,
-      actualAmountIn
+      actualAmountIn,
     );
   } else {
     swapAmountFromInput = calculateBtoAFromPartialAmountIn(
       poolState,
-      actualAmountIn
+      actualAmountIn,
     );
   }
 
@@ -298,19 +298,19 @@ export function getSwapResultFromPartialInput(
         tradeDirection,
         maxFeeNumerator,
         poolState.poolFees.initSqrtPrice,
-        poolState.sqrtPrice
+        poolState.sqrtPrice,
       );
 
       const { includedFeeAmount, feeAmount } = getIncludedFeeAmount(
         tradeFeeNumerator,
-        actualAmountIn
+        actualAmountIn,
       );
 
       const { tradingFee, protocolFee, referralFee, partnerFee } = splitFees(
         poolState.poolFees,
         feeAmount,
         feeMode.hasReferral,
-        hasPartner(poolState)
+        hasPartner(poolState),
       );
 
       actualProtocolFee = protocolFee;
@@ -336,7 +336,7 @@ export function getSwapResultFromPartialInput(
         outputAmount,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState)
+        hasPartner(poolState),
       );
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
@@ -367,7 +367,7 @@ export function getSwapResultFromPartialInput(
  */
 export function calculateAtoBFromPartialAmountIn(
   poolState: PoolState,
-  amountIn: BN
+  amountIn: BN,
 ): {
   outputAmount: BN;
   nextSqrtPrice: BN;
@@ -377,7 +377,7 @@ export function calculateAtoBFromPartialAmountIn(
     poolState.sqrtMinPrice,
     poolState.sqrtPrice,
     poolState.liquidity,
-    Rounding.Up
+    Rounding.Up,
   );
 
   let consumedInAmount: BN;
@@ -391,7 +391,7 @@ export function calculateAtoBFromPartialAmountIn(
       poolState.sqrtPrice,
       poolState.liquidity,
       amountIn,
-      true
+      true,
     );
     consumedInAmount = amountIn;
   }
@@ -400,7 +400,7 @@ export function calculateAtoBFromPartialAmountIn(
     nextSqrtPrice,
     poolState.sqrtPrice,
     poolState.liquidity,
-    Rounding.Down
+    Rounding.Down,
   );
 
   const amountLeft = amountIn.sub(consumedInAmount);
@@ -420,7 +420,7 @@ export function calculateAtoBFromPartialAmountIn(
  */
 export function calculateBtoAFromPartialAmountIn(
   poolState: PoolState,
-  amountIn: BN
+  amountIn: BN,
 ): {
   outputAmount: BN;
   nextSqrtPrice: BN;
@@ -430,7 +430,7 @@ export function calculateBtoAFromPartialAmountIn(
     poolState.sqrtPrice,
     poolState.sqrtMaxPrice,
     poolState.liquidity,
-    Rounding.Up
+    Rounding.Up,
   );
 
   let consumedInAmount: BN;
@@ -444,7 +444,7 @@ export function calculateBtoAFromPartialAmountIn(
       poolState.sqrtPrice,
       poolState.liquidity,
       amountIn,
-      false
+      false,
     );
     consumedInAmount = amountIn;
   }
@@ -453,7 +453,7 @@ export function calculateBtoAFromPartialAmountIn(
     poolState.sqrtPrice,
     nextSqrtPrice,
     poolState.liquidity,
-    Rounding.Down
+    Rounding.Down,
   );
 
   const amountLeft = amountIn.sub(consumedInAmount);
@@ -479,7 +479,7 @@ export function getSwapResultFromExactOutput(
   amountOut: BN,
   feeMode: FeeMode,
   tradeDirection: TradeDirection,
-  currentPoint: BN
+  currentPoint: BN,
 ): SwapResult2 {
   let actualProtocolFee = new BN(0);
   let actualTradingFee = new BN(0);
@@ -500,19 +500,19 @@ export function getSwapResultFromExactOutput(
       tradeDirection,
       maxFeeNumerator,
       poolState.poolFees.initSqrtPrice,
-      poolState.sqrtPrice
+      poolState.sqrtPrice,
     );
 
     const { includedFeeAmount, feeAmount } = getIncludedFeeAmount(
       tradeFeeNumerator,
-      amountOut
+      amountOut,
     );
 
     const split = splitFees(
       poolState.poolFees,
       feeAmount,
       feeMode.hasReferral,
-      hasPartner(poolState)
+      hasPartner(poolState),
     );
 
     actualTradingFee = split.tradingFee;
@@ -527,12 +527,12 @@ export function getSwapResultFromExactOutput(
   if (tradeDirection === TradeDirection.AtoB) {
     swapAmountFromOutput = calculateAtoBFromAmountOut(
       poolState,
-      includedFeeAmountOut
+      includedFeeAmountOut,
     );
   } else {
     swapAmountFromOutput = calculateBtoAFromAmountOut(
       poolState,
-      includedFeeAmountOut
+      includedFeeAmountOut,
     );
   }
   const { inputAmount, nextSqrtPrice } = swapAmountFromOutput;
@@ -547,19 +547,19 @@ export function getSwapResultFromExactOutput(
       tradeDirection,
       maxFeeNumerator,
       poolState.poolFees.initSqrtPrice,
-      poolState.sqrtPrice
+      poolState.sqrtPrice,
     );
 
     const { includedFeeAmount, feeAmount } = getIncludedFeeAmount(
       tradeFeeNumerator,
-      inputAmount
+      inputAmount,
     );
 
     const split = splitFees(
       poolState.poolFees,
       feeAmount,
       feeMode.hasReferral,
-      hasPartner(poolState)
+      hasPartner(poolState),
     );
 
     actualTradingFee = split.tradingFee;
@@ -593,13 +593,13 @@ export function getSwapResultFromExactOutput(
  */
 export function calculateAtoBFromAmountOut(
   poolState: PoolState,
-  amountOut: BN
+  amountOut: BN,
 ): { inputAmount: BN; nextSqrtPrice: BN } {
   const nextSqrtPrice = getNextSqrtPriceFromOutput(
     poolState.sqrtPrice,
     poolState.liquidity,
     amountOut,
-    true
+    true,
   );
 
   if (nextSqrtPrice.lt(poolState.sqrtMinPrice)) {
@@ -610,7 +610,7 @@ export function calculateAtoBFromAmountOut(
     nextSqrtPrice,
     poolState.sqrtPrice,
     poolState.liquidity,
-    Rounding.Up
+    Rounding.Up,
   );
 
   return {
@@ -627,13 +627,13 @@ export function calculateAtoBFromAmountOut(
  */
 export function calculateBtoAFromAmountOut(
   poolState: PoolState,
-  amountOut: BN
+  amountOut: BN,
 ): { inputAmount: BN; nextSqrtPrice: BN } {
   const nextSqrtPrice = getNextSqrtPriceFromOutput(
     poolState.sqrtPrice,
     poolState.liquidity,
     amountOut,
-    false
+    false,
   );
 
   if (nextSqrtPrice.gt(poolState.sqrtMaxPrice)) {
@@ -644,7 +644,7 @@ export function calculateBtoAFromAmountOut(
     poolState.sqrtPrice,
     nextSqrtPrice,
     poolState.liquidity,
-    Rounding.Up
+    Rounding.Up,
   );
 
   return {
@@ -683,7 +683,7 @@ export function swapQuoteExactInput(
   outputTokenInfo?: {
     mint: Mint;
     currentEpoch: number;
-  }
+  },
 ): Quote2Result {
   if (amountIn.lte(new BN(0))) {
     throw new Error("Amount in must be greater than 0");
@@ -702,7 +702,7 @@ export function swapQuoteExactInput(
     actualAmountIn = calculateTransferFeeExcludedAmount(
       amountIn,
       inputTokenInfo.mint,
-      inputTokenInfo.currentEpoch
+      inputTokenInfo.currentEpoch,
     ).amount;
   }
 
@@ -711,7 +711,7 @@ export function swapQuoteExactInput(
     actualAmountIn,
     feeMode,
     tradeDirection,
-    currentPoint
+    currentPoint,
   );
 
   let actualAmountOut = swapResult.outputAmount;
@@ -719,14 +719,14 @@ export function swapQuoteExactInput(
     actualAmountOut = calculateTransferFeeExcludedAmount(
       swapResult.outputAmount,
       outputTokenInfo.mint,
-      outputTokenInfo.currentEpoch
+      outputTokenInfo.currentEpoch,
     ).amount;
   }
 
   const minimumAmountOut = getAmountWithSlippage(
     actualAmountOut,
     slippage,
-    SwapMode.ExactIn
+    SwapMode.ExactIn,
   );
 
   const priceImpact = getPriceImpact(
@@ -735,7 +735,7 @@ export function swapQuoteExactInput(
     pool.sqrtPrice,
     aToB,
     tokenADecimal,
-    tokenBDecimal
+    tokenBDecimal,
   );
 
   return {
@@ -775,7 +775,7 @@ export function swapQuoteExactOutput(
   outputTokenInfo?: {
     mint: Mint;
     currentEpoch: number;
-  }
+  },
 ): Quote2Result {
   if (amountOut.lte(new BN(0))) {
     throw new Error("Amount out must be greater than 0");
@@ -794,7 +794,7 @@ export function swapQuoteExactOutput(
     actualAmountOut = calculateTransferFeeIncludedAmount(
       amountOut,
       outputTokenInfo.mint,
-      outputTokenInfo.currentEpoch
+      outputTokenInfo.currentEpoch,
     ).amount;
   }
 
@@ -803,7 +803,7 @@ export function swapQuoteExactOutput(
     actualAmountOut,
     feeMode,
     tradeDirection,
-    currentPoint
+    currentPoint,
   );
 
   let actualAmountIn = swapResult.includedFeeInputAmount;
@@ -811,14 +811,14 @@ export function swapQuoteExactOutput(
     actualAmountIn = calculateTransferFeeIncludedAmount(
       swapResult.includedFeeInputAmount,
       inputTokenInfo.mint,
-      inputTokenInfo.currentEpoch
+      inputTokenInfo.currentEpoch,
     ).amount;
   }
 
   const maximumAmountIn = getAmountWithSlippage(
     actualAmountIn,
     slippage,
-    SwapMode.ExactOut
+    SwapMode.ExactOut,
   );
 
   const priceImpact = getPriceImpact(
@@ -827,7 +827,7 @@ export function swapQuoteExactOutput(
     pool.sqrtPrice,
     aToB,
     tokenADecimal,
-    tokenBDecimal
+    tokenBDecimal,
   );
 
   return {
@@ -867,7 +867,7 @@ export function swapQuotePartialInput(
   outputTokenInfo?: {
     mint: Mint;
     currentEpoch: number;
-  }
+  },
 ): Quote2Result {
   if (amountIn.lte(new BN(0))) {
     throw new Error("Amount in must be greater than 0");
@@ -886,7 +886,7 @@ export function swapQuotePartialInput(
     actualAmountIn = calculateTransferFeeExcludedAmount(
       amountIn,
       inputTokenInfo.mint,
-      inputTokenInfo.currentEpoch
+      inputTokenInfo.currentEpoch,
     ).amount;
   }
 
@@ -895,7 +895,7 @@ export function swapQuotePartialInput(
     actualAmountIn,
     feeMode,
     tradeDirection,
-    currentPoint
+    currentPoint,
   );
 
   let actualAmountOut = swapResult.outputAmount;
@@ -903,14 +903,14 @@ export function swapQuotePartialInput(
     actualAmountOut = calculateTransferFeeExcludedAmount(
       swapResult.outputAmount,
       outputTokenInfo.mint,
-      outputTokenInfo.currentEpoch
+      outputTokenInfo.currentEpoch,
     ).amount;
   }
 
   const minimumAmountOut = getAmountWithSlippage(
     actualAmountOut,
     slippage,
-    SwapMode.PartialFill
+    SwapMode.PartialFill,
   );
 
   const priceImpact = getPriceImpact(
@@ -919,7 +919,7 @@ export function swapQuotePartialInput(
     pool.sqrtPrice,
     aToB,
     tokenADecimal,
-    tokenBDecimal
+    tokenBDecimal,
   );
 
   return {

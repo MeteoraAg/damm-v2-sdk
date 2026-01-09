@@ -40,7 +40,7 @@ function calculatePreFeeAmount(transferFee: TransferFee, postFeeAmount: BN) {
   const ONE_IN_BASIS_POINTS = new BN(MAX_FEE_BASIS_POINTS);
   const numerator = postFeeAmount.mul(ONE_IN_BASIS_POINTS);
   const denominator = ONE_IN_BASIS_POINTS.sub(
-    new BN(transferFee.transferFeeBasisPoints)
+    new BN(transferFee.transferFeeBasisPoints),
   );
 
   const rawPreFeeAmount = numerator
@@ -64,7 +64,7 @@ function calculatePreFeeAmount(transferFee: TransferFee, postFeeAmount: BN) {
 function calculateInverseFee(transferFee: TransferFee, postFeeAmount: BN) {
   const preFeeAmount = calculatePreFeeAmount(transferFee, postFeeAmount);
   return new BN(
-    calculateFee(transferFee, BigInt(preFeeAmount.toString())).toString()
+    calculateFee(transferFee, BigInt(preFeeAmount.toString())).toString(),
   );
 }
 
@@ -78,7 +78,7 @@ function calculateInverseFee(transferFee: TransferFee, postFeeAmount: BN) {
 export function calculateTransferFeeIncludedAmount(
   transferFeeExcludedAmount: BN,
   mint: Mint,
-  currentEpoch: number
+  currentEpoch: number,
 ): TransferFeeIncludedAmount {
   if (transferFeeExcludedAmount.isZero()) {
     return {
@@ -126,7 +126,7 @@ interface TransferFeeExcludedAmount {
 export function calculateTransferFeeExcludedAmount(
   transferFeeIncludedAmount: BN,
   mint: Mint,
-  currentEpoch: number
+  currentEpoch: number,
 ): TransferFeeExcludedAmount {
   const transferFeeConfig = getTransferFeeConfig(mint);
   if (transferFeeConfig === null) {
@@ -137,16 +137,16 @@ export function calculateTransferFeeExcludedAmount(
   }
 
   const transferFeeIncludedAmountN = BigInt(
-    transferFeeIncludedAmount.toString()
+    transferFeeIncludedAmount.toString(),
   );
 
   const transferFee = calculateFee(
     getEpochFee(transferFeeConfig, BigInt(currentEpoch)),
-    transferFeeIncludedAmountN
+    transferFeeIncludedAmountN,
   );
 
   const transferFeeExcludedAmount = new BN(
-    (transferFeeIncludedAmountN - transferFee).toString()
+    (transferFeeIncludedAmountN - transferFee).toString(),
   );
 
   return {
@@ -167,14 +167,14 @@ export interface TransferHookState {
  * Checks if a Token 2022 mint has a transfer hook extension
  * Transfer hooks prevent permissionless pool creation as they require
  * the hook program to approve transfers, which pool creation cannot satisfy.
- * 
+ *
  * @param connection - The connection to the Solana cluster
  * @param mint - The mint address to check
  * @returns Object containing whether transfer hook exists and its state if found
  */
 export async function hasTransferHookExtension(
   connection: Connection,
-  mint: PublicKey
+  mint: PublicKey,
 ): Promise<{
   hasTransferHook: boolean;
   transferHookState?: TransferHookState;
@@ -193,16 +193,16 @@ export async function hasTransferHookExtension(
 
     // Try to get parsed account info which includes extensions
     const parsedInfo = await connection.getParsedAccountInfo(mint);
-    if (parsedInfo.value && 'parsed' in parsedInfo.value.data) {
+    if (parsedInfo.value && "parsed" in parsedInfo.value.data) {
       const parsedData = parsedInfo.value.data.parsed;
       if (parsedData && parsedData.info && parsedData.info.extensions) {
         const extensions = parsedData.info.extensions;
-        
+
         // Check if transferHook extension exists
         const transferHookExtension = extensions.find(
-          (ext: any) => ext.extension === 'transferHook'
+          (ext: any) => ext.extension === "transferHook",
         );
-        
+
         if (transferHookExtension && transferHookExtension.state) {
           return {
             hasTransferHook: true,
@@ -226,7 +226,7 @@ export async function hasTransferHookExtension(
 /**
  * Validates that tokens don't have transfer hook extensions before pool creation
  * Throws an error if either token has a transfer hook extension
- * 
+ *
  * @param connection - The connection to the Solana cluster
  * @param tokenAMint - The first token mint address
  * @param tokenBMint - The second token mint address
@@ -235,7 +235,7 @@ export async function hasTransferHookExtension(
 export async function validateNoTransferHook(
   connection: Connection,
   tokenAMint: PublicKey,
-  tokenBMint: PublicKey 
+  tokenBMint: PublicKey,
 ): Promise<void> {
   const [tokenACheck, tokenBCheck] = await Promise.all([
     hasTransferHookExtension(connection, tokenAMint),
@@ -245,16 +245,16 @@ export async function validateNoTransferHook(
   if (tokenACheck.hasTransferHook) {
     throw new Error(
       `Token A (${tokenAMint.toBase58()}) has a transfer hook extension. ` +
-      `Transfer hook might prevent permissionless pool creation. ` +
-      `Transfer hook program: ${tokenACheck.transferHookState?.programId}`
+        `Transfer hook might prevent permissionless pool creation. ` +
+        `Transfer hook program: ${tokenACheck.transferHookState?.programId}`,
     );
   }
 
   if (tokenBCheck.hasTransferHook) {
     throw new Error(
       `Token B (${tokenBMint.toBase58()}) has a transfer hook extension. ` +
-      `Transfer hook might prevent permissionless pool creation. ` +
-      `Transfer hook program: ${tokenBCheck.transferHookState?.programId}`
+        `Transfer hook might prevent permissionless pool creation. ` +
+        `Transfer hook program: ${tokenBCheck.transferHookState?.programId}`,
     );
   }
 }

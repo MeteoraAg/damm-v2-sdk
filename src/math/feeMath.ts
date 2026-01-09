@@ -34,7 +34,7 @@ export function toNumerator(bps: BN, feeDenominator: BN): BN {
     bps,
     feeDenominator,
     new BN(BASIS_POINT_MAX),
-    Rounding.Down
+    Rounding.Down,
   );
   return numerator;
 }
@@ -49,7 +49,7 @@ export function toNumerator(bps: BN, feeDenominator: BN): BN {
 export function getFeeInPeriod(
   cliffFeeNumerator: BN,
   reductionFactor: BN,
-  passedPeriod: number
+  passedPeriod: number,
 ): BN {
   if (reductionFactor.isZero()) {
     return cliffFeeNumerator;
@@ -79,7 +79,7 @@ export function getFeeInPeriod(
 export function getFeeMode(
   collectFeeMode: CollectFeeMode,
   tradeDirection: TradeDirection,
-  hasReferral: boolean
+  hasReferral: boolean,
 ): FeeMode {
   // (CollectFeeMode::BothToken, TradeDirection::AToB) => (false, false)
   // (CollectFeeMode::BothToken, TradeDirection::BtoA) => (false, true)
@@ -127,7 +127,7 @@ export function getFeeMode(
 export function getTotalFeeNumerator(
   poolFees: PoolFeesStruct,
   baseFeeNumerator: BN,
-  maxFeeNumerator: BN
+  maxFeeNumerator: BN,
 ): BN {
   let dynamicFeeNumerator = new BN(0);
 
@@ -135,7 +135,7 @@ export function getTotalFeeNumerator(
     dynamicFeeNumerator = getDynamicFeeNumerator(
       poolFees.dynamicFee.volatilityAccumulator,
       new BN(poolFees.dynamicFee.binStep),
-      new BN(poolFees.dynamicFee.variableFeeControl)
+      new BN(poolFees.dynamicFee.variableFeeControl),
     );
   }
 
@@ -162,7 +162,7 @@ export function getTotalTradingFeeFromIncludedFeeAmount(
   tradeDirection: TradeDirection,
   maxFeeNumerator: BN,
   initSqrtPrice: BN,
-  currentSqrtPrice: BN
+  currentSqrtPrice: BN,
 ): BN {
   const baseFeeHandler = getBaseFeeHandler(poolFees.baseFee.baseFeeInfo.data);
 
@@ -174,7 +174,7 @@ export function getTotalTradingFeeFromIncludedFeeAmount(
       tradeDirection,
       includedFeeAmount,
       initSqrtPrice,
-      currentSqrtPrice
+      currentSqrtPrice,
     );
 
   // get the total fee numerator, capped at maxFeeNumerator
@@ -199,7 +199,7 @@ export function getTotalTradingFeeFromExcludedFeeAmount(
   tradeDirection: TradeDirection,
   maxFeeNumerator: BN,
   initSqrtPrice: BN,
-  currentSqrtPrice: BN
+  currentSqrtPrice: BN,
 ): BN {
   const baseFeeHandler = getBaseFeeHandler(poolFees.baseFee.baseFeeInfo.data);
 
@@ -211,7 +211,7 @@ export function getTotalTradingFeeFromExcludedFeeAmount(
       tradeDirection,
       excludedFeeAmount,
       initSqrtPrice,
-      currentSqrtPrice
+      currentSqrtPrice,
     );
 
   // get the total fee numerator, capped at maxFeeNumerator
@@ -230,7 +230,7 @@ export function splitFees(
   poolFees: PoolFeesStruct,
   feeAmount: BN,
   hasReferral: boolean,
-  hasPartner: boolean
+  hasPartner: boolean,
 ): SplitFees {
   // protocol_fee = feeAmount * protocol_fee_percent / 100 (rounded down)
   const protocolFee = feeAmount.muln(poolFees.protocolFeePercent).divn(100);
@@ -280,12 +280,12 @@ export function getFeeOnAmount(
   amount: BN,
   tradeFeeNumerator: BN,
   hasReferral: boolean,
-  hasPartner: boolean
+  hasPartner: boolean,
 ): FeeOnAmountResult {
   // get the amount and trading fee after excluding the fee from the amount
   const { excludedFeeAmount, tradingFee } = getExcludedFeeAmount(
     tradeFeeNumerator,
-    amount
+    amount,
   );
 
   // split the trading fee into protocol, referral, and partner fees
@@ -293,7 +293,7 @@ export function getFeeOnAmount(
     poolFees,
     tradingFee,
     hasReferral,
-    hasPartner
+    hasPartner,
   );
 
   return {
@@ -313,13 +313,13 @@ export function getFeeOnAmount(
  */
 export function getExcludedFeeAmount(
   tradeFeeNumerator: BN,
-  includedFeeAmount: BN
+  includedFeeAmount: BN,
 ): { excludedFeeAmount: BN; tradingFee: BN } {
   const tradingFee = mulDiv(
     includedFeeAmount,
     tradeFeeNumerator,
     new BN(FEE_DENOMINATOR),
-    Rounding.Up
+    Rounding.Up,
   );
   const excludedFeeAmount = includedFeeAmount.sub(tradingFee);
 
@@ -334,7 +334,7 @@ export function getExcludedFeeAmount(
  */
 export function getIncludedFeeAmount(
   tradeFeeNumerator: BN,
-  excludedFeeAmount: BN
+  excludedFeeAmount: BN,
 ): { includedFeeAmount: BN; feeAmount: BN } {
   const denominator = new BN(FEE_DENOMINATOR).sub(tradeFeeNumerator);
   if (denominator.isZero() || denominator.isNeg()) {
@@ -345,7 +345,7 @@ export function getIncludedFeeAmount(
     excludedFeeAmount,
     new BN(FEE_DENOMINATOR),
     denominator,
-    Rounding.Up
+    Rounding.Up,
   );
 
   const feeAmount = includedFeeAmount.sub(excludedFeeAmount);

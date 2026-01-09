@@ -22,7 +22,7 @@ export function getFeeTimeBaseFeeNumeratorByPeriod(
   numberOfPeriod: number,
   period: BN,
   reductionFactor: BN,
-  feeTimeSchedulerMode: BaseFeeMode
+  feeTimeSchedulerMode: BaseFeeMode,
 ): BN {
   const periodValue = BN.min(period, new BN(numberOfPeriod));
   const periodNumber = periodValue.toNumber();
@@ -35,7 +35,7 @@ export function getFeeTimeBaseFeeNumeratorByPeriod(
       const feeNumerator = getFeeNumeratorOnLinearFeeScheduler(
         cliffFeeNumerator,
         reductionFactor,
-        periodNumber
+        periodNumber,
       );
       return feeNumerator;
     }
@@ -43,7 +43,7 @@ export function getFeeTimeBaseFeeNumeratorByPeriod(
       const feeNumerator = getFeeNumeratorOnExponentialFeeScheduler(
         cliffFeeNumerator,
         reductionFactor,
-        periodNumber
+        periodNumber,
       );
       return feeNumerator;
     }
@@ -70,7 +70,7 @@ export function getFeeTimeBaseFeeNumerator(
   reductionFactor: BN,
   feeTimeSchedulerMode: BaseFeeMode,
   currentPoint: BN,
-  activationPoint: BN
+  activationPoint: BN,
 ): BN {
   if (periodFrequency.isZero()) {
     return cliffFeeNumerator;
@@ -94,7 +94,7 @@ export function getFeeTimeBaseFeeNumerator(
     numberOfPeriod,
     period,
     reductionFactor,
-    feeTimeSchedulerMode
+    feeTimeSchedulerMode,
   );
 }
 
@@ -111,13 +111,13 @@ export function getFeeTimeMinBaseFeeNumerator(
   cliffFeeNumerator: BN,
   numberOfPeriod: number,
   reductionFactor: BN,
-  feeTimeSchedulerMode: BaseFeeMode
+  feeTimeSchedulerMode: BaseFeeMode,
 ): BN {
   return getFeeTimeBaseFeeNumeratorByPeriod(
     cliffFeeNumerator,
     numberOfPeriod,
     new BN(numberOfPeriod),
     reductionFactor,
-    feeTimeSchedulerMode
+    feeTimeSchedulerMode,
   );
 }

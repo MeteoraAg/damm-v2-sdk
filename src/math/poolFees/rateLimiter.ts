@@ -29,7 +29,7 @@ export function isZeroRateLimiter(
   referenceAmount: BN,
   maxLimiterDuration: number,
   maxFeeBps: number,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): boolean {
   return (
     referenceAmount.isZero() &&
@@ -51,7 +51,7 @@ export function isNonZeroRateLimiter(
   referenceAmount: BN,
   maxLimiterDuration: number,
   maxFeeBps: number,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): boolean {
   return (
     referenceAmount.isZero() &&
@@ -79,7 +79,7 @@ export function isRateLimiterApplied(
   feeIncrementBps: number,
   currentPoint: BN,
   activationPoint: BN,
-  tradeDirection: TradeDirection
+  tradeDirection: TradeDirection,
 ): boolean {
   // if rate limiter is zero, return false
   if (
@@ -87,7 +87,7 @@ export function isRateLimiterApplied(
       referenceAmount,
       maxLimiterDuration,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     )
   ) {
     return false;
@@ -104,7 +104,7 @@ export function isRateLimiterApplied(
 
   // last_effective_rate_limiter_point = activation_point + max_limiter_duration
   const lastEffectiveRateLimiterPoint = activationPoint.add(
-    new BN(maxLimiterDuration)
+    new BN(maxLimiterDuration),
   );
 
   if (currentPoint.gt(lastEffectiveRateLimiterPoint)) {
@@ -124,12 +124,12 @@ export function isRateLimiterApplied(
 export function getMaxIndex(
   maxFeeBps: number,
   cliffFeeNumerator: BN,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): BN {
   // max_fee_numerator = to_numerator(maxFeeBps, FEE_DENOMINATOR)
   const maxFeeNumerator = toNumerator(
     new BN(maxFeeBps),
-    new BN(FEE_DENOMINATOR)
+    new BN(FEE_DENOMINATOR),
   );
 
   // delta_numerator = max_fee_numerator.safe_sub(cliff_fee_numerator)
@@ -141,7 +141,7 @@ export function getMaxIndex(
   // fee_increment_numerator = to_numerator(feeIncrementBps, FEE_DENOMINATOR)
   const feeIncrementNumerator = toNumerator(
     new BN(feeIncrementBps),
-    new BN(FEE_DENOMINATOR)
+    new BN(FEE_DENOMINATOR),
   );
 
   if (feeIncrementNumerator.isZero()) {
@@ -167,7 +167,7 @@ export function getFeeNumeratorFromIncludedFeeAmount(
   referenceAmount: BN,
   cliffFeeNumerator: BN,
   maxFeeBps: number,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): BN {
   if (inputAmount.lte(referenceAmount)) {
     return cliffFeeNumerator;
@@ -175,7 +175,7 @@ export function getFeeNumeratorFromIncludedFeeAmount(
     // max_fee_numerator = to_numerator(maxFeeBps, FEE_DENOMINATOR)
     const maxFeeNumerator = toNumerator(
       new BN(maxFeeBps),
-      new BN(FEE_DENOMINATOR)
+      new BN(FEE_DENOMINATOR),
     );
 
     const c = cliffFeeNumerator;
@@ -255,18 +255,18 @@ export function getExcludedFeeAmountFromIncludedFeeAmount(
   referenceAmount: BN,
   cliffFeeNumerator: BN,
   maxFeeBps: number,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): BN {
   const feeNumerator = getFeeNumeratorFromIncludedFeeAmount(
     includedFeeAmount,
     referenceAmount,
     cliffFeeNumerator,
     maxFeeBps,
-    feeIncrementBps
+    feeIncrementBps,
   );
   const { excludedFeeAmount } = getExcludedFeeAmount(
     feeNumerator,
-    includedFeeAmount
+    includedFeeAmount,
   );
   return excludedFeeAmount;
 }
@@ -283,7 +283,7 @@ export function getCheckedAmounts(
   referenceAmount: BN,
   cliffFeeNumerator: BN,
   maxFeeBps: number,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): {
   checkedExcludedFeeAmount: BN;
   checkedIncludedFeeAmount: BN;
@@ -302,7 +302,7 @@ export function getCheckedAmounts(
       referenceAmount,
       cliffFeeNumerator,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     );
     return {
       checkedExcludedFeeAmount,
@@ -316,7 +316,7 @@ export function getCheckedAmounts(
       referenceAmount,
       cliffFeeNumerator,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     );
     return {
       checkedExcludedFeeAmount,
@@ -340,7 +340,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
   referenceAmount: BN,
   cliffFeeNumerator: BN,
   maxFeeBps: number,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): BN {
   // get excluded fee reference amount
   const excludedFeeReferenceAmount = getExcludedFeeAmountFromIncludedFeeAmount(
@@ -348,7 +348,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
     referenceAmount,
     cliffFeeNumerator,
     maxFeeBps,
-    feeIncrementBps
+    feeIncrementBps,
   );
   if (excludedFeeAmount.lte(excludedFeeReferenceAmount)) {
     return cliffFeeNumerator;
@@ -360,7 +360,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
       referenceAmount,
       cliffFeeNumerator,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     );
 
   if (excludedFeeAmount.eq(checkedExcludedFeeAmount)) {
@@ -369,7 +369,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
       referenceAmount,
       cliffFeeNumerator,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     );
   }
 
@@ -426,11 +426,11 @@ export function getFeeNumeratorFromExcludedFeeAmount(
       referenceAmount,
       cliffFeeNumerator,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     );
     // excluded_fee_remaining_amount = excludedFeeAmount - firstExcludedFeeAmount
     const excludedFeeRemainingAmount = excludedFeeAmount.sub(
-      firstExcludedFeeAmount
+      firstExcludedFeeAmount,
     );
 
     // remaining_amount_fee_numerator = c + i * a_plus_one
@@ -440,7 +440,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
     const { includedFeeAmount: includedFeeRemainingAmount } =
       getIncludedFeeAmount(
         remainingAmountFeeNumerator,
-        excludedFeeRemainingAmount
+        excludedFeeRemainingAmount,
       );
 
     // total_in_amount = includedFeeAmount + includedFeeRemainingAmount
@@ -452,19 +452,19 @@ export function getFeeNumeratorFromExcludedFeeAmount(
     }
     // excluded_fee_remaining_amount = excludedFeeAmount - checkedExcludedFeeAmount
     const excludedFeeRemainingAmount = excludedFeeAmount.sub(
-      checkedExcludedFeeAmount
+      checkedExcludedFeeAmount,
     );
 
     const maxFeeNumerator = toNumerator(
       new BN(maxFeeBps),
-      new BN(FEE_DENOMINATOR)
+      new BN(FEE_DENOMINATOR),
     );
     const { includedFeeAmount: includedFeeRemainingAmount } =
       getIncludedFeeAmount(maxFeeNumerator, excludedFeeRemainingAmount);
 
     // total_amount_in = includedFeeRemainingAmount + checkedIncludedFeeAmount
     includedFeeAmount = includedFeeRemainingAmount.add(
-      checkedIncludedFeeAmount
+      checkedIncludedFeeAmount,
     );
   }
 
@@ -476,7 +476,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
     tradingFee,
     new BN(FEE_DENOMINATOR),
     includedFeeAmount,
-    Rounding.Up
+    Rounding.Up,
   );
 
   // sanity check

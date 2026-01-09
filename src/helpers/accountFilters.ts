@@ -6,7 +6,7 @@ import { GetProgramAccountsFilter, PublicKey } from "@solana/web3.js";
  * @returns The filter for the position by pool
  */
 export const positionByPoolFilter = (
-  pool: PublicKey
+  pool: PublicKey,
 ): GetProgramAccountsFilter => {
   return {
     memcmp: {
@@ -22,7 +22,7 @@ export const positionByPoolFilter = (
  * @returns The filter for the vesting by position
  */
 export const vestingByPositionFilter = (
-  position: PublicKey
+  position: PublicKey,
 ): GetProgramAccountsFilter => {
   return {
     memcmp: {
@@ -40,7 +40,7 @@ export const vestingByPositionFilter = (
  */
 export function offsetBasedFilter(
   value: PublicKey | string,
-  offset: number
+  offset: number,
 ): GetProgramAccountsFilter[] {
   const valueKey = typeof value === "string" ? new PublicKey(value) : value;
   return [

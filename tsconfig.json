@@ -2,13 +2,20 @@
   "compilerOptions": {
     "strict": true,
     "strictNullChecks": false,
-    "target": "es6",                                  
-    "lib": ["es2015"],                                       
-    "module": "commonjs",                                
-    "resolveJsonModule": true,                        
-    "esModuleInterop": true,                            
-    "forceConsistentCasingInFileNames": true,            
-    "noImplicitAny": true,                           
-    "skipLibCheck": true                                
-  }
+    "target": "es6",
+    "lib": [
+      "es2015"
+    ],
+    "module": "commonjs",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": true,
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "scripts"
+  ]
 }

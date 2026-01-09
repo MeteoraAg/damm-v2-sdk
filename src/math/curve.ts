@@ -14,7 +14,7 @@ import { Rounding } from "../types";
 export function getNextSqrtPriceFromAmountInBRoundingDown(
   sqrtPrice: BN,
   liquidity: BN,
-  amount: BN
+  amount: BN,
 ): BN {
   // quotient = (amount << (SCALE_OFFSET * 2)) / liquidity
   const quotient = amount.shln(SCALE_OFFSET * 2).div(liquidity);
@@ -36,7 +36,7 @@ export function getNextSqrtPriceFromAmountInBRoundingDown(
 export function getNextSqrtPriceFromAmountOutBRoundingDown(
   sqrtPrice: BN,
   liquidity: BN,
-  amount: BN
+  amount: BN,
 ): BN {
   // quotient = ceil((amount << (SCALE_OFFSET * 2)) / liquidity)
   const numerator = amount.shln(SCALE_OFFSET * 2);
@@ -63,7 +63,7 @@ export function getNextSqrtPriceFromAmountOutBRoundingDown(
 export function getNextSqrtPriceFromAmountInARoundingUp(
   sqrtPrice: BN,
   liquidity: BN,
-  amount: BN
+  amount: BN,
 ): BN {
   if (amount.isZero()) {
     return sqrtPrice;
@@ -92,7 +92,7 @@ export function getNextSqrtPriceFromAmountInARoundingUp(
 export function getNextSqrtPriceFromAmountOutARoundingUp(
   sqrtPrice: BN,
   liquidity: BN,
-  amount: BN
+  amount: BN,
 ): BN {
   if (amount.isZero()) {
     return sqrtPrice;
@@ -122,7 +122,7 @@ export function getNextSqrtPriceFromOutput(
   sqrtPrice: BN,
   liquidity: BN,
   amountOut: BN,
-  aForB: boolean
+  aForB: boolean,
 ): BN {
   if (sqrtPrice.lte(new BN(0))) {
     throw new Error("sqrtPrice must be greater than 0");
@@ -135,13 +135,13 @@ export function getNextSqrtPriceFromOutput(
     return getNextSqrtPriceFromAmountOutBRoundingDown(
       sqrtPrice,
       liquidity,
-      amountOut
+      amountOut,
     );
   } else {
     return getNextSqrtPriceFromAmountOutARoundingUp(
       sqrtPrice,
       liquidity,
-      amountOut
+      amountOut,
     );
   }
 }
@@ -158,7 +158,7 @@ export function getNextSqrtPriceFromInput(
   sqrtPrice: BN,
   liquidity: BN,
   amountIn: BN,
-  aForB: boolean
+  aForB: boolean,
 ): BN {
   if (sqrtPrice.lte(new BN(0))) {
     throw new Error("sqrtPrice must be greater than 0");
@@ -172,14 +172,14 @@ export function getNextSqrtPriceFromInput(
     return getNextSqrtPriceFromAmountInARoundingUp(
       sqrtPrice,
       liquidity,
-      amountIn
+      amountIn,
     );
   } else {
     // Rounding down for B to A
     return getNextSqrtPriceFromAmountInBRoundingDown(
       sqrtPrice,
       liquidity,
-      amountIn
+      amountIn,
     );
   }
 }
@@ -196,13 +196,13 @@ export function getAmountBFromLiquidityDelta(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
   liquidity: BN,
-  rounding: Rounding
+  rounding: Rounding,
 ): BN {
   const result = getDeltaAmountBUnsignedUnchecked(
     lowerSqrtPrice,
     upperSqrtPrice,
     liquidity,
-    rounding
+    rounding,
   );
 
   return result;
@@ -220,7 +220,7 @@ function getDeltaAmountBUnsignedUnchecked(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
   liquidity: BN,
-  rounding: Rounding
+  rounding: Rounding,
 ): BN {
   // delta_sqrt_price = upper_sqrt_price - lower_sqrt_price
   const deltaSqrtPrice = upperSqrtPrice.sub(lowerSqrtPrice);
@@ -255,13 +255,13 @@ export function getAmountAFromLiquidityDelta(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
   liquidity: BN,
-  rounding: Rounding
+  rounding: Rounding,
 ): BN {
   const result = getDeltaAmountAUnsignedUnchecked(
     lowerSqrtPrice,
     upperSqrtPrice,
     liquidity,
-    rounding
+    rounding,
   );
 
   return result;
@@ -279,7 +279,7 @@ function getDeltaAmountAUnsignedUnchecked(
   lowerSqrtPrice: BN,
   upperSqrtPrice: BN,
   liquidity: BN,
-  rounding: Rounding
+  rounding: Rounding,
 ): BN {
   const numerator1 = liquidity;
   const numerator2 = upperSqrtPrice.sub(lowerSqrtPrice);
@@ -307,7 +307,7 @@ function getDeltaAmountAUnsignedUnchecked(
 export function getLiquidityDeltaFromAmountA(
   amountA: BN,
   lowerSqrtPrice: BN, // current sqrt price
-  upperSqrtPrice: BN // max sqrt price
+  upperSqrtPrice: BN, // max sqrt price
 ): BN {
   const product = amountA.mul(lowerSqrtPrice).mul(upperSqrtPrice); // Q128.128
   const denominator = upperSqrtPrice.sub(lowerSqrtPrice); // Q64.64
@@ -327,7 +327,7 @@ export function getLiquidityDeltaFromAmountA(
 export function getLiquidityDeltaFromAmountB(
   amountB: BN,
   lowerSqrtPrice: BN, // min sqrt price
-  upperSqrtPrice: BN // current sqrt price,
+  upperSqrtPrice: BN, // current sqrt price,
 ): BN {
   const denominator = upperSqrtPrice.sub(lowerSqrtPrice);
   const product = amountB.shln(128);

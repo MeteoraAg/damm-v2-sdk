@@ -24,7 +24,7 @@ export const getSimulationComputeUnits = async (
   instructions: Array<TransactionInstruction>,
   payer: PublicKey,
   lookupTables: Array<AddressLookupTableAccount> | [],
-  commitment: Commitment = "confirmed"
+  commitment: Commitment = "confirmed",
 ): Promise<number | null> => {
   const testInstructions = [
     // Set an arbitrarily high number in simulation
@@ -41,7 +41,7 @@ export const getSimulationComputeUnits = async (
       // RecentBlockhash can by any public key during simulation
       // since 'replaceRecentBlockhash' is set to 'true' below
       recentBlockhash: PublicKey.default.toString(),
-    }).compileToV0Message(lookupTables)
+    }).compileToV0Message(lookupTables),
   );
 
   const rpcResponse = await connection.simulateTransaction(testTransaction, {
@@ -54,7 +54,7 @@ export const getSimulationComputeUnits = async (
     const logs = rpcResponse.value.logs?.join("\n  • ") || "No logs available";
     throw new Error(
       `Transaction simulation failed:\n  •${logs}` +
-        JSON.stringify(rpcResponse?.value?.err)
+        JSON.stringify(rpcResponse?.value?.err),
     );
   }
 
@@ -73,7 +73,7 @@ export const getEstimatedComputeUnitUsageWithBuffer = async (
   connection: Connection,
   instructions: TransactionInstruction[],
   feePayer: PublicKey,
-  buffer?: number
+  buffer?: number,
 ) => {
   if (!buffer) {
     buffer = 0.1;
@@ -87,7 +87,7 @@ export const getEstimatedComputeUnitUsageWithBuffer = async (
     connection,
     instructions,
     feePayer,
-    []
+    [],
   );
 
   if (!estimatedComputeUnitUsage) {
@@ -117,13 +117,13 @@ export const getEstimatedComputeUnitIxWithBuffer = async (
   connection: Connection,
   instructions: TransactionInstruction[],
   feePayer: PublicKey,
-  buffer?: number
+  buffer?: number,
 ) => {
   const units = await getEstimatedComputeUnitUsageWithBuffer(
     connection,
     instructions,
     feePayer,
-    buffer
+    buffer,
   ).catch((error) => {
     console.error("Error::getEstimatedComputeUnitUsageWithBuffer", error);
     return 1_400_000;

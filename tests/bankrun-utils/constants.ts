@@ -2,11 +2,11 @@ import { BN } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 
 export const CP_AMM_PROGRAM_ID = new PublicKey(
-  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG"
+  "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
 );
 
 export const TREASURY = new PublicKey(
-  "BJQbRiRWhJCyTYZcAuAL3ngDCx3AyFQGKDq8zhiZAKUw"
+  "BJQbRiRWhJCyTYZcAuAL3ngDCx3AyFQGKDq8zhiZAKUw",
 );
 
 export const MIN_SQRT_PRICE = new BN("4295048016");
@@ -24,5 +24,5 @@ export const FEE_BASIS_POINT = 100; // 1%
 export const MAX_FEE = BigInt(9 * Math.pow(10, DECIMALS)); // 9 tokens
 
 export const TEST_TRANSFER_HOOK_PROGRAM_ID = new PublicKey(
-  "EBZDYx7599krFc4m2govwBdZcicr4GgepqC78m71nsHS"
+  "EBZDYx7599krFc4m2govwBdZcicr4GgepqC78m71nsHS",
 );

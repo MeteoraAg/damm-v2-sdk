@@ -20,7 +20,7 @@ export function getFeeMarketCapBaseFeeNumeratorByPeriod(
   numberOfPeriod: number,
   period: BN,
   reductionFactor: BN,
-  feeMarketCapSchedulerMode: BaseFeeMode
+  feeMarketCapSchedulerMode: BaseFeeMode,
 ): BN {
   const periodValue = BN.min(period, new BN(numberOfPeriod));
   const periodNumber = periodValue.toNumber();
@@ -30,7 +30,7 @@ export function getFeeMarketCapBaseFeeNumeratorByPeriod(
       const feeNumerator = getFeeNumeratorOnLinearFeeScheduler(
         cliffFeeNumerator,
         reductionFactor,
-        periodNumber
+        periodNumber,
       );
       return feeNumerator;
     }
@@ -38,7 +38,7 @@ export function getFeeMarketCapBaseFeeNumeratorByPeriod(
       const feeNumerator = getFeeNumeratorOnExponentialFeeScheduler(
         cliffFeeNumerator,
         reductionFactor,
-        periodNumber
+        periodNumber,
       );
       return feeNumerator;
     }
@@ -71,10 +71,10 @@ export function getFeeMarketCapBaseFeeNumerator(
   currentPoint: BN,
   activationPoint: BN,
   initSqrtPrice: BN,
-  currentSqrtPrice: BN
+  currentSqrtPrice: BN,
 ): BN {
   const schedulerExpirationPoint = activationPoint.add(
-    new BN(schedulerExpirationDuration)
+    new BN(schedulerExpirationDuration),
   );
 
   let period: BN;
@@ -111,7 +111,7 @@ export function getFeeMarketCapBaseFeeNumerator(
     numberOfPeriod,
     period,
     reductionFactor,
-    feeMarketCapSchedulerMode
+    feeMarketCapSchedulerMode,
   );
 }
 
@@ -127,13 +127,13 @@ export function getFeeMarketCapMinBaseFeeNumerator(
   cliffFeeNumerator: BN,
   numberOfPeriod: number,
   reductionFactor: BN,
-  feeMarketCapSchedulerMode: BaseFeeMode
+  feeMarketCapSchedulerMode: BaseFeeMode,
 ): BN {
   return getFeeMarketCapBaseFeeNumeratorByPeriod(
     cliffFeeNumerator,
     numberOfPeriod,
     new BN(numberOfPeriod),
     reductionFactor,
-    feeMarketCapSchedulerMode
+    feeMarketCapSchedulerMode,
   );
 }

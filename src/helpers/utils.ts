@@ -29,7 +29,7 @@ export const getMaxAmountWithSlippage = (amount: BN, rate: number) => {
 export const getAmountWithSlippage = (
   amount: BN,
   slippageBps: number,
-  swapMode: SwapMode
+  swapMode: SwapMode,
 ): BN => {
   let result: BN;
 
@@ -67,7 +67,7 @@ export const getPriceImpact = (
   currentSqrtPrice: BN,
   aToB: boolean,
   tokenADecimal: number,
-  tokenBDecimal: number
+  tokenBDecimal: number,
 ): Decimal => {
   if (amountIn.eq(new BN(0))) {
     return new Decimal(0);
@@ -80,7 +80,7 @@ export const getPriceImpact = (
   const spotPrice = getPriceFromSqrtPrice(
     currentSqrtPrice,
     tokenADecimal,
-    tokenBDecimal
+    tokenBDecimal,
   );
 
   // execution price: amountIn / amountOut
@@ -89,8 +89,8 @@ export const getPriceImpact = (
     .mul(
       Decimal.pow(
         10,
-        aToB ? tokenBDecimal - tokenADecimal : tokenADecimal - tokenBDecimal
-      )
+        aToB ? tokenBDecimal - tokenADecimal : tokenADecimal - tokenBDecimal,
+      ),
     );
 
   let priceImpact: Decimal;
@@ -120,7 +120,7 @@ export const getPriceImpact = (
  */
 export const getPriceChange = (
   nextSqrtPrice: BN,
-  currentSqrtPrice: BN
+  currentSqrtPrice: BN,
 ): number => {
   // price = (sqrtPrice)^2 * 10 ** (base_decimal - quote_decimal) / 2^128
   // k = 10^(base_decimal - quote_decimal) / 2^128
@@ -150,7 +150,7 @@ export const getPriceChange = (
 export const getPriceFromSqrtPrice = (
   sqrtPrice: BN,
   tokenADecimal: number,
-  tokenBDecimal: number
+  tokenBDecimal: number,
 ): Decimal => {
   const decimalSqrtPrice = new Decimal(sqrtPrice.toString());
   const price = decimalSqrtPrice
@@ -172,12 +172,12 @@ export const getPriceFromSqrtPrice = (
 export const getSqrtPriceFromPrice = (
   price: string,
   tokenADecimal: number,
-  tokenBDecimal: number
+  tokenBDecimal: number,
 ): BN => {
   const decimalPrice = new Decimal(price);
 
   const adjustedByDecimals = decimalPrice.div(
-    new Decimal(10 ** (tokenADecimal - tokenBDecimal))
+    new Decimal(10 ** (tokenADecimal - tokenBDecimal)),
   );
 
   const sqrtValue = Decimal.sqrt(adjustedByDecimals);
@@ -199,7 +199,7 @@ export const getSqrtPriceFromPrice = (
  */
 export const getUnClaimLpFee = (
   poolState: PoolState,
-  positionState: PositionState
+  positionState: PositionState,
 ): {
   feeTokenA: BN;
   feeTokenB: BN;
@@ -210,11 +210,11 @@ export const getUnClaimLpFee = (
     .add(positionState.permanentLockedLiquidity);
 
   const feeAPerTokenStored = new BN(
-    Buffer.from(poolState.feeAPerLiquidity).reverse()
+    Buffer.from(poolState.feeAPerLiquidity).reverse(),
   ).sub(new BN(Buffer.from(positionState.feeAPerTokenCheckpoint).reverse()));
 
   const feeBPerTokenStored = new BN(
-    Buffer.from(poolState.feeBPerLiquidity).reverse()
+    Buffer.from(poolState.feeBPerLiquidity).reverse(),
   ).sub(new BN(Buffer.from(positionState.feeBPerTokenCheckpoint).reverse()));
 
   const feeA = totalPositionLiquidity
@@ -239,14 +239,14 @@ export const getUnClaimLpFee = (
 function getRewardPerTokenStore(
   poolReward: RewardInfo,
   poolLiquidity: BN,
-  currentTime: BN
+  currentTime: BN,
 ): BN {
   if (poolLiquidity.eq(new BN(0))) {
     return new BN(0);
   }
   const lastTimeRewardApplicable = BN.min(
     currentTime,
-    poolReward.rewardDurationEnd
+    poolReward.rewardDurationEnd,
   );
 
   const timePeriod = lastTimeRewardApplicable.sub(poolReward.lastUpdateTime);
@@ -254,7 +254,7 @@ function getRewardPerTokenStore(
   const rewardPerTokenStore = currentTotalReward.shln(128).div(poolLiquidity);
 
   const totalRewardPerTokenStore = new BN(
-    Buffer.from(poolReward.rewardPerTokenStored).reverse()
+    Buffer.from(poolReward.rewardPerTokenStored).reverse(),
   ).add(rewardPerTokenStore);
 
   return totalRewardPerTokenStore;
@@ -263,7 +263,7 @@ function getRewardPerTokenStore(
 function getRewardPerPeriod(
   poolReward: RewardInfo,
   currentTime: BN,
-  periodTime: BN
+  periodTime: BN,
 ): BN {
   const timeRewardAppicable = currentTime.add(periodTime);
   // cap max period in reward duration end
@@ -282,7 +282,7 @@ export function getRewardInfo(
   poolState: PoolState,
   rewardIndex: number,
   periodTime: BN,
-  currentTime: BN
+  currentTime: BN,
 ): {
   rewardPerPeriod: BN;
   rewardBalance: BN;
@@ -293,7 +293,7 @@ export function getRewardInfo(
   const rewardPerTokenStore = getRewardPerTokenStore(
     poolReward,
     poolState.liquidity,
-    currentTime
+    currentTime,
   );
 
   // calculate current reward distributed to user reward.
@@ -312,7 +312,7 @@ export function getRewardInfo(
   const rewardPerPeriod = getRewardPerPeriod(
     poolReward,
     currentTime,
-    periodTime
+    periodTime,
   );
 
   const remainTime = poolReward.rewardDurationEnd.sub(currentTime);
@@ -340,7 +340,7 @@ export function getUserRewardPending(
   positionState: PositionState,
   rewardIndex: number,
   currentTime: BN,
-  periodTime: BN
+  periodTime: BN,
 ): { userRewardPerPeriod: BN; userPendingReward: BN } {
   if (poolState.liquidity.eq(new BN(0))) {
     return {
@@ -354,7 +354,7 @@ export function getUserRewardPending(
   const rewardPerTokenStore = getRewardPerTokenStore(
     poolReward,
     poolState.liquidity,
-    currentTime
+    currentTime,
   );
 
   const totalPositionLiquidity = positionState.unlockedLiquidity
@@ -362,7 +362,7 @@ export function getUserRewardPending(
     .add(positionState.permanentLockedLiquidity);
 
   const userRewardPerTokenCheckPoint = new BN(
-    Buffer.from(userRewardInfo.rewardPerTokenCheckpoint).reverse()
+    Buffer.from(userRewardInfo.rewardPerTokenCheckpoint).reverse(),
   );
   const newReward = totalPositionLiquidity
     .mul(rewardPerTokenStore.sub(userRewardPerTokenCheckPoint))
@@ -378,7 +378,7 @@ export function getUserRewardPending(
   const rewardPerPeriod = getRewardPerPeriod(
     poolReward,
     currentTime,
-    periodTime
+    periodTime,
   );
 
   const rewardPerTokenStorePerPeriod = rewardPerPeriod

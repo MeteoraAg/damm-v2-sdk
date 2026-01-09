@@ -51,7 +51,7 @@ describe("Claim Fee", () => {
     const prepareContext = await setupTestContext(
       context.banksClient,
       context.payer,
-      false
+      false,
     );
     tempWSolAccountKP = Keypair.generate();
     recipientKP = Keypair.generate();
@@ -59,14 +59,14 @@ describe("Claim Fee", () => {
       context.banksClient,
       context.payer,
       tempWSolAccountKP.publicKey,
-      new BN(LAMPORTS_PER_SOL)
+      new BN(LAMPORTS_PER_SOL),
     );
 
     await transferSol(
       context.banksClient,
       context.payer,
       recipientKP.publicKey,
-      new BN(LAMPORTS_PER_SOL)
+      new BN(LAMPORTS_PER_SOL),
     );
 
     payer = prepareContext.payer;
@@ -86,7 +86,7 @@ describe("Claim Fee", () => {
         },
       },
       6,
-      ActivationType.Timestamp
+      ActivationType.Timestamp,
     );
 
     const poolFees: PoolFeesParams = {
@@ -145,7 +145,7 @@ describe("Claim Fee", () => {
     poolState = await getPool(
       context.banksClient,
       ammInstance._program,
-      poolAddress
+      poolAddress,
     );
   });
 

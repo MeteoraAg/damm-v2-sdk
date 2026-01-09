@@ -68,6 +68,15 @@
   - [feeNumeratorToBps](#feenumeratortobps)
   - [getBaseFeeParams](#getbasefeeparams)
   - [getDynamicFeeParams](#getdynamicfeeparams)
+  - [encodeFeeTimeSchedulerParams](#encodefeetimeschedulerparams)
+  - [encodeFeeMarketCapSchedulerParams](#encodefeemarketcapschedulerparams)
+  - [encodeFeeRateLimiterParams](#encodefeeratelimiterparams)
+  - [decodeFeeTimeSchedulerParams](#decodefeetimeschedulerparams)
+  - [decodeFeeMarketCapSchedulerParams](#decodefeemarketcapschedulerparams)
+  - [decodeFeeRateLimiterParams](#decodefeeratelimiterparams)
+  - [decodePodAlignedFeeTimeScheduler](#decodepodalignedfeetimescheduler)
+  - [decodePodAlignedFeeMarketCapScheduler](#decodepodalignedfeemarketcapscheduler)
+  - [decodePodAlignedFeeRateLimiter](#decodepodalignedfeeratelimiter)
 
 ---
 
@@ -191,9 +200,7 @@ interface InitializeCustomizeablePoolParams {
 }
 
 interface PoolFees {
-  baseFee: {
-    data: number[];
-  };
+  baseFee: BaseFee; // Base fee configuration (see below for different modes)
   padding: number[];
   dynamicFee?: {
     // Optional dynamic fee configuration
@@ -205,6 +212,42 @@ interface PoolFees {
     variableFeeControl: number;
     maxVolatilityAccumulator: number;
   };
+}
+
+// Base Fee Mode Types:
+// 0 = Fee Time Scheduler Linear
+// 1 = Fee Time Scheduler Exponential
+// 2 = Rate Limiter
+// 3 = Fee Market Cap Scheduler Linear
+// 4 = Fee Market Cap Scheduler Exponential
+
+// For Fee Time Scheduler (baseFeeMode 0 or 1):
+interface FeeTimeSchedulerBaseFee {
+  cliffFeeNumerator: BN;       // Starting fee numerator (e.g., 500000000 = 50%)
+  baseFeeMode: number;         // 0 = Linear, 1 = Exponential
+  numberOfPeriod: number;      // Number of fee reduction periods
+  periodFrequency: BN;         // Time between periods (slots or seconds)
+  reductionFactor: BN;         // Fee reduction per period
+}
+
+// For Rate Limiter (baseFeeMode 2):
+interface RateLimiterBaseFee {
+  cliffFeeNumerator: BN;       // Base fee numerator (e.g., 10000000 = 1%)
+  baseFeeMode: number;         // 2 = Rate Limiter
+  feeIncrementBps: number;     // Fee increment in basis points per reference amount
+  maxLimiterDuration: number;  // Maximum duration for rate limiter
+  maxFeeBps: number;           // Maximum fee cap in basis points
+  referenceAmount: BN;         // Reference amount for fee calculation
+}
+
+// For Fee Market Cap Scheduler (baseFeeMode 3 or 4):
+interface FeeMarketCapSchedulerBaseFee {
+  cliffFeeNumerator: BN;              // Starting fee numerator (e.g., 500000000 = 50%)
+  baseFeeMode: number;                // 3 = Linear, 4 = Exponential
+  numberOfPeriod: number;             // Number of fee reduction periods
+  sqrtPriceStepBps: number;           // Sqrt price step in bps to advance one period
+  schedulerExpirationDuration: number; // Duration after which scheduler expires
+  reductionFactor: BN;                // Fee reduction per period
 }
 ```
 
@@ -3251,3 +3294,388 @@ Calculates the parameters needed for dynamic fee. This function will always retu
 - Configures volatility-based fee parameters
 - Sets maximum price change thresholds
 - Calculates variable fee control parameters
+
+---
+
+## Fee Codec Functions
+
+These functions are used to encode and decode base fee parameters. There are two serialization formats:
+
+- **Borsh format (30 bytes)**: Used in `EvtInitializePool` events
+- **PodAligned format (32 bytes)**: Used in `poolState` account data
+
+### encodeFeeTimeSchedulerParams
+
+Encodes Fee Time Scheduler parameters into Borsh format for pool creation.
+
+**Function**
+
+```typescript
+encodeFeeTimeSchedulerParams(
+  cliffFeeNumerator: BN,
+  numberOfPeriod: number,
+  periodFrequency: BN,
+  reductionFactor: BN,
+  baseFeeMode: BaseFeeMode
+): Buffer
+```
+
+**Parameters**
+
+- `cliffFeeNumerator`: Starting fee numerator (e.g., 500000000 = 50%)
+- `numberOfPeriod`: Number of fee reduction periods
+- `periodFrequency`: Time between periods (slots or seconds)
+- `reductionFactor`: Fee reduction per period
+- `baseFeeMode`: `BaseFeeMode.FeeTimeSchedulerLinear` (0) or `BaseFeeMode.FeeTimeSchedulerExponential` (1)
+
+**Returns**
+
+A `Buffer` containing the Borsh-encoded fee parameters.
+
+**Example**
+
+```typescript
+const encoded = encodeFeeTimeSchedulerParams(
+  new BN(500000000),      // 50% starting fee
+  100,                     // 100 periods
+  new BN(6),               // 6 seconds between periods
+  new BN(4900000),         // reduction factor
+  BaseFeeMode.FeeTimeSchedulerLinear
+);
+```
+
+---
+
+### encodeFeeMarketCapSchedulerParams
+
+Encodes Fee Market Cap Scheduler parameters into Borsh format for pool creation.
+
+**Function**
+
+```typescript
+encodeFeeMarketCapSchedulerParams(
+  cliffFeeNumerator: BN,
+  numberOfPeriod: number,
+  sqrtPriceStepBps: number,
+  schedulerExpirationDuration: number,
+  reductionFactor: BN,
+  baseFeeMode: BaseFeeMode
+): Buffer
+```
+
+**Parameters**
+
+- `cliffFeeNumerator`: Starting fee numerator (e.g., 500000000 = 50%)
+- `numberOfPeriod`: Number of fee reduction periods
+- `sqrtPriceStepBps`: Sqrt price step in basis points to advance one period
+- `schedulerExpirationDuration`: Duration after which scheduler expires (slots or seconds)
+- `reductionFactor`: Fee reduction per period
+- `baseFeeMode`: `BaseFeeMode.FeeMarketCapSchedulerLinear` (3) or `BaseFeeMode.FeeMarketCapSchedulerExponential` (4)
+
+**Returns**
+
+A `Buffer` containing the Borsh-encoded fee parameters.
+
+**Example**
+
+```typescript
+const encoded = encodeFeeMarketCapSchedulerParams(
+  new BN(500000000),       // 50% starting fee
+  100,                      // 100 periods
+  100,                      // 1% sqrt price step
+  86400,                    // 24 hours expiration
+  new BN(4950000),          // reduction factor
+  BaseFeeMode.FeeMarketCapSchedulerLinear
+);
+```
+
+---
+
+### encodeFeeRateLimiterParams
+
+Encodes Rate Limiter parameters into Borsh format for pool creation.
+
+**Function**
+
+```typescript
+encodeFeeRateLimiterParams(
+  cliffFeeNumerator: BN,
+  feeIncrementBps: number,
+  maxLimiterDuration: number,
+  maxFeeBps: number,
+  referenceAmount: BN
+): Buffer
+```
+
+**Parameters**
+
+- `cliffFeeNumerator`: Base fee numerator (e.g., 10000000 = 1%)
+- `feeIncrementBps`: Fee increment in basis points per reference amount
+- `maxLimiterDuration`: Maximum duration for rate limiter (slots or seconds)
+- `maxFeeBps`: Maximum fee cap in basis points
+- `referenceAmount`: Reference amount for fee calculation (in lamports)
+
+**Returns**
+
+A `Buffer` containing the Borsh-encoded fee parameters.
+
+**Example**
+
+```typescript
+const encoded = encodeFeeRateLimiterParams(
+  new BN(10000000),         // 1% base fee
+  10,                        // 0.1% fee increment per reference amount
+  10,                        // 10 slots/seconds max duration
+  5000,                      // 50% max fee cap
+  new BN(1000000000)         // 1 SOL reference amount
+);
+```
+
+---
+
+### decodeFeeTimeSchedulerParams
+
+Decodes Borsh-encoded Fee Time Scheduler parameters (from `EvtInitializePool` events).
+
+**Function**
+
+```typescript
+decodeFeeTimeSchedulerParams(data: Buffer): BorshFeeTimeScheduler
+```
+
+**Parameters**
+
+- `data`: A `Buffer` containing Borsh-encoded fee data (30 bytes)
+
+**Returns**
+
+```typescript
+interface BorshFeeTimeScheduler {
+  cliffFeeNumerator: BN;
+  numberOfPeriod: number;
+  periodFrequency: BN;
+  reductionFactor: BN;
+  baseFeeMode: number;
+  padding: number[];
+}
+```
+
+**Example**
+
+```typescript
+// Decode from EvtInitializePool event
+const decoded = decodeFeeTimeSchedulerParams(eventData.baseFee.data);
+console.log(`Starting Fee: ${decoded.cliffFeeNumerator.toString()}`);
+console.log(`Number of Periods: ${decoded.numberOfPeriod}`);
+```
+
+---
+
+### decodeFeeMarketCapSchedulerParams
+
+Decodes Borsh-encoded Fee Market Cap Scheduler parameters (from `EvtInitializePool` events).
+
+**Function**
+
+```typescript
+decodeFeeMarketCapSchedulerParams(data: Buffer): BorshFeeMarketCapScheduler
+```
+
+**Parameters**
+
+- `data`: A `Buffer` containing Borsh-encoded fee data (30 bytes)
+
+**Returns**
+
+```typescript
+interface BorshFeeMarketCapScheduler {
+  cliffFeeNumerator: BN;
+  numberOfPeriod: number;
+  sqrtPriceStepBps: number;
+  schedulerExpirationDuration: number;
+  reductionFactor: BN;
+  baseFeeMode: number;
+  padding: number[];
+}
+```
+
+**Example**
+
+```typescript
+// Decode from EvtInitializePool event
+const decoded = decodeFeeMarketCapSchedulerParams(eventData.baseFee.data);
+console.log(`Starting Fee: ${decoded.cliffFeeNumerator.toString()}`);
+console.log(`Sqrt Price Step: ${decoded.sqrtPriceStepBps} bps`);
+```
+
+---
+
+### decodeFeeRateLimiterParams
+
+Decodes Borsh-encoded Rate Limiter parameters (from `EvtInitializePool` events).
+
+**Function**
+
+```typescript
+decodeFeeRateLimiterParams(data: Buffer): BorshFeeRateLimiter
+```
+
+**Parameters**
+
+- `data`: A `Buffer` containing Borsh-encoded fee data (30 bytes)
+
+**Returns**
+
+```typescript
+interface BorshFeeRateLimiter {
+  cliffFeeNumerator: BN;
+  feeIncrementBps: number;
+  maxLimiterDuration: number;
+  maxFeeBps: number;
+  referenceAmount: BN;
+  baseFeeMode: number;
+  padding: number[];
+}
+```
+
+**Example**
+
+```typescript
+// Decode from EvtInitializePool event
+const decoded = decodeFeeRateLimiterParams(eventData.baseFee.data);
+console.log(`Base Fee: ${decoded.cliffFeeNumerator.toString()}`);
+console.log(`Max Fee: ${decoded.maxFeeBps} bps`);
+```
+
+---
+
+### decodePodAlignedFeeTimeScheduler
+
+Decodes PodAligned Fee Time Scheduler parameters (from `poolState` account data).
+
+**Function**
+
+```typescript
+decodePodAlignedFeeTimeScheduler(data: Buffer): PodAlignedFeeTimeScheduler
+```
+
+**Parameters**
+
+- `data`: A `Buffer` containing PodAligned fee data (32 bytes)
+
+**Returns**
+
+```typescript
+interface PodAlignedFeeTimeScheduler {
+  cliffFeeNumerator: BN;
+  numberOfPeriod: number;
+  periodFrequency: BN;
+  reductionFactor: BN;
+  baseFeeMode: number;
+  padding: number[];
+}
+```
+
+**Example**
+
+```typescript
+// Decode from poolState account
+const poolState = await program.account.pool.fetch(poolAddress);
+const decoded = decodePodAlignedFeeTimeScheduler(
+  Buffer.from(poolState.poolFees.baseFee.data)
+);
+console.log(`Current Fee Config: ${decoded.cliffFeeNumerator.toString()}`);
+```
+
+---
+
+### decodePodAlignedFeeMarketCapScheduler
+
+Decodes PodAligned Fee Market Cap Scheduler parameters (from `poolState` account data).
+
+**Function**
+
+```typescript
+decodePodAlignedFeeMarketCapScheduler(data: Buffer): PodAlignedFeeMarketCapScheduler
+```
+
+**Parameters**
+
+- `data`: A `Buffer` containing PodAligned fee data (32 bytes)
+
+**Returns**
+
+```typescript
+interface PodAlignedFeeMarketCapScheduler {
+  cliffFeeNumerator: BN;
+  numberOfPeriod: number;
+  sqrtPriceStepBps: number;
+  schedulerExpirationDuration: number;
+  reductionFactor: BN;
+  baseFeeMode: number;
+  padding: number[];
+}
+```
+
+**Example**
+
+```typescript
+// Decode from poolState account
+const poolState = await program.account.pool.fetch(poolAddress);
+const decoded = decodePodAlignedFeeMarketCapScheduler(
+  Buffer.from(poolState.poolFees.baseFee.data)
+);
+console.log(`Expiration Duration: ${decoded.schedulerExpirationDuration}`);
+```
+
+---
+
+### decodePodAlignedFeeRateLimiter
+
+Decodes PodAligned Rate Limiter parameters (from `poolState` account data).
+
+**Function**
+
+```typescript
+decodePodAlignedFeeRateLimiter(data: Buffer): PodAlignedFeeRateLimiter
+```
+
+**Parameters**
+
+- `data`: A `Buffer` containing PodAligned fee data (32 bytes)
+
+**Returns**
+
+```typescript
+interface PodAlignedFeeRateLimiter {
+  cliffFeeNumerator: BN;
+  feeIncrementBps: number;
+  maxLimiterDuration: number;
+  maxFeeBps: number;
+  referenceAmount: BN;
+  baseFeeMode: number;
+  padding: number[];
+}
+```
+
+**Example**
+
+```typescript
+// Decode from poolState account
+const poolState = await program.account.pool.fetch(poolAddress);
+const decoded = decodePodAlignedFeeRateLimiter(
+  Buffer.from(poolState.poolFees.baseFee.data)
+);
+console.log(`Reference Amount: ${decoded.referenceAmount.toString()}`);
+```
+
+---
+
+## Decoding BaseFee Summary
+
+When decoding `baseFee.data`, choose the decoder based on **data source** and **`baseFeeMode`**:
+
+| Data Source | Format | Size | baseFeeMode 0-1 | baseFeeMode 2 | baseFeeMode 3-4 |
+|-------------|--------|------|-----------------|---------------|-----------------|
+| `EvtInitializePool` event | Borsh | 30 bytes | `decodeFeeTimeSchedulerParams` | `decodeFeeRateLimiterParams` | `decodeFeeMarketCapSchedulerParams` |
+| `poolState` account | PodAligned | 32 bytes | `decodePodAlignedFeeTimeScheduler` | `decodePodAlignedFeeRateLimiter` | `decodePodAlignedFeeMarketCapScheduler` |

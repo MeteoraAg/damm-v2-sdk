@@ -23,6 +23,7 @@ import {
   MIN_SQRT_PRICE,
   PoolFeesParams,
 } from "../src";
+import { beforeEach, describe, it } from "vitest";
 
 describe("Create position", () => {
   describe("SPL token", () => {
@@ -41,7 +42,7 @@ describe("Create position", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false,
+        false
       );
       payer = prepareContext.payer;
       creator = prepareContext.poolCreator;
@@ -62,7 +63,7 @@ describe("Create position", () => {
           },
         },
         6,
-        ActivationType.Timestamp,
+        ActivationType.Timestamp
       );
 
       const poolFees: PoolFeesParams = {
@@ -149,7 +150,7 @@ describe("Create position", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions,
+        extensions
       );
       user = prepareContext.user;
       payer = prepareContext.payer;
@@ -171,7 +172,7 @@ describe("Create position", () => {
           },
         },
         6,
-        ActivationType.Timestamp,
+        ActivationType.Timestamp
       );
 
       const poolFees: PoolFeesParams = {

@@ -27,6 +27,7 @@ import {
   PoolFeesParams,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
+import { beforeEach, describe, it } from "vitest";
 
 describe("Add liquidity", () => {
   describe("Add liquidity with SPL-Token", () => {
@@ -42,7 +43,7 @@ describe("Add liquidity", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false,
+        false
       );
 
       creator = prepareContext.poolCreator;
@@ -65,7 +66,7 @@ describe("Add liquidity", () => {
           },
         },
         6,
-        ActivationType.Timestamp,
+        ActivationType.Timestamp
       );
 
       const poolFees: PoolFeesParams = {
@@ -122,7 +123,7 @@ describe("Add liquidity", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool,
+        pool
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -169,7 +170,7 @@ describe("Add liquidity", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions,
+        extensions
       );
 
       creator = prepareContext.poolCreator;
@@ -193,7 +194,7 @@ describe("Add liquidity", () => {
           },
         },
         6,
-        ActivationType.Timestamp,
+        ActivationType.Timestamp
       );
 
       const poolFees: PoolFeesParams = {
@@ -250,7 +251,7 @@ describe("Add liquidity", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool,
+        pool
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),

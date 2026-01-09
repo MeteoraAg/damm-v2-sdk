@@ -31,6 +31,31 @@ export const LOCAL_ADMIN_KEYPAIR = Keypair.fromSecretKey(
   ]),
 );
 
+export enum OperatorPermission {
+  CreateConfigKey = 0,
+  RemoveConfigKey = 1,
+  CreateTokenBadge = 2,
+  CloseTokenBadge = 3,
+  SetPoolStatus = 4,
+  InitializeReward = 5,
+  UpdateRewardDuration = 6,
+  UpdateRewardFunder = 7,
+  UpdatePoolFees = 8,
+  ClaimProtocolFee = 9,
+}
+
+export function encodePermissions(permissions: OperatorPermission[]): BN {
+  return permissions.reduce((acc, perm) => {
+    return acc.or(new BN(1).shln(perm));
+  }, new BN(0));
+}
+
+export type CreateOperatorParams = {
+  admin: Keypair;
+  whitelistAddress: PublicKey;
+  permission: BN;
+};
+
 export async function startTest() {
   // Program name need to match fixtures program name
   return start(
@@ -368,6 +393,32 @@ export async function getPosition(
 ): Promise<PositionState> {
   const account = await banksClient.getAccount(position);
   return program.coder.accounts.decode("position", Buffer.from(account.data));
+}
+
+export async function createOperator(
+  banksClient: BanksClient,
+  program: Program<CpAmmTypes>,
+  params: CreateOperatorParams,
+): Promise<PublicKey> {
+  const { admin, whitelistAddress, permission } = params;
+  const operator = deriveOperatorAddress(whitelistAddress);
+
+  const transaction = await program.methods
+    .createOperatorAccount(permission)
+    .accountsPartial({
+      operator,
+      whitelistedAddress: whitelistAddress,
+      admin: admin.publicKey,
+      payer: admin.publicKey,
+      systemProgram: SystemProgram.programId,
+    })
+    .transaction();
+
+  transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
+  transaction.sign(admin);
+  await processTransactionMaybeThrow(banksClient, transaction);
+
+  return operator;
 }
 
 export async function createDynamicConfig(

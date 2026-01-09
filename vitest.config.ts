@@ -9,5 +9,8 @@ export default defineConfig({
     hookTimeout: 1000000,
     include: ["tests/**/*.test.ts"],
     globals: true,
+    sequence: {
+      concurrent: false,
+    },
   },
 });

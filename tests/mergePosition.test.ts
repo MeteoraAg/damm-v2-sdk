@@ -41,7 +41,7 @@ describe("Merge position", () => {
     const prepareContext = await setupTestContext(
       context.banksClient,
       context.payer,
-      false
+      false,
     );
 
     creator = prepareContext.poolCreator;
@@ -64,7 +64,7 @@ describe("Merge position", () => {
         },
       },
       6,
-      ActivationType.Timestamp
+      ActivationType.Timestamp,
     );
 
     const poolFees: PoolFeesParams = {
@@ -121,7 +121,7 @@ describe("Merge position", () => {
     const poolState = await getPool(
       context.banksClient,
       ammInstance._program,
-      pool
+      pool,
     );
     const { liquidityDelta } = await ammInstance.getDepositQuote({
       inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -188,19 +188,19 @@ describe("Merge position", () => {
       tokenBProgram: getTokenProgram(poolState.tokenBFlag),
     };
     const addLiquiditySecondPositionTx = await ammInstance.addLiquidity(
-      addLiquidityParamsSecondPosition
+      addLiquidityParamsSecondPosition,
     );
     await executeTransaction(
       context.banksClient,
       addLiquiditySecondPositionTx,
-      [creator]
+      [creator],
     );
 
     // // merge two position
     const secondPositionState = await getPosition(
       context.banksClient,
       ammInstance._program,
-      position
+      position,
     );
 
     const mergeTx = await ammInstance.mergePosition({
@@ -210,7 +210,7 @@ describe("Merge position", () => {
       poolState,
       positionBNftAccount: derivePositionNftAccount(positionNft.publicKey),
       positionANftAccount: derivePositionNftAccount(
-        secondPositionNft.publicKey
+        secondPositionNft.publicKey,
       ),
       positionBState: secondPositionState,
       tokenAAmountAddLiquidityThreshold: new BN(U64_MAX),

@@ -45,7 +45,7 @@ describe("Permanant Lock Postion", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator;
@@ -68,7 +68,7 @@ describe("Permanant Lock Postion", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -125,12 +125,12 @@ describe("Permanant Lock Postion", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -171,7 +171,7 @@ describe("Permanant Lock Postion", () => {
       };
 
       const lockPositionTx = await ammInstance.permanentLockPosition(
-        permanantLockPositionParams
+        permanantLockPositionParams,
       );
 
       await executeTransaction(context.banksClient, lockPositionTx, [creator]);
@@ -193,7 +193,7 @@ describe("Permanant Lock Postion", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator;
@@ -217,7 +217,7 @@ describe("Permanant Lock Postion", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -274,12 +274,12 @@ describe("Permanant Lock Postion", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -320,7 +320,7 @@ describe("Permanant Lock Postion", () => {
       };
 
       const lockPositionTx = await ammInstance.permanentLockPosition(
-        permanantLockPositionParams
+        permanantLockPositionParams,
       );
 
       await executeTransaction(context.banksClient, lockPositionTx, [creator]);

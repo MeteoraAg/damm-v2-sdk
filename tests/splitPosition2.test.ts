@@ -46,7 +46,7 @@ describe("Split Position 2", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       poolCreator = prepareContext.poolCreator;
@@ -70,7 +70,7 @@ describe("Split Position 2", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -132,7 +132,7 @@ describe("Split Position 2", () => {
         positionNft: secondPositionNft.publicKey,
       };
       const createSecondPositionTx = await ammInstance.createPosition(
-        createSecondPositionParams
+        createSecondPositionParams,
       );
       await executeTransaction(context.banksClient, createSecondPositionTx, [
         user,
@@ -148,11 +148,11 @@ describe("Split Position 2", () => {
         pool,
         firstPosition,
         firstPositionNftAccount: derivePositionNftAccount(
-          firstPositionNft.publicKey
+          firstPositionNft.publicKey,
         ),
         secondPosition,
         secondPositionNftAccount: derivePositionNftAccount(
-          secondPositionNft.publicKey
+          secondPositionNft.publicKey,
         ),
         numerator: SPLIT_POSITION_DENOMINATOR / 2,
       };
@@ -167,25 +167,25 @@ describe("Split Position 2", () => {
       const afterFirstPositionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        firstPosition
+        firstPosition,
       );
       const afterSecondPositionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        secondPosition
+        secondPosition,
       );
 
       expect(afterFirstPositionState.unlockedLiquidity.toString()).toBe(
-        afterSecondPositionState.unlockedLiquidity.toString()
+        afterSecondPositionState.unlockedLiquidity.toString(),
       );
       expect(afterFirstPositionState.permanentLockedLiquidity.toString()).toBe(
-        afterSecondPositionState.permanentLockedLiquidity.toString()
+        afterSecondPositionState.permanentLockedLiquidity.toString(),
       );
       expect(afterFirstPositionState.feeAPending.toString()).toBe(
-        afterSecondPositionState.feeAPending.toString()
+        afterSecondPositionState.feeAPending.toString(),
       );
       expect(afterFirstPositionState.feeBPending.toString()).toBe(
-        afterSecondPositionState.feeBPending.toString()
+        afterSecondPositionState.feeBPending.toString(),
       );
     });
   });
@@ -206,7 +206,7 @@ describe("Split Position 2", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       poolCreator = prepareContext.poolCreator;
@@ -231,7 +231,7 @@ describe("Split Position 2", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -293,7 +293,7 @@ describe("Split Position 2", () => {
         positionNft: secondPositionNft.publicKey,
       };
       const createSecondPositionTx = await ammInstance.createPosition(
-        createSecondPositionParams
+        createSecondPositionParams,
       );
       await executeTransaction(context.banksClient, createSecondPositionTx, [
         user,
@@ -309,11 +309,11 @@ describe("Split Position 2", () => {
         pool,
         firstPosition,
         firstPositionNftAccount: derivePositionNftAccount(
-          firstPositionNft.publicKey
+          firstPositionNft.publicKey,
         ),
         secondPosition,
         secondPositionNftAccount: derivePositionNftAccount(
-          secondPositionNft.publicKey
+          secondPositionNft.publicKey,
         ),
         numerator: SPLIT_POSITION_DENOMINATOR / 2,
       };
@@ -328,25 +328,25 @@ describe("Split Position 2", () => {
       const afterFirstPositionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        firstPosition
+        firstPosition,
       );
       const afterSecondPositionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        secondPosition
+        secondPosition,
       );
 
       expect(afterFirstPositionState.unlockedLiquidity.toString()).toBe(
-        afterSecondPositionState.unlockedLiquidity.toString()
+        afterSecondPositionState.unlockedLiquidity.toString(),
       );
       expect(afterFirstPositionState.permanentLockedLiquidity.toString()).toBe(
-        afterSecondPositionState.permanentLockedLiquidity.toString()
+        afterSecondPositionState.permanentLockedLiquidity.toString(),
       );
       expect(afterFirstPositionState.feeAPending.toString()).toBe(
-        afterSecondPositionState.feeAPending.toString()
+        afterSecondPositionState.feeAPending.toString(),
       );
       expect(afterFirstPositionState.feeBPending.toString()).toBe(
-        afterSecondPositionState.feeBPending.toString()
+        afterSecondPositionState.feeBPending.toString(),
       );
     });
   });

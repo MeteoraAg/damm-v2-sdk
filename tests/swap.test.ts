@@ -45,7 +45,7 @@ describe("Swap", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator.publicKey;
@@ -68,7 +68,7 @@ describe("Swap", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -125,12 +125,12 @@ describe("Swap", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -197,7 +197,7 @@ describe("Swap", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator.publicKey;
@@ -221,7 +221,7 @@ describe("Swap", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -278,12 +278,12 @@ describe("Swap", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),

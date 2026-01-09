@@ -50,7 +50,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator;
@@ -71,7 +71,7 @@ describe("Initialize customizable pool with dynamic config", () => {
         ammInstance._program,
         LOCAL_ADMIN_KEYPAIR,
         new BN(1),
-        creator.publicKey
+        creator.publicKey,
       );
     });
 
@@ -87,7 +87,7 @@ describe("Initialize customizable pool with dynamic config", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -136,7 +136,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()
@@ -163,7 +163,7 @@ describe("Initialize customizable pool with dynamic config", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator;
@@ -185,7 +185,7 @@ describe("Initialize customizable pool with dynamic config", () => {
         ammInstance._program,
         LOCAL_ADMIN_KEYPAIR,
         new BN(2),
-        creator.publicKey
+        creator.publicKey,
       );
     });
 
@@ -201,7 +201,7 @@ describe("Initialize customizable pool with dynamic config", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -250,7 +250,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()

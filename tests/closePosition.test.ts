@@ -44,7 +44,7 @@ describe("Remove liquidity & Close position", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator;
@@ -67,7 +67,7 @@ describe("Remove liquidity & Close position", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -123,7 +123,7 @@ describe("Remove liquidity & Close position", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -163,7 +163,7 @@ describe("Remove liquidity & Close position", () => {
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
 
       const removeAllLiquidityTx = await ammInstance.removeAllLiquidity(
-        removeLiquidityParams
+        removeLiquidityParams,
       );
 
       await executeTransaction(context.banksClient, removeAllLiquidityTx, [
@@ -197,7 +197,7 @@ describe("Remove liquidity & Close position", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator;
@@ -221,7 +221,7 @@ describe("Remove liquidity & Close position", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -276,7 +276,7 @@ describe("Remove liquidity & Close position", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
 
       const { liquidityDelta } = await ammInstance.getDepositQuote({
@@ -318,7 +318,7 @@ describe("Remove liquidity & Close position", () => {
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
 
       const removeAllLiquidityTx = await ammInstance.removeAllLiquidity(
-        removeLiquidityParams
+        removeLiquidityParams,
       );
 
       await executeTransaction(context.banksClient, removeAllLiquidityTx, [

@@ -41,7 +41,7 @@ describe("Permissionless reward", () => {
     const prepareContext = await setupTestContext(
       context.banksClient,
       context.payer,
-      false
+      false,
     );
 
     creator = prepareContext.poolCreator;
@@ -60,7 +60,7 @@ describe("Permissionless reward", () => {
       payer,
       creator,
       tokenAMint,
-      tokenBMint
+      tokenBMint,
     );
     const rewardIndex = 0;
     const rewardDuration = new BN(24 * 60 * 60);
@@ -73,7 +73,7 @@ describe("Permissionless reward", () => {
       rewardIndex,
       payer.publicKey,
       pool,
-      rewardDuration
+      rewardDuration,
     );
   });
 });
@@ -84,7 +84,7 @@ async function createPool(
   payer: Keypair,
   creator: Keypair,
   tokenAMint: PublicKey,
-  tokenBMint: PublicKey
+  tokenBMint: PublicKey,
 ): Promise<{ pool: PublicKey; position: PublicKey }> {
   const baseFee = getBaseFeeParams(
     {
@@ -97,7 +97,7 @@ async function createPool(
       },
     },
     6,
-    ActivationType.Timestamp
+    ActivationType.Timestamp,
   );
 
   const poolFees: PoolFeesParams = {
@@ -147,7 +147,7 @@ async function createPool(
   transaction.add(
     ComputeBudgetProgram.setComputeUnitLimit({
       units: 400_000,
-    })
+    }),
   );
   transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
   transaction.sign(payer, positionNft);
@@ -166,7 +166,7 @@ async function rewardFlow(
   rewardIndex: number,
   funder: PublicKey,
   pool: PublicKey,
-  rewardDuration: BN
+  rewardDuration: BN,
 ) {
   const transaction = await ammInstance.initializeReward({
     rewardDuration,

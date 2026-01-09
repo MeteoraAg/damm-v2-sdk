@@ -45,7 +45,7 @@ describe("Remove liquidity", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator;
@@ -68,7 +68,7 @@ describe("Remove liquidity", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -125,12 +125,12 @@ describe("Remove liquidity", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -171,7 +171,7 @@ describe("Remove liquidity", () => {
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
 
       const removeLiquidityTx = await ammInstance.removeLiquidity(
-        removeLiquidityParams
+        removeLiquidityParams,
       );
 
       await executeTransaction(context.banksClient, removeLiquidityTx, [
@@ -195,7 +195,7 @@ describe("Remove liquidity", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator;
@@ -219,7 +219,7 @@ describe("Remove liquidity", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -276,12 +276,12 @@ describe("Remove liquidity", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -321,7 +321,7 @@ describe("Remove liquidity", () => {
       removeLiquidityParams.tokenAAmountThreshold = new BN(0);
       removeLiquidityParams.tokenBAmountThreshold = new BN(0);
       const removeLiquidityTx = await ammInstance.removeLiquidity(
-        removeLiquidityParams
+        removeLiquidityParams,
       );
 
       await executeTransaction(context.banksClient, removeLiquidityTx, [

@@ -45,7 +45,7 @@ describe("Initialize customizable pool", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator;
@@ -68,7 +68,7 @@ describe("Initialize customizable pool", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -114,7 +114,7 @@ describe("Initialize customizable pool", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()
@@ -140,7 +140,7 @@ describe("Initialize customizable pool", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator;
@@ -164,7 +164,7 @@ describe("Initialize customizable pool", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -210,7 +210,7 @@ describe("Initialize customizable pool", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()

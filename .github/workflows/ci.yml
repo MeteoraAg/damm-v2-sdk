@@ -1,57 +1,100 @@
-name: DAMM-SDK
+name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 env:
-  SOLANA_CLI_VERSION: 2.1.0
-  NODE_VERSION: 18.20.6
-  ANCHOR_CLI_VERSION: 0.31.0
+  CI: true
 
 jobs:
-  sdk_changed_files:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    outputs:
-      program: ${{steps.changed-files-specific.outputs.any_changed}}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Get specific changed files
-        id: changed-files-specific
-        uses: tj-actions/changed-files@v18.6
-        with:
-          files: |
-            src
-            tests
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  sdk_test:
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+  typecheck:
+    name: Type Check
     runs-on: ubuntu-latest
-    needs: sdk_changed_files
-    if: needs.sdk_changed_files.outputs.program == 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-solana
-      - uses: ./.github/actions/setup-dep
-      # Install pnpm
-      - uses: pnpm/action-setup@v3 # docs https://pnpm.io/continuous-integration#github-actions
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          version: 9.5.0 # Optional: specify a pnpm version
-      # Install rust + toolchain
-      - uses: actions-rs/toolchain@v1
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm run check-types
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          toolchain: stable
-          components: clippy
-      # Cache rust, cargo
-      - uses: Swatinem/rust-cache@v1
-      # Cache node_modules
-      - uses: actions/cache@v4
-        id: cache-node-modules
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: ./node_modules
-          key: ${{ runner.os }}-${{ hashFiles('./package-lock.json') }}
-      # Testing
-      - run: npm install && npm run test
-        shell: bash
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test

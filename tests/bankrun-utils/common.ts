@@ -28,7 +28,7 @@ export const LOCAL_ADMIN_KEYPAIR = Keypair.fromSecretKey(
     44, 91, 94, 231, 126, 140, 238, 134, 29, 58, 8, 182, 88, 22, 113, 234, 8,
     234, 192, 109, 87, 125, 190, 55, 129, 173, 227, 8, 104, 201, 104, 13, 31,
     178, 74, 80, 54, 14, 77, 78, 226, 57, 47, 122, 166, 165, 57, 144,
-  ])
+  ]),
 );
 
 export enum OperatorPermission {
@@ -75,7 +75,7 @@ export async function startTest() {
           data: new Uint8Array(),
         },
       },
-    ]
+    ],
   );
 }
 
@@ -83,7 +83,7 @@ export async function transferSol(
   banksClient: BanksClient,
   from: Keypair,
   to: PublicKey,
-  amount: BN
+  amount: BN,
 ) {
   const systemTransferIx = SystemProgram.transfer({
     fromPubkey: from.publicKey,
@@ -103,7 +103,7 @@ export async function transferSol(
 export async function processTransactionMaybeThrow(
   banksClient: BanksClient,
   transaction: Transaction,
-  maxRetries = 3
+  maxRetries = 3,
 ) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const transactionMeta =
@@ -112,7 +112,7 @@ export async function processTransactionMaybeThrow(
       const errorMessage = transactionMeta.result;
       if (errorMessage.includes("Account in use") && attempt < maxRetries - 1) {
         await new Promise((resolve) =>
-          setTimeout(resolve, 100 * (attempt + 1))
+          setTimeout(resolve, 100 * (attempt + 1)),
         );
         continue;
       }
@@ -124,7 +124,7 @@ export async function processTransactionMaybeThrow(
 
 export async function expectThrowsAsync(
   fn: () => Promise<void>,
-  errorMessage: String
+  errorMessage: String,
 ) {
   try {
     await fn();
@@ -134,7 +134,7 @@ export async function expectThrowsAsync(
     } else {
       if (!err.message.toLowerCase().includes(errorMessage.toLowerCase())) {
         throw new Error(
-          `Unexpected error: ${err.message}. Expected error: ${errorMessage}`
+          `Unexpected error: ${err.message}. Expected error: ${errorMessage}`,
         );
       }
       return;
@@ -146,7 +146,7 @@ export async function expectThrowsAsync(
 export async function createUsersAndFund(
   banksClient: BanksClient,
   payer: Keypair,
-  user?: Keypair
+  user?: Keypair,
 ): Promise<Keypair> {
   if (!user) {
     user = Keypair.generate();
@@ -156,7 +156,7 @@ export async function createUsersAndFund(
     banksClient,
     payer,
     user.publicKey,
-    new BN(LAMPORTS_PER_SOL)
+    new BN(LAMPORTS_PER_SOL),
   );
 
   return user;
@@ -166,7 +166,7 @@ export async function setupTestContext(
   banksClient: BanksClient,
   rootKeypair: Keypair,
   token2022: boolean,
-  extensions?: ExtensionType[]
+  extensions?: ExtensionType[],
 ) {
   const [admin, payer, poolCreator, user, funder, operator, partner] = Array(7)
     .fill(7)
@@ -192,7 +192,7 @@ export async function setupTestContext(
         fromPubkey: rootKeypair.publicKey,
         toPubkey: recipient,
         lamports: BigInt((1_000 * LAMPORTS_PER_SOL).toString()),
-      })
+      }),
     );
   }
 
@@ -228,9 +228,9 @@ export async function setupTestContext(
           rootKeypair,
           tokenAMintKeypair.publicKey,
           publicKey,
-          BigInt(rawAmount)
-        )
-      )
+          BigInt(rawAmount),
+        ),
+      ),
     );
 
     // Mint token B to payer & user
@@ -247,9 +247,9 @@ export async function setupTestContext(
           rootKeypair,
           tokenBMintKeypair.publicKey,
           publicKey,
-          BigInt(rawAmount)
-        )
-      )
+          BigInt(rawAmount),
+        ),
+      ),
     );
 
     // mint reward to funder
@@ -259,7 +259,7 @@ export async function setupTestContext(
       rootKeypair,
       rewardMintKeypair.publicKey,
       funder.publicKey,
-      BigInt(rawAmount)
+      BigInt(rawAmount),
     );
 
     await mintToToken2022(
@@ -268,7 +268,7 @@ export async function setupTestContext(
       rootKeypair,
       rewardMintKeypair.publicKey,
       user.publicKey,
-      BigInt(rawAmount)
+      BigInt(rawAmount),
     );
   } else {
     await Promise.all([
@@ -276,19 +276,19 @@ export async function setupTestContext(
         banksClient,
         rootKeypair,
         tokenAMintKeypair,
-        rootKeypair.publicKey
+        rootKeypair.publicKey,
       ),
       createToken(
         banksClient,
         rootKeypair,
         tokenBMintKeypair,
-        rootKeypair.publicKey
+        rootKeypair.publicKey,
       ),
       createToken(
         banksClient,
         rootKeypair,
         rewardMintKeypair,
-        rootKeypair.publicKey
+        rootKeypair.publicKey,
       ),
     ]);
 
@@ -306,9 +306,9 @@ export async function setupTestContext(
           tokenAMintKeypair.publicKey,
           rootKeypair,
           publicKey,
-          BigInt(rawAmount)
-        )
-      )
+          BigInt(rawAmount),
+        ),
+      ),
     );
 
     // Mint token B to payer & user
@@ -325,9 +325,9 @@ export async function setupTestContext(
           tokenBMintKeypair.publicKey,
           rootKeypair,
           publicKey,
-          BigInt(rawAmount)
-        )
-      )
+          BigInt(rawAmount),
+        ),
+      ),
     );
 
     // mint reward to funder
@@ -337,7 +337,7 @@ export async function setupTestContext(
       rewardMintKeypair.publicKey,
       rootKeypair,
       funder.publicKey,
-      BigInt(rawAmount)
+      BigInt(rawAmount),
     );
 
     await mintTo(
@@ -346,7 +346,7 @@ export async function setupTestContext(
       rewardMintKeypair.publicKey,
       rootKeypair,
       user.publicKey,
-      BigInt(rawAmount)
+      BigInt(rawAmount),
     );
   }
 
@@ -376,12 +376,12 @@ export async function warpSlotBy(context: ProgramTestContext, slots: BN) {
 export async function executeTransaction(
   banksClient: BanksClient,
   transaction: Transaction,
-  signers: Signer[]
+  signers: Signer[],
 ) {
   transaction.add(
     ComputeBudgetProgram.setComputeUnitLimit({
       units: 400_000,
-    })
+    }),
   );
   transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
   transaction.sign(...signers);
@@ -392,7 +392,7 @@ export async function executeTransaction(
 export async function getPool(
   banksClient: BanksClient,
   program: Program<CpAmmTypes>,
-  pool: PublicKey
+  pool: PublicKey,
 ): Promise<PoolState> {
   const account = await banksClient.getAccount(pool);
   return program.coder.accounts.decode("pool", Buffer.from(account.data));
@@ -401,7 +401,7 @@ export async function getPool(
 export async function getPosition(
   banksClient: BanksClient,
   program: Program<CpAmmTypes>,
-  position: PublicKey
+  position: PublicKey,
 ): Promise<PositionState> {
   const account = await banksClient.getAccount(position);
   return program.coder.accounts.decode("position", Buffer.from(account.data));
@@ -410,7 +410,7 @@ export async function getPosition(
 export async function createOperator(
   banksClient: BanksClient,
   program: Program<CpAmmTypes>,
-  params: CreateOperatorParams
+  params: CreateOperatorParams,
 ): Promise<PublicKey> {
   const { admin, whitelistAddress, permission } = params;
   const operator = deriveOperatorAddress(whitelistAddress);
@@ -438,7 +438,7 @@ export async function createDynamicConfig(
   program: Program<CpAmmTypes>,
   admin: Keypair,
   index: BN,
-  poolCreatorAuthority: PublicKey
+  poolCreatorAuthority: PublicKey,
 ): Promise<PublicKey> {
   const config = deriveConfigAddress(index);
   const transaction = await program.methods

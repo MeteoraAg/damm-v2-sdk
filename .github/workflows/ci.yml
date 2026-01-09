@@ -1,4 +1,4 @@
-name: DAMM-SDK
+name: CI
 
 on:
   push:

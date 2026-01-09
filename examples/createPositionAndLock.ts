@@ -26,7 +26,7 @@ import {
   };
 
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(Uint8Array.from(require(CONFIG.keypairPath)))
+    Uint8Array.from(Uint8Array.from(require(CONFIG.keypairPath))),
   );
 
   const connection = new Connection(CONFIG.rpcUrl);
@@ -34,7 +34,7 @@ import {
 
   const poolState = await cpAmm.fetchPoolState(CONFIG.pool);
   const tokenAAccountInfo = await connection.getAccountInfo(
-    poolState.tokenAMint
+    poolState.tokenAMint,
   );
 
   let tokenAProgram = TOKEN_PROGRAM_ID;
@@ -45,7 +45,7 @@ import {
       connection,
       poolState.tokenAMint,
       connection.commitment,
-      tokenAProgram
+      tokenAProgram,
     );
     const epochInfo = await connection.getEpochInfo();
     tokenAInfo = {
@@ -55,10 +55,10 @@ import {
   }
 
   const addLidTokenAAmount = new BN(CONFIG.tokenAAmount).mul(
-    new BN(10 ** CONFIG.tokenADecimals)
+    new BN(10 ** CONFIG.tokenADecimals),
   );
   const addLidTokenBAmount = new BN(CONFIG.tokenBAmount).mul(
-    new BN(10 ** CONFIG.tokenBDecimals)
+    new BN(10 ** CONFIG.tokenBDecimals),
   );
 
   // create second position
@@ -114,7 +114,7 @@ import {
     connection,
     transaction,
     [wallet, positionNft],
-    { commitment: "confirmed" }
+    { commitment: "confirmed" },
   );
 
   console.log({

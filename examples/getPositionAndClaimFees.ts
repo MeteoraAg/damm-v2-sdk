@@ -16,7 +16,7 @@ import { CpAmm, getTokenProgram } from "../src";
   };
 
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(Uint8Array.from(require(CONFIG.keypairPath)))
+    Uint8Array.from(Uint8Array.from(require(CONFIG.keypairPath))),
   );
 
   const connection = new Connection(CONFIG.rpcUrl);
@@ -24,7 +24,7 @@ import { CpAmm, getTokenProgram } from "../src";
 
   const userPositions = await cpAmm.getUserPositionByPool(
     CONFIG.poolAddress,
-    CONFIG.userAddress
+    CONFIG.userAddress,
   );
   // get position with largest liquidity
   const position = userPositions[0];
@@ -58,7 +58,7 @@ import { CpAmm, getTokenProgram } from "../src";
     [wallet],
     {
       commitment: "confirmed",
-    }
+    },
   );
 
   console.log("Claimed position fees: ", {

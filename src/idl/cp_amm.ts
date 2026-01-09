@@ -98,15 +98,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -116,7 +116,7 @@ export type CpAmm = {
               name: "addLiquidityParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -199,15 +199,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -217,7 +217,7 @@ export type CpAmm = {
         {
           name: "maxAmountB";
           type: "u64";
-        }
+        },
       ];
     },
     {
@@ -308,15 +308,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [];
     },
@@ -394,7 +394,7 @@ export type CpAmm = {
                   53,
                   175,
                   188,
-                  85
+                  85,
                 ];
               },
               {
@@ -404,7 +404,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "tokenAMint";
-              }
+              },
             ];
             program: {
               kind: "const";
@@ -440,7 +440,7 @@ export type CpAmm = {
                 219,
                 233,
                 248,
-                89
+                89,
               ];
             };
           };
@@ -485,7 +485,7 @@ export type CpAmm = {
                   53,
                   175,
                   188,
-                  85
+                  85,
                 ];
               },
               {
@@ -495,7 +495,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "tokenBMint";
-              }
+              },
             ];
             program: {
               kind: "const";
@@ -531,7 +531,7 @@ export type CpAmm = {
                 219,
                 233,
                 248,
-                89
+                89,
               ];
             };
           };
@@ -577,15 +577,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -595,7 +595,7 @@ export type CpAmm = {
         {
           name: "maxAmountB";
           type: "u64";
-        }
+        },
       ];
     },
     {
@@ -662,15 +662,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -680,7 +680,7 @@ export type CpAmm = {
         {
           name: "skipReward";
           type: "u8";
-        }
+        },
       ];
     },
     {
@@ -726,15 +726,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [];
     },
@@ -777,15 +777,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [];
     },
@@ -828,7 +828,7 @@ export type CpAmm = {
         {
           name: "tokenProgram";
           docs: [
-            "Program to create NFT mint/token account and transfer for token22 account"
+            "Program to create NFT mint/token account and transfer for token22 account",
           ];
           address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
         },
@@ -855,15 +855,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [];
     },
@@ -910,15 +910,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [];
     },
@@ -939,7 +939,7 @@ export type CpAmm = {
               {
                 kind: "arg";
                 path: "index";
-              }
+              },
             ];
           };
         },
@@ -983,15 +983,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -1005,7 +1005,7 @@ export type CpAmm = {
               name: "staticConfigParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -1024,7 +1024,7 @@ export type CpAmm = {
               {
                 kind: "arg";
                 path: "index";
-              }
+              },
             ];
           };
         },
@@ -1068,15 +1068,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -1090,7 +1090,7 @@ export type CpAmm = {
               name: "dynamicConfigParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -1110,7 +1110,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "whitelistedAddress";
-              }
+              },
             ];
           };
         },
@@ -1153,21 +1153,21 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "permission";
           type: "u128";
-        }
+        },
       ];
     },
     {
@@ -1211,13 +1211,13 @@ export type CpAmm = {
                   111,
                   117,
                   110,
-                  116
+                  116,
                 ];
               },
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -1237,7 +1237,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -1254,7 +1254,7 @@ export type CpAmm = {
         {
           name: "tokenProgram";
           docs: [
-            "Program to create NFT mint/token account and transfer for token22 account"
+            "Program to create NFT mint/token account and transfer for token22 account",
           ];
           address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
         },
@@ -1285,15 +1285,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [];
     },
@@ -1313,7 +1313,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "tokenMint";
-              }
+              },
             ];
           };
         },
@@ -1360,15 +1360,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [];
     },
@@ -1384,7 +1384,7 @@ export type CpAmm = {
         },
         {
           name: "podAlignedFeeMarketCapScheduler";
-        }
+        },
       ];
       args: [
         {
@@ -1394,7 +1394,7 @@ export type CpAmm = {
               name: "dummyParams";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -1446,15 +1446,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -1468,7 +1468,7 @@ export type CpAmm = {
         {
           name: "carryForward";
           type: "bool";
-        }
+        },
       ];
     },
     {
@@ -1512,13 +1512,13 @@ export type CpAmm = {
                   111,
                   117,
                   110,
-                  116
+                  116,
                 ];
               },
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -1549,7 +1549,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -1578,7 +1578,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "pool";
-              }
+              },
             ];
           };
         },
@@ -1599,7 +1599,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "pool";
-              }
+              },
             ];
           };
         },
@@ -1624,7 +1624,7 @@ export type CpAmm = {
         {
           name: "token2022Program";
           docs: [
-            "Program to create NFT mint/token account and transfer for token22 account"
+            "Program to create NFT mint/token account and transfer for token22 account",
           ];
           address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
         },
@@ -1655,15 +1655,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -1673,7 +1673,7 @@ export type CpAmm = {
               name: "initializeCustomizablePoolParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -1718,13 +1718,13 @@ export type CpAmm = {
                   111,
                   117,
                   110,
-                  116
+                  116,
                 ];
               },
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -1759,7 +1759,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -1788,7 +1788,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "pool";
-              }
+              },
             ];
           };
         },
@@ -1809,7 +1809,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "pool";
-              }
+              },
             ];
           };
         },
@@ -1834,7 +1834,7 @@ export type CpAmm = {
         {
           name: "token2022Program";
           docs: [
-            "Program to create NFT mint/token account and transfer for token22 account"
+            "Program to create NFT mint/token account and transfer for token22 account",
           ];
           address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
         },
@@ -1865,15 +1865,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -1883,7 +1883,7 @@ export type CpAmm = {
               name: "initializePoolParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -1927,13 +1927,13 @@ export type CpAmm = {
                   111,
                   117,
                   110,
-                  116
+                  116,
                 ];
               },
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -1973,7 +1973,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "positionNftMint";
-              }
+              },
             ];
           };
         },
@@ -2002,7 +2002,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "pool";
-              }
+              },
             ];
           };
         },
@@ -2023,7 +2023,7 @@ export type CpAmm = {
               {
                 kind: "account";
                 path: "pool";
-              }
+              },
             ];
           };
         },
@@ -2048,7 +2048,7 @@ export type CpAmm = {
         {
           name: "token2022Program";
           docs: [
-            "Program to create NFT mint/token account and transfer for token22 account"
+            "Program to create NFT mint/token account and transfer for token22 account",
           ];
           address: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
         },
@@ -2079,15 +2079,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -2097,7 +2097,7 @@ export type CpAmm = {
               name: "initializeCustomizablePoolParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -2131,7 +2131,7 @@ export type CpAmm = {
                   97,
                   117,
                   108,
-                  116
+                  116,
                 ];
               },
               {
@@ -2141,7 +2141,7 @@ export type CpAmm = {
               {
                 kind: "arg";
                 path: "rewardIndex";
-              }
+              },
             ];
           };
         },
@@ -2187,15 +2187,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -2209,7 +2209,7 @@ export type CpAmm = {
         {
           name: "funder";
           type: "pubkey";
-        }
+        },
       ];
     },
     {
@@ -2270,15 +2270,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -2288,7 +2288,7 @@ export type CpAmm = {
               name: "vestingParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -2336,21 +2336,21 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "permanentLockLiquidity";
           type: "u128";
-        }
+        },
       ];
     },
     {
@@ -2371,7 +2371,7 @@ export type CpAmm = {
         },
         {
           name: "owner";
-        }
+        },
       ];
       args: [];
     },
@@ -2464,15 +2464,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -2482,7 +2482,7 @@ export type CpAmm = {
         {
           name: "tokenBAmountThreshold";
           type: "u64";
-        }
+        },
       ];
     },
     {
@@ -2574,15 +2574,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -2592,7 +2592,7 @@ export type CpAmm = {
               name: "removeLiquidityParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -2634,21 +2634,21 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "status";
           type: "u8";
-        }
+        },
       ];
     },
     {
@@ -2711,15 +2711,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -2729,7 +2729,7 @@ export type CpAmm = {
               name: "splitPositionParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -2792,21 +2792,21 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "numerator";
           type: "u32";
-        }
+        },
       ];
     },
     {
@@ -2894,15 +2894,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -2912,7 +2912,7 @@ export type CpAmm = {
               name: "swapParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -3000,15 +3000,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -3018,7 +3018,7 @@ export type CpAmm = {
               name: "swapParameters2";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -3060,15 +3060,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -3078,7 +3078,7 @@ export type CpAmm = {
               name: "updatePoolFeesParameters";
             };
           };
-        }
+        },
       ];
     },
     {
@@ -3116,15 +3116,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -3134,7 +3134,7 @@ export type CpAmm = {
         {
           name: "newDuration";
           type: "u64";
-        }
+        },
       ];
     },
     {
@@ -3172,15 +3172,15 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
@@ -3190,7 +3190,7 @@ export type CpAmm = {
         {
           name: "newFunder";
           type: "pubkey";
-        }
+        },
       ];
     },
     {
@@ -3246,23 +3246,23 @@ export type CpAmm = {
                   114,
                   105,
                   116,
-                  121
+                  121,
                 ];
-              }
+              },
             ];
           };
         },
         {
           name: "program";
-        }
+        },
       ];
       args: [
         {
           name: "rewardIndex";
           type: "u8";
-        }
+        },
       ];
-    }
+    },
   ];
   accounts: [
     {
@@ -3300,7 +3300,7 @@ export type CpAmm = {
     {
       name: "vesting";
       discriminator: [100, 149, 66, 138, 95, 200, 128, 241];
-    }
+    },
   ];
   events: [
     {
@@ -3394,7 +3394,7 @@ export type CpAmm = {
     {
       name: "evtWithdrawIneligibleReward";
       discriminator: [248, 215, 184, 78, 31, 180, 179, 168];
-    }
+    },
   ];
   errors: [
     {
@@ -3696,7 +3696,7 @@ export type CpAmm = {
       code: 6059;
       name: "missingOperatorAccount";
       msg: "Missing operator account";
-    }
+    },
   ];
   types: [
     {
@@ -3718,7 +3718,7 @@ export type CpAmm = {
             name: "tokenBAmountThreshold";
             docs: ["maximum token b amount"];
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -3736,7 +3736,7 @@ export type CpAmm = {
             type: {
               array: ["u8", 32];
             };
-          }
+          },
         ];
       };
     },
@@ -3750,7 +3750,7 @@ export type CpAmm = {
             type: {
               array: ["u8", 30];
             };
-          }
+          },
         ];
       };
     },
@@ -3774,7 +3774,7 @@ export type CpAmm = {
           {
             name: "padding1";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -3812,7 +3812,7 @@ export type CpAmm = {
             type: {
               array: ["u8", 3];
             };
-          }
+          },
         ];
       };
     },
@@ -3829,7 +3829,7 @@ export type CpAmm = {
         "",
         "if a >= max_index",
         "if a = max_index + d, input_amount = x0 + max_index * x0 + (d * x0 + b)",
-        "then fee = x0 * (c + c*max_index + i*max_index*(max_index+1)/2) + (d * x0 + b) * MAX_FEE"
+        "then fee = x0 * (c + c*max_index + i*max_index*(max_index+1)/2) + (d * x0 + b) * MAX_FEE",
       ];
       type: {
         kind: "struct";
@@ -3863,7 +3863,7 @@ export type CpAmm = {
             type: {
               array: ["u8", 3];
             };
-          }
+          },
         ];
       };
     },
@@ -3897,7 +3897,7 @@ export type CpAmm = {
             type: {
               array: ["u8", 3];
             };
-          }
+          },
         ];
       };
     },
@@ -3918,7 +3918,7 @@ export type CpAmm = {
           {
             name: "poolCreatorAuthority";
             docs: [
-              "Only pool_creator_authority can use the current config to initialize new pool. When it's Pubkey::default, it's a public config."
+              "Only pool_creator_authority can use the current config to initialize new pool. When it's Pubkey::default, it's a public config.",
             ];
             type: "pubkey";
           },
@@ -3974,7 +3974,7 @@ export type CpAmm = {
             type: {
               array: ["u64", 10];
             };
-          }
+          },
         ];
       };
     },
@@ -4006,7 +4006,7 @@ export type CpAmm = {
                 name: "borshFeeMarketCapScheduler";
               };
             };
-          }
+          },
         ];
       };
     },
@@ -4018,7 +4018,7 @@ export type CpAmm = {
           {
             name: "poolCreatorAuthority";
             type: "pubkey";
-          }
+          },
         ];
       };
     },
@@ -4074,7 +4074,7 @@ export type CpAmm = {
           {
             name: "binStepU128";
             type: "u128";
-          }
+          },
         ];
       };
     },
@@ -4110,7 +4110,7 @@ export type CpAmm = {
           {
             name: "variableFeeControl";
             type: "u32";
-          }
+          },
         ];
       };
     },
@@ -4176,7 +4176,7 @@ export type CpAmm = {
           {
             name: "volatilityReference";
             type: "u128";
-          }
+          },
         ];
       };
     },
@@ -4196,7 +4196,7 @@ export type CpAmm = {
           {
             name: "tokenBAmount";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4224,7 +4224,7 @@ export type CpAmm = {
           {
             name: "feeBClaimed";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4244,7 +4244,7 @@ export type CpAmm = {
           {
             name: "tokenBAmount";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4276,7 +4276,7 @@ export type CpAmm = {
           {
             name: "totalReward";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4295,7 +4295,7 @@ export type CpAmm = {
             name: "admin";
             docs: ["admin pk"];
             type: "pubkey";
-          }
+          },
         ];
       };
     },
@@ -4319,7 +4319,7 @@ export type CpAmm = {
           {
             name: "positionNftMint";
             type: "pubkey";
-          }
+          },
         ];
       };
     },
@@ -4368,7 +4368,7 @@ export type CpAmm = {
           {
             name: "config";
             type: "pubkey";
-          }
+          },
         ];
       };
     },
@@ -4389,7 +4389,7 @@ export type CpAmm = {
           {
             name: "index";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4413,7 +4413,7 @@ export type CpAmm = {
           {
             name: "positionNftMint";
             type: "pubkey";
-          }
+          },
         ];
       };
     },
@@ -4426,7 +4426,7 @@ export type CpAmm = {
           {
             name: "tokenMint";
             type: "pubkey";
-          }
+          },
         ];
       };
     },
@@ -4470,7 +4470,7 @@ export type CpAmm = {
           {
             name: "postRewardRate";
             type: "u128";
-          }
+          },
         ];
       };
     },
@@ -4566,7 +4566,7 @@ export type CpAmm = {
           {
             name: "poolType";
             type: "u8";
-          }
+          },
         ];
       };
     },
@@ -4598,7 +4598,7 @@ export type CpAmm = {
           {
             name: "rewardDuration";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4658,7 +4658,7 @@ export type CpAmm = {
           {
             name: "changeType";
             type: "u8";
-          }
+          },
         ];
       };
     },
@@ -4702,7 +4702,7 @@ export type CpAmm = {
           {
             name: "numberOfPeriod";
             type: "u16";
-          }
+          },
         ];
       };
     },
@@ -4726,7 +4726,7 @@ export type CpAmm = {
           {
             name: "totalPermanentLockedLiquidity";
             type: "u128";
-          }
+          },
         ];
       };
     },
@@ -4742,7 +4742,7 @@ export type CpAmm = {
           {
             name: "status";
             type: "u8";
-          }
+          },
         ];
       };
     },
@@ -4806,7 +4806,7 @@ export type CpAmm = {
                 name: "splitPositionParameters2";
               };
             };
-          }
+          },
         ];
       };
     },
@@ -4870,7 +4870,7 @@ export type CpAmm = {
           {
             name: "reserveBAmount";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4894,7 +4894,7 @@ export type CpAmm = {
                 name: "updatePoolFeesParameters";
               };
             };
-          }
+          },
         ];
       };
     },
@@ -4918,7 +4918,7 @@ export type CpAmm = {
           {
             name: "newRewardDuration";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -4942,7 +4942,7 @@ export type CpAmm = {
           {
             name: "newFunder";
             type: "pubkey";
-          }
+          },
         ];
       };
     },
@@ -4962,7 +4962,7 @@ export type CpAmm = {
           {
             name: "amount";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5003,7 +5003,7 @@ export type CpAmm = {
           {
             name: "sqrtPrice";
             docs: [
-              "The init price of the pool as a sqrt(token_b/token_a) Q64.64 value. Market cap fee scheduler minimum price will be derived from this value"
+              "The init price of the pool as a sqrt(token_b/token_a) Q64.64 value. Market cap fee scheduler minimum price will be derived from this value",
             ];
             type: "u128";
           },
@@ -5023,7 +5023,7 @@ export type CpAmm = {
             type: {
               option: "u64";
             };
-          }
+          },
         ];
       };
     },
@@ -5040,7 +5040,7 @@ export type CpAmm = {
           {
             name: "sqrtPrice";
             docs: [
-              "The init price of the pool as a sqrt(token_b/token_a) Q64.64 value"
+              "The init price of the pool as a sqrt(token_b/token_a) Q64.64 value",
             ];
             type: "u128";
           },
@@ -5050,7 +5050,7 @@ export type CpAmm = {
             type: {
               option: "u64";
             };
-          }
+          },
         ];
       };
     },
@@ -5076,7 +5076,7 @@ export type CpAmm = {
             type: {
               array: ["u64", 2];
             };
-          }
+          },
         ];
       };
     },
@@ -5118,7 +5118,7 @@ export type CpAmm = {
           {
             name: "reductionFactor";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5160,7 +5160,7 @@ export type CpAmm = {
           {
             name: "referenceAmount";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5198,7 +5198,7 @@ export type CpAmm = {
           {
             name: "reductionFactor";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5243,7 +5243,7 @@ export type CpAmm = {
           {
             name: "whitelistedVault";
             docs: [
-              "Whitelisted vault to be able to buy pool before activation_point"
+              "Whitelisted vault to be able to buy pool before activation_point",
             ];
             type: "pubkey";
           },
@@ -5260,7 +5260,7 @@ export type CpAmm = {
           {
             name: "padding";
             docs: [
-              "padding, previous reserve amount, be careful to use that field"
+              "padding, previous reserve amount, be careful to use that field",
             ];
             type: "u128";
           },
@@ -5327,7 +5327,7 @@ export type CpAmm = {
           {
             name: "collectFeeMode";
             docs: [
-              "0 is collect fee in both token, 1 only collect fee only in token b"
+              "0 is collect fee in both token, 1 only collect fee only in token b",
             ];
             type: "u8";
           },
@@ -5339,7 +5339,7 @@ export type CpAmm = {
           {
             name: "version";
             docs: [
-              "pool version, 0: max_fee is still capped at 50%, 1: max_fee is capped at 99%"
+              "pool version, 0: max_fee is still capped at 50%, 1: max_fee is capped at 99%",
             ];
             type: "u8";
           },
@@ -5397,10 +5397,10 @@ export type CpAmm = {
                     name: "rewardInfo";
                   };
                 },
-                2
+                2,
               ];
             };
-          }
+          },
         ];
       };
     },
@@ -5429,7 +5429,7 @@ export type CpAmm = {
                 };
               };
             };
-          }
+          },
         ];
       };
     },
@@ -5481,7 +5481,7 @@ export type CpAmm = {
             type: {
               array: ["u64", 5];
             };
-          }
+          },
         ];
       };
     },
@@ -5492,7 +5492,7 @@ export type CpAmm = {
         "trading_fee = amount * trade_fee_numerator / denominator",
         "protocol_fee = trading_fee * protocol_fee_percentage / 100",
         "referral_fee = protocol_fee * referral_percentage / 100",
-        "partner_fee = (protocol_fee - referral_fee) * partner_fee_percentage / denominator"
+        "partner_fee = (protocol_fee - referral_fee) * partner_fee_percentage / denominator",
       ];
       serialization: "bytemuck";
       repr: {
@@ -5506,7 +5506,7 @@ export type CpAmm = {
             docs: [
               "Trade fees are extra token amounts that are held inside the token",
               "accounts during a trade, making the value of liquidity tokens rise.",
-              "Trade fee numerator"
+              "Trade fee numerator",
             ];
             type: {
               defined: {
@@ -5520,7 +5520,7 @@ export type CpAmm = {
               "Protocol trading fees are extra token amounts that are held inside the token",
               "accounts during a trade, with the equivalent in pool tokens minted to",
               "the protocol of the program.",
-              "Protocol trade fee numerator"
+              "Protocol trade fee numerator",
             ];
             type: "u8";
           },
@@ -5553,7 +5553,7 @@ export type CpAmm = {
           {
             name: "initSqrtPrice";
             type: "u128";
-          }
+          },
         ];
       };
     },
@@ -5597,7 +5597,7 @@ export type CpAmm = {
           {
             name: "padding";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5677,7 +5677,7 @@ export type CpAmm = {
                     name: "userRewardInfo";
                   };
                 },
-                2
+                2,
               ];
             };
           },
@@ -5687,7 +5687,7 @@ export type CpAmm = {
             type: {
               array: ["u128", 6];
             };
-          }
+          },
         ];
       };
     },
@@ -5707,7 +5707,7 @@ export type CpAmm = {
           {
             name: "totalClaimedBFee";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5730,7 +5730,7 @@ export type CpAmm = {
             name: "tokenBAmountThreshold";
             docs: ["minimum token b amount"];
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5814,10 +5814,10 @@ export type CpAmm = {
             name: "cumulativeSecondsWithEmptyLiquidityReward";
             docs: [
               "Accumulated seconds when the farm distributed rewards but the bin was empty.",
-              "These rewards will be carried over to the next reward time window."
+              "These rewards will be carried over to the next reward time window.",
             ];
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5849,7 +5849,7 @@ export type CpAmm = {
           {
             name: "reward1";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5877,7 +5877,7 @@ export type CpAmm = {
           {
             name: "reward1";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -5889,42 +5889,42 @@ export type CpAmm = {
           {
             name: "unlockedLiquidityPercentage";
             docs: [
-              "Percentage of unlocked liquidity to split to the second position"
+              "Percentage of unlocked liquidity to split to the second position",
             ];
             type: "u8";
           },
           {
             name: "permanentLockedLiquidityPercentage";
             docs: [
-              "Percentage of permanent locked liquidity to split to the second position"
+              "Percentage of permanent locked liquidity to split to the second position",
             ];
             type: "u8";
           },
           {
             name: "feeAPercentage";
             docs: [
-              "Percentage of fee A pending to split to the second position"
+              "Percentage of fee A pending to split to the second position",
             ];
             type: "u8";
           },
           {
             name: "feeBPercentage";
             docs: [
-              "Percentage of fee B pending to split to the second position"
+              "Percentage of fee B pending to split to the second position",
             ];
             type: "u8";
           },
           {
             name: "reward0Percentage";
             docs: [
-              "Percentage of reward 0 pending to split to the second position"
+              "Percentage of reward 0 pending to split to the second position",
             ];
             type: "u8";
           },
           {
             name: "reward1Percentage";
             docs: [
-              "Percentage of reward 1 pending to split to the second position"
+              "Percentage of reward 1 pending to split to the second position",
             ];
             type: "u8";
           },
@@ -5934,7 +5934,7 @@ export type CpAmm = {
             type: {
               array: ["u8", 16];
             };
-          }
+          },
         ];
       };
     },
@@ -5966,7 +5966,7 @@ export type CpAmm = {
           {
             name: "reward1Numerator";
             type: "u32";
-          }
+          },
         ];
       };
     },
@@ -6006,7 +6006,7 @@ export type CpAmm = {
           {
             name: "collectFeeMode";
             type: "u8";
-          }
+          },
         ];
       };
     },
@@ -6022,7 +6022,7 @@ export type CpAmm = {
           {
             name: "minimumAmountOut";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -6034,14 +6034,14 @@ export type CpAmm = {
           {
             name: "amount0";
             docs: [
-              "When it's exact in, partial fill, this will be amount_in. When it's exact out, this will be amount_out"
+              "When it's exact in, partial fill, this will be amount_in. When it's exact out, this will be amount_out",
             ];
             type: "u64";
           },
           {
             name: "amount1";
             docs: [
-              "When it's exact in, partial fill, this will be minimum_amount_out. When it's exact out, this will be maximum_amount_in"
+              "When it's exact in, partial fill, this will be minimum_amount_out. When it's exact out, this will be maximum_amount_in",
             ];
             type: "u64";
           },
@@ -6049,7 +6049,7 @@ export type CpAmm = {
             name: "swapMode";
             docs: ["Swap mode, refer [SwapMode]"];
             type: "u8";
-          }
+          },
         ];
       };
     },
@@ -6093,7 +6093,7 @@ export type CpAmm = {
           {
             name: "referralFee";
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -6118,7 +6118,7 @@ export type CpAmm = {
             type: {
               array: ["u8", 128];
             };
-          }
+          },
         ];
       };
     },
@@ -6132,7 +6132,7 @@ export type CpAmm = {
             docs: [
               "Base fee update mode:",
               "- None: skip base fee update",
-              "- Some: update new cliff_fee_numerator if base fee is static"
+              "- Some: update new cliff_fee_numerator if base fee is static",
             ];
             type: {
               option: "u64";
@@ -6144,7 +6144,7 @@ export type CpAmm = {
               "Dynamic fee update mode:",
               "- None: skip dynamic fee update",
               "- Some(with default value): disable dynamic fee",
-              "- Some(with non default value): enable dynamic fee if disabled or update dynamic fee if enabled"
+              "- Some(with non default value): enable dynamic fee if disabled or update dynamic fee if enabled",
             ];
             type: {
               option: {
@@ -6153,7 +6153,7 @@ export type CpAmm = {
                 };
               };
             };
-          }
+          },
         ];
       };
     },
@@ -6182,7 +6182,7 @@ export type CpAmm = {
             name: "totalClaimedRewards";
             docs: ["Total claimed rewards"];
             type: "u64";
-          }
+          },
         ];
       };
     },
@@ -6234,7 +6234,7 @@ export type CpAmm = {
             type: {
               array: ["u128", 4];
             };
-          }
+          },
         ];
       };
     },
@@ -6264,10 +6264,10 @@ export type CpAmm = {
           {
             name: "numberOfPeriod";
             type: "u16";
-          }
+          },
         ];
       };
-    }
+    },
   ];
   constants: [
     {
@@ -6290,7 +6290,7 @@ export type CpAmm = {
     {
       name: "feeDenominator";
       docs: [
-        "Default fee denominator. DO NOT simply update it as it will break logic that depends on it as default value."
+        "Default fee denominator. DO NOT simply update it as it will break logic that depends on it as default value.",
       ];
       type: "u64";
       value: "1000000000";
@@ -6344,6 +6344,6 @@ export type CpAmm = {
       name: "tokenVaultPrefix";
       type: "bytes";
       value: "[116, 111, 107, 101, 110, 95, 118, 97, 117, 108, 116]";
-    }
+    },
   ];
 };

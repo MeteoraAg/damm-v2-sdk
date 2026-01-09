@@ -19,7 +19,7 @@ export function calculateInitSqrtPrice(
   tokenAAmount: BN,
   tokenBAmount: BN,
   minSqrtPrice: BN,
-  maxSqrtPrice: BN
+  maxSqrtPrice: BN,
 ): BN {
   if (tokenAAmount.isZero() || tokenBAmount.isZero()) {
     throw new Error("Amount cannot be zero");
@@ -28,10 +28,10 @@ export function calculateInitSqrtPrice(
   const amountADecimal = new Decimal(tokenAAmount.toString());
   const amountBDecimal = new Decimal(tokenBAmount.toString());
   const minSqrtPriceDecimal = new Decimal(minSqrtPrice.toString()).div(
-    Decimal.pow(2, 64)
+    Decimal.pow(2, 64),
   );
   const maxSqrtPriceDecimal = new Decimal(maxSqrtPrice.toString()).div(
-    Decimal.pow(2, 64)
+    Decimal.pow(2, 64),
   );
 
   const x = new Decimal(1).div(maxSqrtPriceDecimal);

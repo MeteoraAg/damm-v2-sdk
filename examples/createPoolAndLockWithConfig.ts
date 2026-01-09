@@ -34,7 +34,7 @@ import {
   };
 
   const wallet = Keypair.fromSecretKey(
-    Uint8Array.from(Uint8Array.from(require(CONFIG.keypairPath)))
+    Uint8Array.from(Uint8Array.from(require(CONFIG.keypairPath))),
   );
 
   const connection = new Connection(CONFIG.rpcUrl);
@@ -51,7 +51,7 @@ import {
       connection,
       CONFIG.tokenAMint,
       connection.commitment,
-      tokenAProgram
+      tokenAProgram,
     );
     const epochInfo = await connection.getEpochInfo();
     tokenAInfo = {
@@ -61,15 +61,15 @@ import {
   }
 
   const initialPoolTokenAAmount = new BN(CONFIG.tokenAAmount).mul(
-    new BN(10 ** CONFIG.tokenADecimals)
+    new BN(10 ** CONFIG.tokenADecimals),
   );
   const initialPoolTokenBAmount = new BN(CONFIG.tokenBAmount).mul(
-    new BN(10 ** CONFIG.tokenBDecimals)
+    new BN(10 ** CONFIG.tokenBDecimals),
   );
   const initSqrtPrice = getSqrtPriceFromPrice(
     CONFIG.initialPrice.toString(),
     CONFIG.tokenADecimals,
-    CONFIG.tokenBDecimals
+    CONFIG.tokenBDecimals,
   );
   const liquidityDelta = cpAmm.getLiquidityDelta({
     maxAmountTokenA: initialPoolTokenAAmount,
@@ -106,14 +106,14 @@ import {
     [wallet, positionNft],
     {
       commitment: "confirmed",
-    }
+    },
   );
 
   console.log({
     pool: derivePoolAddress(
       CONFIG.config,
       CONFIG.tokenAMint,
-      CONFIG.tokenBMint
+      CONFIG.tokenBMint,
     ).toString(),
     position: derivePositionAddress(positionNft.publicKey).toString(),
     positionNft: positionNft.publicKey.toString(),

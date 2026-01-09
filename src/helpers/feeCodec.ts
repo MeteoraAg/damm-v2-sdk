@@ -19,7 +19,7 @@ export function encodeFeeTimeSchedulerParams(
   numberOfPeriod: number,
   periodFrequency: BN,
   reductionFactor: BN,
-  baseFeeMode: BaseFeeMode
+  baseFeeMode: BaseFeeMode,
 ): Buffer {
   const feeTimeScheduler = {
     cliff_fee_numerator: new BN(cliffFeeNumerator.toString()),
@@ -34,7 +34,7 @@ export function encodeFeeTimeSchedulerParams(
 }
 
 export function decodeFeeTimeSchedulerParams(
-  data: Buffer
+  data: Buffer,
 ): BorshFeeTimeScheduler {
   const decoded = cpAmmCoder.types.decode("BorshFeeTimeScheduler", data);
   return {
@@ -48,7 +48,7 @@ export function decodeFeeTimeSchedulerParams(
 }
 
 export function decodePodAlignedFeeTimeScheduler(
-  data: Buffer
+  data: Buffer,
 ): PodAlignedFeeTimeScheduler {
   const decoded = cpAmmCoder.types.decode("PodAlignedFeeTimeScheduler", data);
   return {
@@ -67,7 +67,7 @@ export function encodeFeeMarketCapSchedulerParams(
   sqrtPriceStepBps: number,
   schedulerExpirationDuration: number,
   reductionFactor: BN,
-  baseFeeMode: BaseFeeMode
+  baseFeeMode: BaseFeeMode,
 ): Buffer {
   const feeMarketCapScheduler = {
     cliff_fee_numerator: new BN(cliffFeeNumerator.toString()),
@@ -81,12 +81,12 @@ export function encodeFeeMarketCapSchedulerParams(
 
   return cpAmmCoder.types.encode(
     "BorshFeeMarketCapScheduler",
-    feeMarketCapScheduler
+    feeMarketCapScheduler,
   );
 }
 
 export function decodeFeeMarketCapSchedulerParams(
-  data: Buffer
+  data: Buffer,
 ): BorshFeeMarketCapScheduler {
   const decoded = cpAmmCoder.types.decode("BorshFeeMarketCapScheduler", data);
   return {
@@ -101,11 +101,11 @@ export function decodeFeeMarketCapSchedulerParams(
 }
 
 export function decodePodAlignedFeeMarketCapScheduler(
-  data: Buffer
+  data: Buffer,
 ): PodAlignedFeeMarketCapScheduler {
   const decoded = cpAmmCoder.types.decode(
     "PodAlignedFeeMarketCapScheduler",
-    data
+    data,
   );
   return {
     cliffFeeNumerator: decoded.cliff_fee_numerator,
@@ -123,7 +123,7 @@ export function encodeFeeRateLimiterParams(
   feeIncrementBps: number,
   maxLimiterDuration: number,
   maxFeeBps: number,
-  referenceAmount: BN
+  referenceAmount: BN,
 ): Buffer {
   const feeRateLimiter = {
     cliff_fee_numerator: new BN(cliffFeeNumerator.toString()),
@@ -152,7 +152,7 @@ export function decodeFeeRateLimiterParams(data: Buffer): BorshFeeRateLimiter {
 }
 
 export function decodePodAlignedFeeRateLimiter(
-  data: Buffer
+  data: Buffer,
 ): PodAlignedFeeRateLimiter {
   const decoded = cpAmmCoder.types.decode("PodAlignedFeeRateLimiter", data);
   return {

@@ -38,7 +38,7 @@ export function getTokenProgram(flag: number): PublicKey {
 export const getTokenDecimals = async (
   connection: Connection,
   mint: PublicKey,
-  tokenProgram: PublicKey
+  tokenProgram: PublicKey,
 ): Promise<number> => {
   return (await getMint(connection, mint, "confirmed", tokenProgram)).decimals;
 };
@@ -59,13 +59,13 @@ export const getOrCreateATAInstruction = async (
   owner: PublicKey,
   payer: PublicKey = owner,
   allowOwnerOffCurve = true,
-  tokenProgram: PublicKey
+  tokenProgram: PublicKey,
 ): Promise<{ ataPubkey: PublicKey; ix?: TransactionInstruction }> => {
   const toAccount = getAssociatedTokenAddressSync(
     tokenMint,
     owner,
     allowOwnerOffCurve,
-    tokenProgram
+    tokenProgram,
   );
 
   try {
@@ -81,7 +81,7 @@ export const getOrCreateATAInstruction = async (
         toAccount,
         owner,
         tokenMint,
-        tokenProgram
+        tokenProgram,
       );
 
       return { ataPubkey: toAccount, ix };
@@ -103,7 +103,7 @@ export const getOrCreateATAInstruction = async (
 export const wrapSOLInstruction = (
   from: PublicKey,
   to: PublicKey,
-  amount: bigint
+  amount: bigint,
 ): TransactionInstruction[] => {
   return [
     SystemProgram.transfer({
@@ -135,12 +135,12 @@ export const wrapSOLInstruction = (
 export const unwrapSOLInstruction = async (
   owner: PublicKey,
   receiver: PublicKey = owner,
-  allowOwnerOffCurve = true
+  allowOwnerOffCurve = true,
 ) => {
   const wSolATAAccount = getAssociatedTokenAddressSync(
     NATIVE_MINT,
     owner,
-    allowOwnerOffCurve
+    allowOwnerOffCurve,
   );
   if (wSolATAAccount) {
     const closedWrappedSolInstruction = createCloseAccountInstruction(
@@ -148,7 +148,7 @@ export const unwrapSOLInstruction = async (
       receiver,
       owner,
       [],
-      TOKEN_PROGRAM_ID
+      TOKEN_PROGRAM_ID,
     );
     return closedWrappedSolInstruction;
   }
@@ -163,7 +163,7 @@ export const unwrapSOLInstruction = async (
  */
 export async function getAllUserPositionNftAccount(
   connection: Connection,
-  user: PublicKey
+  user: PublicKey,
 ): Promise<
   Array<{
     positionNft: PublicKey;
@@ -189,7 +189,7 @@ export async function getAllUserPositionNftAccount(
     TOKEN_2022_PROGRAM_ID,
     {
       filters,
-    }
+    },
   );
 
   const userPositionNftAccount: Array<{
@@ -215,7 +215,7 @@ export async function getAllUserPositionNftAccount(
  */
 export async function getAllPositionNftAccountByOwner(
   connection: Connection,
-  user: PublicKey
+  user: PublicKey,
 ): Promise<
   Array<{
     positionNft: PublicKey;

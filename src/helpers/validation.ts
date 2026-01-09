@@ -39,7 +39,7 @@ export function validateFeeTimeScheduler(
   reductionFactor: BN,
   cliffFeeNumerator: BN,
   baseFeeMode: BaseFeeMode,
-  poolVersion: PoolVersion
+  poolVersion: PoolVersion,
 ): boolean {
   if (
     !periodFrequency.eq(new BN(0)) ||
@@ -59,7 +59,7 @@ export function validateFeeTimeScheduler(
     cliffFeeNumerator,
     numberOfPeriod,
     reductionFactor,
-    baseFeeMode
+    baseFeeMode,
   );
   const maxFeeNumerator = getMaxBaseFeeNumerator(cliffFeeNumerator);
   validateFeeFraction(minFeeNumerator, new BN(FEE_DENOMINATOR));
@@ -87,11 +87,11 @@ export function validateFeeTimeSchedulerBaseFeeIsStatic(
   currentPoint: BN,
   activationPoint: BN,
   numberOfPeriod: BN,
-  periodFrequency: BN
+  periodFrequency: BN,
 ): boolean {
   // schedulerExpirationPoint = activationPoint + (numberOfPeriod * periodFrequency)
   const schedulerExpirationPoint = activationPoint.add(
-    numberOfPeriod.mul(periodFrequency)
+    numberOfPeriod.mul(periodFrequency),
   );
 
   return currentPoint.gt(schedulerExpirationPoint);
@@ -117,7 +117,7 @@ export function validateFeeMarketCapScheduler(
   reductionFactor: BN,
   schedulerExpirationDuration: BN,
   feeMarketCapSchedulerMode: BaseFeeMode,
-  poolVersion: PoolVersion
+  poolVersion: PoolVersion,
 ): boolean {
   // doesn't allow zero fee marketcap scheduler
   if (reductionFactor.lte(new BN(0))) {
@@ -140,7 +140,7 @@ export function validateFeeMarketCapScheduler(
     cliffFeeNumerator,
     numberOfPeriod,
     reductionFactor,
-    feeMarketCapSchedulerMode
+    feeMarketCapSchedulerMode,
   );
   const maxFeeNumerator = cliffFeeNumerator;
 
@@ -169,11 +169,11 @@ export function validateFeeMarketCapScheduler(
 export function validateFeeMarketCapBaseFeeIsStatic(
   currentPoint: BN,
   activationPoint: BN,
-  schedulerExpirationDuration: BN
+  schedulerExpirationDuration: BN,
 ): boolean {
   // schedulerExpirationPoint = activationPoint + schedulerExpirationDuration
   const schedulerExpirationPoint = activationPoint.add(
-    schedulerExpirationDuration
+    schedulerExpirationDuration,
   );
 
   return currentPoint.gt(schedulerExpirationPoint);
@@ -197,7 +197,7 @@ export function validateFeeRateLimiter(
   referenceAmount: BN,
   collectFeeMode: CollectFeeMode,
   activationType: ActivationType,
-  poolVersion: PoolVersion
+  poolVersion: PoolVersion,
 ): boolean {
   // can only be applied in OnlyB collect fee mode
   if (collectFeeMode !== CollectFeeMode.OnlyB) {
@@ -207,7 +207,7 @@ export function validateFeeRateLimiter(
   // max_fee_numerator_from_bps = to_numerator(maxFeeBps, FEE_DENOMINATOR)
   const maxFeeNumeratorFromBps = toNumerator(
     new BN(maxFeeBps),
-    new BN(FEE_DENOMINATOR)
+    new BN(FEE_DENOMINATOR),
   );
 
   // cliff_fee_numerator >= MIN_FEE_NUMERATOR && cliff_fee_numerator <= max_fee_numerator_from_bps
@@ -224,7 +224,7 @@ export function validateFeeRateLimiter(
       referenceAmount,
       maxLimiterDuration,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     )
   ) {
     return true;
@@ -235,7 +235,7 @@ export function validateFeeRateLimiter(
       referenceAmount,
       maxLimiterDuration,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     )
   ) {
     return false;
@@ -254,7 +254,7 @@ export function validateFeeRateLimiter(
   // fee_increment_numerator = to_numerator(feeIncrementBps, FEE_DENOMINATOR)
   const feeIncrementNumerator = toNumerator(
     new BN(feeIncrementBps),
-    new BN(FEE_DENOMINATOR)
+    new BN(FEE_DENOMINATOR),
   );
   if (feeIncrementNumerator.gte(new BN(FEE_DENOMINATOR))) {
     return false;
@@ -270,14 +270,14 @@ export function validateFeeRateLimiter(
     cliffFeeNumerator,
     referenceAmount,
     maxFeeBps,
-    feeIncrementBps
+    feeIncrementBps,
   );
   const maxFeeNumeratorFromAmount = getFeeNumeratorFromIncludedFeeAmount(
     new BN(Number.MAX_SAFE_INTEGER),
     cliffFeeNumerator,
     referenceAmount,
     maxFeeBps,
-    feeIncrementBps
+    feeIncrementBps,
   );
 
   if (
@@ -306,7 +306,7 @@ export function validateFeeRateLimiterBaseFeeIsStatic(
   maxLimiterDuration: number,
   referenceAmount: BN,
   maxFeeBps: number,
-  feeIncrementBps: number
+  feeIncrementBps: number,
 ): boolean {
   // if the rate limiter is zero, return true
   if (
@@ -314,7 +314,7 @@ export function validateFeeRateLimiterBaseFeeIsStatic(
       referenceAmount,
       maxLimiterDuration,
       maxFeeBps,
-      feeIncrementBps
+      feeIncrementBps,
     )
   ) {
     return true;
@@ -322,7 +322,7 @@ export function validateFeeRateLimiterBaseFeeIsStatic(
 
   // last_effective_rate_limiter_point = activationPoint + maxLimiterDuration
   const lastEffectiveRateLimiterPoint = activationPoint.add(
-    new BN(maxLimiterDuration)
+    new BN(maxLimiterDuration),
   );
 
   return currentPoint.gt(lastEffectiveRateLimiterPoint);
@@ -337,7 +337,7 @@ export function validateFeeRateLimiterBaseFeeIsStatic(
 export function validateFeeFraction(numerator: BN, denominator: BN): void {
   if (denominator.isZero() || numerator.gte(denominator)) {
     throw new Error(
-      "InvalidFee: Fee numerator must be less than denominator and denominator must be non-zero"
+      "InvalidFee: Fee numerator must be less than denominator and denominator must be non-zero",
     );
   }
 }

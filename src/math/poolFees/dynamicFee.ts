@@ -25,7 +25,7 @@ export function isDynamicFeeEnabled(dynamicFee: DynamicFeeStruct): boolean {
 export function getDynamicFeeNumerator(
   volatilityAccumulator: BN,
   binStep: BN,
-  variableFeeControl: BN
+  variableFeeControl: BN,
 ): BN {
   const squareVfaBin = volatilityAccumulator
     .mul(new BN(binStep))

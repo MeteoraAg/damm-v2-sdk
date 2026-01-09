@@ -20,7 +20,7 @@ export async function createToken2022(
   banksClient: BanksClient,
   payer: Keypair,
   mintKeypair: Keypair,
-  extensions: ExtensionType[]
+  extensions: ExtensionType[],
 ) {
   const maxFee = BigInt(9 * Math.pow(10, DECIMALS));
   const feeBasisPoints = 100;
@@ -29,7 +29,7 @@ export async function createToken2022(
 
   let mintLen = getMintLen(extensions);
   const mintLamports = (await banksClient.getRent()).minimumBalance(
-    BigInt(mintLen)
+    BigInt(mintLen),
   );
   const transaction = new Transaction().add(
     SystemProgram.createAccount({
@@ -45,15 +45,15 @@ export async function createToken2022(
       withdrawWithheldAuthority.publicKey,
       feeBasisPoints,
       maxFee,
-      TOKEN_2022_PROGRAM_ID
+      TOKEN_2022_PROGRAM_ID,
     ),
     createInitializeMint2Instruction(
       mintKeypair.publicKey,
       DECIMALS,
       payer.publicKey,
       null,
-      TOKEN_2022_PROGRAM_ID
-    )
+      TOKEN_2022_PROGRAM_ID,
+    ),
   );
 
   const [recentBlockhash] = await banksClient.getLatestBlockhash();
@@ -69,14 +69,14 @@ export async function mintToToken2022(
   mintAuthority: Keypair,
   mint: PublicKey,
   toWallet: PublicKey,
-  amount: bigint
+  amount: bigint,
 ) {
   const destination = await getOrCreateAssociatedTokenAccount(
     banksClient,
     payer,
     mint,
     toWallet,
-    TOKEN_2022_PROGRAM_ID
+    TOKEN_2022_PROGRAM_ID,
   );
   const mintIx = createMintToInstruction(
     mint,
@@ -84,7 +84,7 @@ export async function mintToToken2022(
     mintAuthority.publicKey,
     amount,
     [],
-    TOKEN_2022_PROGRAM_ID
+    TOKEN_2022_PROGRAM_ID,
   );
 
   let transaction = new Transaction();

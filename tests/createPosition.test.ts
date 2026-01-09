@@ -23,6 +23,7 @@ import {
   MIN_SQRT_PRICE,
   PoolFeesParams,
 } from "../src";
+import { beforeEach, describe, it } from "vitest";
 
 describe("Create position", () => {
   describe("SPL token", () => {
@@ -41,7 +42,7 @@ describe("Create position", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
       payer = prepareContext.payer;
       creator = prepareContext.poolCreator;
@@ -62,7 +63,7 @@ describe("Create position", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -106,9 +107,8 @@ describe("Create position", () => {
     it("User create a position", async () => {
       const positionNft = Keypair.generate();
       params.positionNft = positionNft.publicKey;
-      const { tx: transaction, pool } = await ammInstance.createCustomPool(
-        params
-      );
+      const { tx: transaction, pool } =
+        await ammInstance.createCustomPool(params);
 
       await executeTransaction(context.banksClient, transaction, [
         payer,
@@ -124,9 +124,8 @@ describe("Create position", () => {
         pool,
         positionNft: userPositionNft.publicKey,
       };
-      const createPositionTx = await ammInstance.createPosition(
-        createPositionParams
-      );
+      const createPositionTx =
+        await ammInstance.createPosition(createPositionParams);
       await executeTransaction(context.banksClient, createPositionTx, [
         user,
         userPositionNft,
@@ -151,7 +150,7 @@ describe("Create position", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
       user = prepareContext.user;
       payer = prepareContext.payer;
@@ -173,7 +172,7 @@ describe("Create position", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -216,9 +215,8 @@ describe("Create position", () => {
     it("User create a position", async () => {
       const positionNft = Keypair.generate();
       params.positionNft = positionNft.publicKey;
-      const { tx: transaction, pool } = await ammInstance.createCustomPool(
-        params
-      );
+      const { tx: transaction, pool } =
+        await ammInstance.createCustomPool(params);
       await executeTransaction(context.banksClient, transaction, [
         payer,
         positionNft,
@@ -233,9 +231,8 @@ describe("Create position", () => {
         pool,
         positionNft: userPositionNft.publicKey,
       };
-      const createPositionTx = await ammInstance.createPosition(
-        createPositionParams
-      );
+      const createPositionTx =
+        await ammInstance.createPosition(createPositionParams);
       await executeTransaction(context.banksClient, createPositionTx, [
         user,
         userPositionNft,

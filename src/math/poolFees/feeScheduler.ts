@@ -12,7 +12,7 @@ import { pow } from "../utilsMath";
 export function getFeeNumeratorOnLinearFeeScheduler(
   cliffFeeNumerator: BN,
   reductionFactor: BN,
-  period: number
+  period: number,
 ): BN {
   const reduction = new BN(period).mul(reductionFactor);
 
@@ -29,7 +29,7 @@ export function getFeeNumeratorOnLinearFeeScheduler(
 export function getFeeNumeratorOnExponentialFeeScheduler(
   cliffFeeNumerator: BN,
   reductionFactor: BN,
-  period: number
+  period: number,
 ): BN {
   if (period === 0) {
     return cliffFeeNumerator;

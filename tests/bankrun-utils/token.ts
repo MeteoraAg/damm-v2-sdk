@@ -25,7 +25,7 @@ export async function getOrCreateAssociatedTokenAccount(
   payer: Keypair,
   mint: PublicKey,
   owner: PublicKey,
-  tokenProgram = TOKEN_PROGRAM_ID
+  tokenProgram = TOKEN_PROGRAM_ID,
 ) {
   const ataKey = getAssociatedTokenAddressSync(mint, owner, true, tokenProgram);
 
@@ -36,7 +36,7 @@ export async function getOrCreateAssociatedTokenAccount(
       ataKey,
       owner,
       mint,
-      tokenProgram
+      tokenProgram,
     );
     let transaction = new Transaction();
     const [recentBlockhash] = await banksClient.getLatestBlockhash();
@@ -53,7 +53,7 @@ export async function createToken(
   banksClient: BanksClient,
   payer: Keypair,
   mintKeypair: Keypair,
-  mintAuthority: PublicKey
+  mintAuthority: PublicKey,
 ) {
   const rent = await banksClient.getRent();
   const lamports = rent.minimumBalance(BigInt(MINT_SIZE));
@@ -70,7 +70,7 @@ export async function createToken(
     mintKeypair.publicKey,
     DECIMALS,
     mintAuthority,
-    null
+    null,
   );
 
   let transaction = new Transaction();
@@ -85,13 +85,13 @@ export async function createToken(
 export async function wrapSOL(
   banksClient: BanksClient,
   payer: Keypair,
-  amount: BN
+  amount: BN,
 ) {
   const solAta = await getOrCreateAssociatedTokenAccount(
     banksClient,
     payer,
     NATIVE_MINT,
-    payer.publicKey
+    payer.publicKey,
   );
 
   const solTransferIx = SystemProgram.transfer({
@@ -117,20 +117,20 @@ export async function mintTo(
   mint: PublicKey,
   mintAuthority: Keypair,
   toWallet: PublicKey,
-  amount: bigint
+  amount: bigint,
 ) {
   const destination = await getOrCreateAssociatedTokenAccount(
     banksClient,
     payer,
     mint,
-    toWallet
+    toWallet,
   );
 
   const mintIx = createMintToInstruction(
     mint,
     destination,
     mintAuthority.publicKey,
-    amount
+    amount,
   );
 
   let transaction = new Transaction();
@@ -150,7 +150,7 @@ export async function getMint(banksClient: BanksClient, mint: PublicKey) {
 
 export async function getTokenAccount(
   banksClient: BanksClient,
-  key: PublicKey
+  key: PublicKey,
 ) {
   const account = await banksClient.getAccount(key);
   const tokenAccountState = AccountLayout.decode(account.data);

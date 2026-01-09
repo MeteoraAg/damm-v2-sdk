@@ -1,6 +1,10 @@
 import { ProgramTestContext } from "solana-bankrun";
 import {
   createDynamicConfig,
+  createOperator,
+  encodePermissions,
+  LOCAL_ADMIN_KEYPAIR,
+  OperatorPermission,
   processTransactionMaybeThrow,
   setupTestContext,
   startTest,
@@ -29,6 +33,7 @@ import {
   PoolFeesParams,
 } from "../src";
 import { DECIMALS } from "./bankrun-utils";
+import { beforeEach, describe, it } from "vitest";
 
 describe("Initialize customizable pool with dynamic config", () => {
   describe("SPL-Token", () => {
@@ -45,7 +50,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator;
@@ -54,12 +59,19 @@ describe("Initialize customizable pool with dynamic config", () => {
       tokenY = prepareContext.tokenBMint;
       const connection = new Connection(clusterApiUrl("devnet"));
       ammInstance = new CpAmm(connection);
+
+      await createOperator(context.banksClient, ammInstance._program, {
+        admin: LOCAL_ADMIN_KEYPAIR,
+        whitelistAddress: LOCAL_ADMIN_KEYPAIR.publicKey,
+        permission: encodePermissions([OperatorPermission.CreateConfigKey]),
+      });
+
       config = await createDynamicConfig(
         context.banksClient,
         ammInstance._program,
-        payer,
+        LOCAL_ADMIN_KEYPAIR,
         new BN(1),
-        creator.publicKey
+        creator.publicKey,
       );
     });
 
@@ -75,7 +87,7 @@ describe("Initialize customizable pool with dynamic config", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -124,7 +136,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()
@@ -151,7 +163,7 @@ describe("Initialize customizable pool with dynamic config", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator;
@@ -161,12 +173,19 @@ describe("Initialize customizable pool with dynamic config", () => {
 
       const connection = new Connection(clusterApiUrl("devnet"));
       ammInstance = new CpAmm(connection);
+
+      await createOperator(context.banksClient, ammInstance._program, {
+        admin: LOCAL_ADMIN_KEYPAIR,
+        whitelistAddress: LOCAL_ADMIN_KEYPAIR.publicKey,
+        permission: encodePermissions([OperatorPermission.CreateConfigKey]),
+      });
+
       config = await createDynamicConfig(
         context.banksClient,
         ammInstance._program,
-        payer,
+        LOCAL_ADMIN_KEYPAIR,
         new BN(2),
-        creator.publicKey
+        creator.publicKey,
       );
     });
 
@@ -182,7 +201,7 @@ describe("Initialize customizable pool with dynamic config", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -231,7 +250,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()

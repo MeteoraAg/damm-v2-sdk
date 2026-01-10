@@ -799,7 +799,7 @@ export interface BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion
+    poolVersion: PoolVersion,
   ): boolean;
   getBaseFeeNumeratorFromIncludedFeeAmount(
     currentPoint: BN,
@@ -807,7 +807,7 @@ export interface BaseFeeHandler {
     tradeDirection: TradeDirection,
     includedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN
+    currentSqrtPrice: BN,
   ): BN;
   getBaseFeeNumeratorFromExcludedFeeAmount(
     currentPoint: BN,
@@ -815,7 +815,7 @@ export interface BaseFeeHandler {
     tradeDirection: TradeDirection,
     excludedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN
+    currentSqrtPrice: BN,
   ): BN;
   validateBaseFeeIsStatic(currentPoint: BN, activationPoint: BN): boolean;
   getMinBaseFeeNumerator(): BN;

@@ -11,6 +11,7 @@ export default defineConfig({
     globals: true,
     sequence: {
       concurrent: false,
+      shuffle: false,
     },
   },
 });

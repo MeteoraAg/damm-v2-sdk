@@ -2188,6 +2188,7 @@ export class CpAmm {
       tokenAProgram,
       tokenBProgram,
       referralTokenAccount,
+      receiver,
     } = params;
 
     const [inputTokenProgram, outputTokenProgram] = inputTokenMint.equals(
@@ -2206,8 +2207,8 @@ export class CpAmm {
       instructions: preInstructions,
     } = await this.prepareTokenAccounts({
       payer,
-      tokenAOwner: payer,
-      tokenBOwner: payer,
+      tokenAOwner: receiver ?? payer,
+      tokenBOwner: receiver ?? payer,
       tokenAMint: inputTokenMint,
       tokenBMint: outputTokenMint,
       tokenAProgram: inputTokenProgram,
@@ -2216,7 +2217,7 @@ export class CpAmm {
 
     if (inputTokenMint.equals(NATIVE_MINT)) {
       const wrapSOLIx = wrapSOLInstruction(
-        payer,
+        receiver ?? payer,
         inputTokenAccount,
         BigInt(amountIn.toString()),
       );
@@ -2230,7 +2231,7 @@ export class CpAmm {
         NATIVE_MINT.toBase58(),
       )
     ) {
-      const closeWrappedSOLIx = await unwrapSOLInstruction(payer);
+      const closeWrappedSOLIx = await unwrapSOLInstruction(receiver ?? payer);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
@@ -2281,7 +2282,7 @@ export class CpAmm {
       .accountsPartial({
         poolAuthority: this.poolAuthority,
         pool,
-        payer,
+        payer: receiver ?? payer,
         inputTokenAccount,
         outputTokenAccount,
         tokenAVault,
@@ -2317,6 +2318,7 @@ export class CpAmm {
       tokenBProgram,
       referralTokenAccount,
       swapMode,
+      receiver,
     } = params;
 
     const [inputTokenProgram, outputTokenProgram] = inputTokenMint.equals(
@@ -2335,8 +2337,8 @@ export class CpAmm {
       instructions: preInstructions,
     } = await this.prepareTokenAccounts({
       payer,
-      tokenAOwner: payer,
-      tokenBOwner: payer,
+      tokenAOwner: receiver ?? payer,
+      tokenBOwner: receiver ?? payer,
       tokenAMint: inputTokenMint,
       tokenBMint: outputTokenMint,
       tokenAProgram: inputTokenProgram,
@@ -2360,7 +2362,7 @@ export class CpAmm {
           ? amount0
           : amount1;
       const wrapSOLIx = wrapSOLInstruction(
-        payer,
+        receiver ?? payer,
         inputTokenAccount,
         BigInt(amount.toString()),
       );
@@ -2374,7 +2376,7 @@ export class CpAmm {
         NATIVE_MINT.toBase58(),
       )
     ) {
-      const closeWrappedSOLIx = await unwrapSOLInstruction(payer);
+      const closeWrappedSOLIx = await unwrapSOLInstruction(receiver ?? payer);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
 
@@ -2426,7 +2428,7 @@ export class CpAmm {
       .accountsPartial({
         poolAuthority: this.poolAuthority,
         pool,
-        payer,
+        payer: receiver ?? payer,
         inputTokenAccount,
         outputTokenAccount,
         tokenAVault,

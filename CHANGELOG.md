@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.2.8] [PR #93](https://github.com/MeteoraAg/damm-v2-sdk/pull/93)
+
+### Added
+
+- Optional `receiver` parameter to `swap` and `swap2` endpoints to allow specifying the receiver of the input and output tokens
+
 ## damm_v2_sdk [1.2.8]
 
 ### Changed

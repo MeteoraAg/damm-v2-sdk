@@ -510,6 +510,7 @@ export type SwapParams = {
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
   referralTokenAccount: PublicKey | null;
+  receiver?: PublicKey;
   poolState?: PoolState;
 };
 
@@ -525,6 +526,7 @@ export type Swap2Params = {
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
   referralTokenAccount: PublicKey | null;
+  receiver?: PublicKey;
   poolState?: PoolState;
 } & (
   | {

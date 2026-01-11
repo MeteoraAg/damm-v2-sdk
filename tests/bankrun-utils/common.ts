@@ -103,7 +103,7 @@ export async function transferSol(
 export async function processTransactionMaybeThrow(
   banksClient: BanksClient,
   transaction: Transaction,
-  maxRetries = 3,
+  maxRetries = 5,
 ) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     const transactionMeta =
@@ -111,9 +111,8 @@ export async function processTransactionMaybeThrow(
     if (transactionMeta.result && transactionMeta.result.length > 0) {
       const errorMessage = transactionMeta.result;
       if (errorMessage.includes("Account in use") && attempt < maxRetries - 1) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 100 * (attempt + 1)),
-        );
+        const delay = 50 * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
       throw Error(errorMessage);
@@ -377,16 +376,35 @@ export async function executeTransaction(
   banksClient: BanksClient,
   transaction: Transaction,
   signers: Signer[],
+  maxRetries = 5,
 ) {
   transaction.add(
     ComputeBudgetProgram.setComputeUnitLimit({
       units: 400_000,
     }),
   );
-  transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
-  transaction.sign(...signers);
 
-  await processTransactionMaybeThrow(banksClient, transaction);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const [recentBlockhash] = await banksClient.getLatestBlockhash();
+    transaction.recentBlockhash = recentBlockhash;
+
+    transaction.signatures = [];
+    transaction.sign(...signers);
+
+    const transactionMeta =
+      await banksClient.tryProcessTransaction(transaction);
+
+    if (transactionMeta.result && transactionMeta.result.length > 0) {
+      const errorMessage = transactionMeta.result;
+      if (errorMessage.includes("Account in use") && attempt < maxRetries - 1) {
+        const delay = 50 * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw Error(errorMessage);
+    }
+    return;
+  }
 }
 
 export async function getPool(
@@ -426,9 +444,26 @@ export async function createOperator(
     })
     .transaction();
 
-  transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
-  transaction.sign(admin);
-  await processTransactionMaybeThrow(banksClient, transaction);
+  const maxRetries = 5;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
+    transaction.signatures = [];
+    transaction.sign(admin);
+
+    const transactionMeta =
+      await banksClient.tryProcessTransaction(transaction);
+
+    if (transactionMeta.result && transactionMeta.result.length > 0) {
+      const errorMessage = transactionMeta.result;
+      if (errorMessage.includes("Account in use") && attempt < maxRetries - 1) {
+        const delay = 50 * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw Error(errorMessage);
+    }
+    break;
+  }
 
   return operator;
 }
@@ -451,9 +486,26 @@ export async function createDynamicConfig(
     })
     .transaction();
 
-  transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
-  transaction.sign(admin);
-  await processTransactionMaybeThrow(banksClient, transaction);
+  const maxRetries = 5;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    transaction.recentBlockhash = (await banksClient.getLatestBlockhash())[0];
+    transaction.signatures = [];
+    transaction.sign(admin);
+
+    const transactionMeta =
+      await banksClient.tryProcessTransaction(transaction);
+
+    if (transactionMeta.result && transactionMeta.result.length > 0) {
+      const errorMessage = transactionMeta.result;
+      if (errorMessage.includes("Account in use") && attempt < maxRetries - 1) {
+        const delay = 50 * Math.pow(2, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      throw Error(errorMessage);
+    }
+    break;
+  }
 
   return config;
 }

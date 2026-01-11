@@ -845,6 +845,7 @@ interface SwapParams {
   tokenBMint: PublicKey; // Pool's token B mint
   tokenAProgram: PublicKey; // Token program for token A
   tokenBProgram: PublicKey; // Token program for token B
+  receiver?: PublicKey; // Optional receiver of the input and output tokens
   referralTokenAccount?: PublicKey; // Optional referral account for fees
   poolState?: PoolState; // Optional pool state to pass in to atomically fetch the pool state
 }
@@ -921,6 +922,7 @@ interface SwapParams {
   tokenBMint: PublicKey; // Pool's token B mint
   tokenAProgram: PublicKey; // Token program for token A
   tokenBProgram: PublicKey; // Token program for token B
+  receiver?: PublicKey; // Optional receiver of the input and output tokens
   referralTokenAccount?: PublicKey; // Optional referral account for fees
   poolState?: PoolState; // Optional pool state to pass in to atomically fetch the pool state
   swapMode: SwapMode; // The swap mode

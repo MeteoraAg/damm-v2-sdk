@@ -2893,6 +2893,7 @@ export class CpAmm {
 
     return new Transaction().add(initializeRewardTx).add(fundRewardTx);
   }
+
   /**
    * Builds a transaction to update reward duration.
    * @param {UpdateRewardDurationParams} params - Parameters including pool and new duration.
@@ -2931,30 +2932,33 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async fundReward(params: FundRewardParams): TxBuilder {
-    const { rewardIndex, carryForward, pool, funder, amount } = params;
-
-    const poolState = await this.fetchPoolState(pool);
-    const rewardInfo = poolState.rewardInfos[rewardIndex];
-    const { vault, mint } = rewardInfo;
-    const tokenProgram = getTokenProgram(rewardIndex);
+    const {
+      funder,
+      rewardIndex,
+      pool,
+      carryForward,
+      amount,
+      rewardMint,
+      rewardVault,
+      rewardMintProgram,
+    } = params;
 
     const preInstructions: TransactionInstruction[] = [];
 
     const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
       await getOrCreateATAInstruction(
         this._program.provider.connection,
-        mint,
+        rewardMint,
         funder,
         funder,
         true,
-        tokenProgram,
+        rewardMintProgram,
       );
 
     createFunderTokenAccountIx &&
       preInstructions.push(createFunderTokenAccountIx);
 
-    // TODO: check case reward mint is wSOL && carryForward is true => total amount > amount
-    if (mint.equals(NATIVE_MINT) && !amount.isZero()) {
+    if (rewardMint.equals(NATIVE_MINT) && !amount.isZero()) {
       const wrapSOLIx = wrapSOLInstruction(
         funder,
         funderTokenAccount,
@@ -2968,11 +2972,11 @@ export class CpAmm {
       .fundReward(rewardIndex, amount, carryForward)
       .accountsPartial({
         pool,
-        rewardVault: vault,
-        rewardMint: mint,
+        rewardVault,
+        rewardMint: rewardMint,
         funderTokenAccount,
         funder: funder,
-        tokenProgram,
+        tokenProgram: rewardMintProgram,
       })
       .transaction();
   }

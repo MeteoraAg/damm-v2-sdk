@@ -75,6 +75,7 @@ import {
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
+  deriveOperatorAddress,
   derivePoolAddress,
   derivePoolAuthority,
   derivePositionAddress,
@@ -115,6 +116,7 @@ import {
   swapQuoteExactOutput,
   swapQuotePartialInput,
 } from "./math";
+import { CP_AMM_PROGRAM_ID } from "./constants";
 
 /**
  * CpAmm SDK class to interact with the DAMM-V2
@@ -2833,6 +2835,36 @@ export class CpAmm {
     } = params;
 
     const rewardVault = deriveRewardVaultAddress(pool, rewardIndex);
+    const tokenBadge = deriveTokenBadgeAddress(rewardMint);
+    const operator = deriveOperatorAddress(creator);
+    const remainingAccounts: AccountMeta[] = [];
+
+    const [tokenBadgeInfo, operatorInfo] = await Promise.all([
+      this._program.provider.connection.getAccountInfo(tokenBadge),
+      this._program.provider.connection.getAccountInfo(operator),
+    ]);
+
+    if (tokenBadgeInfo) {
+      remainingAccounts.push({
+        pubkey: tokenBadge,
+        isSigner: false,
+        isWritable: false,
+      });
+    } else {
+      remainingAccounts.push({
+        pubkey: CP_AMM_PROGRAM_ID,
+        isSigner: false,
+        isWritable: false,
+      });
+    }
+
+    if (operatorInfo) {
+      remainingAccounts.push({
+        pubkey: operator,
+        isSigner: false,
+        isWritable: false,
+      });
+    }
 
     return await this._program.methods
       .initializeReward(rewardIndex, rewardDuration, funder)
@@ -2845,6 +2877,7 @@ export class CpAmm {
         payer,
         tokenProgram: rewardMintProgram,
       })
+      .remainingAccounts(remainingAccounts)
       .transaction();
   }
 

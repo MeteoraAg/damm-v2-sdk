@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.0]
+
+### Changed
+
+- Fixed `initializeReward` function to parse in `remainingAccounts`
+
 ## damm_v2_sdk [1.2.10]
 
 ### Changed

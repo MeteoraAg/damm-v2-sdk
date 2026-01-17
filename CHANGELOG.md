@@ -2,12 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.0] [PR #94](https://github.com/MeteoraAg/damm-v2-sdk/pull/94)
+
+### Changed
+
+- Fixed `initializeReward` function to parse in `remainingAccounts`
+
 ## damm_v2_sdk [1.2.10]
 
 ### Changed
 
 - Fixed `fundReward` function to use params instead of `tokenProgram`
-
 
 ## damm_v2_sdk [1.2.8] [PR #93](https://github.com/MeteoraAg/damm-v2-sdk/pull/93)
 

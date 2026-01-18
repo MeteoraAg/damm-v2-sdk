@@ -93,7 +93,7 @@ const DRY_RUN = true;
 
   // Load wallet from keypair file
   const keypairData = JSON.parse(
-    fs.readFileSync(path.resolve(POOL_CONFIG.keypairPath), "utf-8")
+    fs.readFileSync(path.resolve(POOL_CONFIG.keypairPath), "utf-8"),
   );
   const wallet = Keypair.fromSecretKey(Uint8Array.from(keypairData));
 
@@ -114,7 +114,7 @@ const DRY_RUN = true;
 
   // Get token A info (for Token-2022 support)
   const tokenAAccountInfo = await connection.getAccountInfo(
-    POOL_CONFIG.tokenAMint
+    POOL_CONFIG.tokenAMint,
   );
 
   let tokenAProgram = TOKEN_PROGRAM_ID;
@@ -125,7 +125,7 @@ const DRY_RUN = true;
       connection,
       POOL_CONFIG.tokenAMint,
       connection.commitment,
-      tokenAProgram
+      tokenAProgram,
     );
     const epochInfo = await connection.getEpochInfo();
     tokenAInfo = {
@@ -136,7 +136,7 @@ const DRY_RUN = true;
 
   // Get token B info
   const tokenBAccountInfo = await connection.getAccountInfo(
-    POOL_CONFIG.tokenBMint
+    POOL_CONFIG.tokenBMint,
   );
   let tokenBProgram = TOKEN_PROGRAM_ID;
   if (tokenBAccountInfo?.owner.equals(TOKEN_2022_PROGRAM_ID)) {
@@ -145,10 +145,10 @@ const DRY_RUN = true;
 
   // Calculate amounts in lamports
   const tokenAAmountInLamport = new BN(
-    Math.floor(POOL_CONFIG.maxTokenAAmount * 10 ** POOL_CONFIG.tokenADecimals)
+    Math.floor(POOL_CONFIG.maxTokenAAmount * 10 ** POOL_CONFIG.tokenADecimals),
   );
   const tokenBAmountInLamport = new BN(
-    Math.floor(POOL_CONFIG.maxTokenBAmount * 10 ** POOL_CONFIG.tokenBDecimals)
+    Math.floor(POOL_CONFIG.maxTokenBAmount * 10 ** POOL_CONFIG.tokenBDecimals),
   );
 
   console.log("Token A amount:", tokenAAmountInLamport.toString());
@@ -158,7 +158,7 @@ const DRY_RUN = true;
   const initSqrtPrice = getSqrtPriceFromPrice(
     POOL_CONFIG.initialPrice.toString(),
     POOL_CONFIG.tokenADecimals,
-    POOL_CONFIG.tokenBDecimals
+    POOL_CONFIG.tokenBDecimals,
   );
   console.log("Init sqrt price:", initSqrtPrice.toString());
 
@@ -183,7 +183,7 @@ const DRY_RUN = true;
   console.log(
     "  Scheduler Expiration:",
     POOL_CONFIG.schedulerExpirationDuration / 86400,
-    "days"
+    "days",
   );
 
   const baseFeeParams = getBaseFeeParams(
@@ -198,7 +198,7 @@ const DRY_RUN = true;
       },
     },
     POOL_CONFIG.tokenBDecimals,
-    ActivationType.Timestamp
+    ActivationType.Timestamp,
   );
 
   // Optional: Add dynamic fee on top
@@ -261,9 +261,8 @@ const DRY_RUN = true;
 
     if (DRY_RUN) {
       console.log("\n--- DRY RUN: Simulating transaction ---");
-      const simulation = await connection.simulateTransaction(
-        initCustomizePoolTx
-      );
+      const simulation =
+        await connection.simulateTransaction(initCustomizePoolTx);
       console.log("Simulation result:", simulation.value.err || "Success");
       if (simulation.value.logs) {
         console.log("Logs:", simulation.value.logs.slice(-10).join("\n"));
@@ -272,13 +271,13 @@ const DRY_RUN = true;
     } else {
       console.log("\n--- Deploying to devnet ---");
       const signature = await connection.sendRawTransaction(
-        initCustomizePoolTx.serialize()
+        initCustomizePoolTx.serialize(),
       );
       await connection.confirmTransaction(signature, "confirmed");
       console.log("Transaction signature:", signature);
       console.log(
         "Explorer:",
-        `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+        `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
       );
     }
   } else {
@@ -339,13 +338,13 @@ const DRY_RUN = true;
     } else {
       console.log("\n--- Deploying to devnet ---");
       const signature = await connection.sendRawTransaction(
-        initPoolTx.serialize()
+        initPoolTx.serialize(),
       );
       await connection.confirmTransaction(signature, "confirmed");
       console.log("Transaction signature:", signature);
       console.log(
         "Explorer:",
-        `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+        `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
       );
     }
   }

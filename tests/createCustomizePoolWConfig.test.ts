@@ -159,7 +159,7 @@ describe("Initialize customizable pool with dynamic config", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -208,7 +208,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()
@@ -231,7 +231,7 @@ describe("Initialize customizable pool with dynamic config", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -280,7 +280,7 @@ describe("Initialize customizable pool with dynamic config", () => {
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({
           units: 400_000,
-        })
+        }),
       );
       transaction.recentBlockhash = (
         await context.banksClient.getLatestBlockhash()

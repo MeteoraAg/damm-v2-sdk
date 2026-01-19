@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.1] [PR #96](https://github.com/MeteoraAg/damm-v2-sdk/pull/96)
+
+### Changed
+
+- Bumped IDL version to `0.1.7`
+- Updated operator tests
+
 ## damm_v2_sdk [1.3.0] [PR #94](https://github.com/MeteoraAg/damm-v2-sdk/pull/94)
 
 ### Changed

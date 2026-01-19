@@ -438,7 +438,7 @@ export async function createOperator(
     .accountsPartial({
       operator,
       whitelistedAddress: whitelistAddress,
-      admin: admin.publicKey,
+      signer: admin.publicKey,
       payer: admin.publicKey,
       systemProgram: SystemProgram.programId,
     })
@@ -481,7 +481,7 @@ export async function createDynamicConfig(
     .accountsPartial({
       config,
       operator: deriveOperatorAddress(admin.publicKey),
-      whitelistedAddress: admin.publicKey,
+      signer: admin.publicKey,
       payer: admin.publicKey,
     })
     .transaction();

@@ -8,7 +8,7 @@ export type CpAmm = {
   address: "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG";
   metadata: {
     name: "cpAmm";
-    version: "0.1.6";
+    version: "0.1.7";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -356,195 +356,20 @@ export type CpAmm = {
         },
         {
           name: "tokenAAccount";
-          docs: ["The treasury token a account"];
           writable: true;
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  48,
-                  9,
-                  89,
-                  123,
-                  106,
-                  114,
-                  131,
-                  251,
-                  50,
-                  173,
-                  254,
-                  250,
-                  10,
-                  80,
-                  160,
-                  84,
-                  143,
-                  100,
-                  81,
-                  249,
-                  134,
-                  112,
-                  30,
-                  213,
-                  50,
-                  166,
-                  239,
-                  78,
-                  53,
-                  175,
-                  188,
-                  85,
-                ];
-              },
-              {
-                kind: "account";
-                path: "tokenAProgram";
-              },
-              {
-                kind: "account";
-                path: "tokenAMint";
-              },
-            ];
-            program: {
-              kind: "const";
-              value: [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89,
-              ];
-            };
-          };
         },
         {
           name: "tokenBAccount";
-          docs: ["The treasury token b account"];
           writable: true;
-          pda: {
-            seeds: [
-              {
-                kind: "const";
-                value: [
-                  48,
-                  9,
-                  89,
-                  123,
-                  106,
-                  114,
-                  131,
-                  251,
-                  50,
-                  173,
-                  254,
-                  250,
-                  10,
-                  80,
-                  160,
-                  84,
-                  143,
-                  100,
-                  81,
-                  249,
-                  134,
-                  112,
-                  30,
-                  213,
-                  50,
-                  166,
-                  239,
-                  78,
-                  53,
-                  175,
-                  188,
-                  85,
-                ];
-              },
-              {
-                kind: "account";
-                path: "tokenBProgram";
-              },
-              {
-                kind: "account";
-                path: "tokenBMint";
-              },
-            ];
-            program: {
-              kind: "const";
-              value: [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89,
-              ];
-            };
-          };
         },
         {
           name: "operator";
           docs: ["Claim fee operator"];
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           docs: ["operator"];
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "tokenAProgram";
@@ -695,9 +520,8 @@ export type CpAmm = {
           name: "operator";
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "rentReceiver";
@@ -747,7 +571,7 @@ export type CpAmm = {
           writable: true;
         },
         {
-          name: "admin";
+          name: "signer";
           signer: true;
         },
         {
@@ -879,9 +703,8 @@ export type CpAmm = {
           name: "operator";
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "rentReceiver";
@@ -947,9 +770,8 @@ export type CpAmm = {
           name: "operator";
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "payer";
@@ -1032,9 +854,8 @@ export type CpAmm = {
           name: "operator";
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "payer";
@@ -1118,7 +939,7 @@ export type CpAmm = {
           name: "whitelistedAddress";
         },
         {
-          name: "admin";
+          name: "signer";
           signer: true;
         },
         {
@@ -1324,9 +1145,8 @@ export type CpAmm = {
           name: "operator";
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "payer";
@@ -2607,9 +2427,8 @@ export type CpAmm = {
           name: "operator";
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "eventAuthority";
@@ -3033,9 +2852,8 @@ export type CpAmm = {
           name: "operator";
         },
         {
-          name: "whitelistedAddress";
+          name: "signer";
           signer: true;
-          relations: ["operator"];
         },
         {
           name: "eventAuthority";
@@ -3260,6 +3078,54 @@ export type CpAmm = {
         {
           name: "rewardIndex";
           type: "u8";
+        },
+      ];
+    },
+    {
+      name: "zapProtocolFee";
+      discriminator: [213, 155, 187, 34, 56, 182, 91, 240];
+      accounts: [
+        {
+          name: "poolAuthority";
+          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
+        },
+        {
+          name: "pool";
+          writable: true;
+        },
+        {
+          name: "tokenVault";
+          writable: true;
+        },
+        {
+          name: "tokenMint";
+        },
+        {
+          name: "receiverToken";
+          writable: true;
+        },
+        {
+          name: "operator";
+          docs: ["zap claim fee operator"];
+        },
+        {
+          name: "signer";
+          docs: ["operator"];
+          signer: true;
+        },
+        {
+          name: "tokenProgram";
+          docs: ["Token program"];
+        },
+        {
+          name: "sysvarInstructions";
+          address: "Sysvar1nstructions1111111111111111111111111";
+        },
+      ];
+      args: [
+        {
+          name: "maxAmount";
+          type: "u64";
         },
       ];
     },
@@ -3696,6 +3562,41 @@ export type CpAmm = {
       code: 6059;
       name: "missingOperatorAccount";
       msg: "Missing operator account";
+    },
+    {
+      code: 6060;
+      name: "incorrectAta";
+      msg: "Incorrect ATA";
+    },
+    {
+      code: 6061;
+      name: "invalidZapOutParameters";
+      msg: "Invalid zap out parameters";
+    },
+    {
+      code: 6062;
+      name: "invalidWithdrawProtocolFeeZapAccounts";
+      msg: "Invalid withdraw protocol fee zap accounts";
+    },
+    {
+      code: 6063;
+      name: "mintRestrictedFromZap";
+      msg: "SOL,USDC protocol fee cannot be withdrawn via zap";
+    },
+    {
+      code: 6064;
+      name: "cpiDisabled";
+      msg: "CPI disabled";
+    },
+    {
+      code: 6065;
+      name: "missingZapOutInstruction";
+      msg: "Missing zap out instruction";
+    },
+    {
+      code: 6066;
+      name: "invalidZapAccounts";
+      msg: "Invalid zap accounts";
     },
   ];
   types: [

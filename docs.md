@@ -10,6 +10,7 @@
   - [createPosition](#createposition)
   - [getLiquidityDelta](#getliquiditydelta)
   - [getQuote](#getquote)
+  - [getQuote2](#getquote2)
   - [getDepositQuote](#getdepositquote)
   - [getWithdrawQuote](#getwithdrawquote)
   - [swap](#swap)

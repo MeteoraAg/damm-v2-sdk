@@ -3011,6 +3011,7 @@ export class CpAmm {
         funder: funder,
         tokenProgram: rewardMintProgram,
       })
+      .preInstructions(preInstructions)
       .transaction();
   }
 

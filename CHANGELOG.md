@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.2]
+
+### Fixed
+
+- Fixed `fundReward` function to include pre instructions
+
 ## damm_v2_sdk [1.3.1] [PR #96](https://github.com/MeteoraAg/damm-v2-sdk/pull/96)
 
 ### Changed

@@ -818,7 +818,8 @@ export interface BaseFeeHandler {
     currentSqrtPrice: BN,
   ): BN;
   validateBaseFeeIsStatic(currentPoint: BN, activationPoint: BN): boolean;
-  getMinBaseFeeNumerator(): BN;
+  getMinFeeNumerator(): BN;
+  getMaxFeeNumerator(): BN;
 }
 
 export interface FeeOnAmountResult {

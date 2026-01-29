@@ -121,3 +121,12 @@ export function getFeeTimeMinBaseFeeNumerator(
     feeTimeSchedulerMode,
   );
 }
+
+/**
+ * Gets the max base fee numerator for time scheduler.
+ * @param cliffFeeNumerator - The cliff fee numerator.
+ * @returns The max base fee numerator.
+ */
+export function getFeeTimeMaxBaseFeeNumerator(cliffFeeNumerator: BN): BN {
+  return cliffFeeNumerator;
+}

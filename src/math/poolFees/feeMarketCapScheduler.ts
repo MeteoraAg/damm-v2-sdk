@@ -137,3 +137,12 @@ export function getFeeMarketCapMinBaseFeeNumerator(
     feeMarketCapSchedulerMode,
   );
 }
+
+/**
+ * Gets the max base fee numerator for market cap scheduler.
+ * @param cliffFeeNumerator - The cliff fee numerator.
+ * @returns The max base fee numerator.
+ */
+export function getFeeMarketCapMaxBaseFeeNumerator(cliffFeeNumerator: BN): BN {
+  return cliffFeeNumerator;
+}

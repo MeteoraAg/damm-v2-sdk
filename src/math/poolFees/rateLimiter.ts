@@ -486,3 +486,37 @@ export function getFeeNumeratorFromExcludedFeeAmount(
 
   return feeNumerator;
 }
+
+/**
+ * Gets the min base fee numerator for rate limiter.
+ * @param cliffFeeNumerator - The cliff fee numerator.
+ * @returns The min base fee numerator.
+ */
+export function getRateLimiterMinBaseFeeNumerator(cliffFeeNumerator: BN): BN {
+  return cliffFeeNumerator;
+}
+
+/**
+ * Gets the max base fee numerator for rate limiter.
+ * @param includedFeeAmount - The included fee amount.
+ * @param referenceAmount - The reference amount.
+ * @param cliffFeeNumerator - The cliff fee numerator.
+ * @param maxFeeBps - The maximum fee in basis points.
+ * @param feeIncrementBps - The fee increment in basis points.
+ * @returns The max base fee numerator.
+ */
+export function getRateLimiterMaxBaseFeeNumerator(
+  includedFeeAmount: BN,
+  referenceAmount: BN,
+  cliffFeeNumerator: BN,
+  maxFeeBps: number,
+  feeIncrementBps: number,
+): BN {
+  return getFeeNumeratorFromIncludedFeeAmount(
+    includedFeeAmount,
+    referenceAmount,
+    cliffFeeNumerator,
+    maxFeeBps,
+    feeIncrementBps,
+  );
+}

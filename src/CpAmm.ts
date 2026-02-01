@@ -144,7 +144,7 @@ export class CpAmm {
    *          The token account addresses and any instructions needed to create them
    */
   private async prepareTokenAccounts(
-    params: PrepareTokenAccountParams
+    params: PrepareTokenAccountParams,
   ): Promise<{
     tokenAAta: PublicKey;
     tokenBAta: PublicKey;
@@ -170,7 +170,7 @@ export class CpAmm {
         tokenAOwner,
         payer,
         true,
-        tokenAProgram
+        tokenAProgram,
       ),
       getOrCreateATAInstruction(
         this._program.provider.connection,
@@ -178,7 +178,7 @@ export class CpAmm {
         tokenBOwner,
         payer,
         true,
-        tokenBProgram
+        tokenBProgram,
       ),
     ]);
     createInputTokenAccountIx && instructions.push(createInputTokenAccountIx);
@@ -195,7 +195,7 @@ export class CpAmm {
    */
   private getTokenBadgeAccounts(
     tokenAMint: PublicKey,
-    tokenBMint: PublicKey
+    tokenBMint: PublicKey,
   ): AccountMeta[] {
     return [
       {
@@ -218,7 +218,7 @@ export class CpAmm {
    * @returns {Promise<TransactionInstruction>} Instruction to add liquidity
    */
   private async buildAddLiquidityInstruction(
-    params: BuildAddLiquidityParams
+    params: BuildAddLiquidityParams,
   ): Promise<TransactionInstruction> {
     const {
       pool,
@@ -267,7 +267,7 @@ export class CpAmm {
    * @returns {Promise<TransactionInstruction>} Instruction to remove all liquidity
    */
   private async buildRemoveAllLiquidityInstruction(
-    params: BuildRemoveAllLiquidityInstructionParams
+    params: BuildRemoveAllLiquidityInstructionParams,
   ): Promise<TransactionInstruction> {
     const {
       poolAuthority,
@@ -313,7 +313,7 @@ export class CpAmm {
    * @returns {Promise<TransactionInstruction>} Instruction to claim position fees
    */
   private async buildClaimPositionFeeInstruction(
-    params: ClaimPositionFeeInstructionParams
+    params: ClaimPositionFeeInstructionParams,
   ): Promise<TransactionInstruction> {
     const {
       owner,
@@ -357,7 +357,7 @@ export class CpAmm {
    * @returns {Promise<TransactionInstruction>} Instruction to close the position
    */
   private async buildClosePositionInstruction(
-    params: ClosePositionInstructionParams
+    params: ClosePositionInstructionParams,
   ): Promise<TransactionInstruction> {
     const {
       owner,
@@ -389,7 +389,7 @@ export class CpAmm {
    * @returns Transaction instruction or null if no vestings to refresh
    */
   private async buildRefreshVestingInstruction(
-    params: RefreshVestingParams
+    params: RefreshVestingParams,
   ): Promise<TransactionInstruction | null> {
     const { owner, position, positionNftAccount, pool, vestingAccounts } =
       params;
@@ -413,7 +413,7 @@ export class CpAmm {
             isWritable: true,
             pubkey,
           };
-        })
+        }),
       )
       .instruction();
   }
@@ -425,7 +425,7 @@ export class CpAmm {
    * @private
    */
   private async buildLiquidatePositionInstruction(
-    params: BuildLiquidatePositionInstructionParams
+    params: BuildLiquidatePositionInstructionParams,
   ): Promise<TransactionInstruction[]> {
     const {
       owner,
@@ -507,7 +507,7 @@ export class CpAmm {
    * @returns Transaction instruction.
    */
   private async buildCreatePositionInstruction(
-    params: CreatePositionParams
+    params: CreatePositionParams,
   ): Promise<{
     ix: TransactionInstruction;
     position: PublicKey;
@@ -582,7 +582,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         payer,
         payerTokenA,
-        BigInt(tokenAAmount.toString())
+        BigInt(tokenAAmount.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -592,14 +592,14 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         payer,
         payerTokenB,
-        BigInt(tokenBAmount.toString())
+        BigInt(tokenBAmount.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
     }
     const tokenBadgeAccounts = this.getTokenBadgeAccounts(
       tokenAMint,
-      tokenBMint
+      tokenBMint,
     );
 
     return {
@@ -621,7 +621,7 @@ export class CpAmm {
    * @returns Token accounts and instructions for fee claiming.
    */
   private async setupFeeClaimAccounts(
-    params: SetupFeeClaimAccountsParams
+    params: SetupFeeClaimAccountsParams,
   ): Promise<{
     tokenAAccount: PublicKey;
     tokenBAccount: PublicKey;
@@ -673,7 +673,7 @@ export class CpAmm {
     if (hasSolToken) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(
         tempWSolAccount ?? owner,
-        receiver ?? owner
+        receiver ?? owner,
       );
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
     }
@@ -718,7 +718,7 @@ export class CpAmm {
    * @returns Array of matched pool accounts and their state.
    */
   async fetchPoolStatesByTokenAMint(
-    tokenAMint: PublicKey
+    tokenAMint: PublicKey,
   ): Promise<Array<{ publicKey: PublicKey; account: PoolState }>> {
     const filters = offsetBasedFilter(tokenAMint, 168);
     const pools = await this._program.account.pool.all(filters);
@@ -813,7 +813,7 @@ export class CpAmm {
     positionStates.forEach((positionState, index) => {
       invariant(
         positionState,
-        `Position account: ${positions[index]} not found`
+        `Position account: ${positions[index]} not found`,
       );
     });
 
@@ -883,7 +883,7 @@ export class CpAmm {
    */
   async getUserPositionByPool(
     pool: PublicKey,
-    user: PublicKey
+    user: PublicKey,
   ): Promise<
     Array<{
       positionNftAccount: PublicKey;
@@ -893,7 +893,7 @@ export class CpAmm {
   > {
     const allUserPositions = await this.getPositionsByUser(user);
     return allUserPositions.filter((position) =>
-      position.positionState.pool.equals(pool)
+      position.positionState.pool.equals(pool),
     );
   }
 
@@ -911,14 +911,14 @@ export class CpAmm {
   > {
     const userPositionAccounts = await getAllPositionNftAccountByOwner(
       this._program.provider.connection,
-      user
+      user,
     );
     if (userPositionAccounts.length === 0) {
       return [];
     }
 
     const positionAddresses = userPositionAccounts.map((account) =>
-      derivePositionAddress(account.positionNft)
+      derivePositionAddress(account.positionNft),
     );
 
     const positionStates =
@@ -977,7 +977,7 @@ export class CpAmm {
    */
   isLockedPosition(position: PositionState): boolean {
     const totalLockedLiquidity = position.vestedLiquidity.add(
-      position.permanentLockedLiquidity
+      position.permanentLockedLiquidity,
     );
 
     return totalLockedLiquidity.gtn(0);
@@ -1011,7 +1011,7 @@ export class CpAmm {
   canUnlockPosition(
     positionState: PositionState,
     vestings: Array<{ account: PublicKey; vestingState: VestingState }>,
-    currentPoint: BN
+    currentPoint: BN,
   ): { canUnlock: boolean; reason?: string } {
     if (vestings.length > 0) {
       // Check if permanently locked
@@ -1065,13 +1065,13 @@ export class CpAmm {
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       maxAmountTokenA,
       sqrtPrice,
-      sqrtMaxPrice
+      sqrtMaxPrice,
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       maxAmountTokenB,
       sqrtMinPrice,
-      sqrtPrice
+      sqrtPrice,
     );
 
     return min(liquidityDeltaFromAmountA, liquidityDeltaFromAmountB);
@@ -1124,7 +1124,7 @@ export class CpAmm {
       tokenADecimal,
       tokenBDecimal,
       inputTokenInfo,
-      outputTokenInfo
+      outputTokenInfo,
     );
 
     return {
@@ -1174,7 +1174,7 @@ export class CpAmm {
             tokenADecimal,
             tokenBDecimal,
             inputTokenInfo,
-            outputTokenInfo
+            outputTokenInfo,
           );
         }
         throw new Error("amountIn is required for ExactIn swap mode");
@@ -1191,7 +1191,7 @@ export class CpAmm {
             tokenADecimal,
             tokenBDecimal,
             inputTokenInfo,
-            outputTokenInfo
+            outputTokenInfo,
           );
         }
         throw new Error("outAmount is required for ExactOut swap mode");
@@ -1208,7 +1208,7 @@ export class CpAmm {
             tokenADecimal,
             tokenBDecimal,
             inputTokenInfo,
-            outputTokenInfo
+            outputTokenInfo,
           );
         }
         throw new Error("amountIn is required for PartialFill swap mode");
@@ -1243,7 +1243,7 @@ export class CpAmm {
       ? calculateTransferFeeExcludedAmount(
           inAmount,
           inputTokenInfo.mint,
-          inputTokenInfo.currentEpoch
+          inputTokenInfo.currentEpoch,
         ).amount
       : inAmount;
 
@@ -1252,28 +1252,28 @@ export class CpAmm {
           liquidityDelta: getLiquidityDeltaFromAmountA(
             actualAmountIn,
             sqrtPrice,
-            maxSqrtPrice
+            maxSqrtPrice,
           ),
           rawAmount: (delta: BN) =>
             getAmountBFromLiquidityDelta(
               minSqrtPrice,
               sqrtPrice,
               delta,
-              Rounding.Up
+              Rounding.Up,
             ),
         }
       : {
           liquidityDelta: getLiquidityDeltaFromAmountB(
             actualAmountIn,
             minSqrtPrice,
-            sqrtPrice
+            sqrtPrice,
           ),
           rawAmount: (delta: BN) =>
             getAmountAFromLiquidityDelta(
               sqrtPrice,
               maxSqrtPrice,
               delta,
-              Rounding.Up
+              Rounding.Up,
             ),
         };
 
@@ -1282,7 +1282,7 @@ export class CpAmm {
       ? calculateTransferFeeIncludedAmount(
           rawOutputAmount,
           outputTokenInfo.mint,
-          outputTokenInfo.currentEpoch
+          outputTokenInfo.currentEpoch,
         ).amount
       : rawOutputAmount;
 
@@ -1320,13 +1320,13 @@ export class CpAmm {
       sqrtPrice,
       maxSqrtPrice,
       liquidityDelta,
-      Rounding.Down
+      Rounding.Down,
     );
     const amountB = getAmountBFromLiquidityDelta(
       minSqrtPrice,
       sqrtPrice,
       liquidityDelta,
-      Rounding.Down
+      Rounding.Down,
     );
 
     return {
@@ -1335,14 +1335,14 @@ export class CpAmm {
         ? calculateTransferFeeExcludedAmount(
             amountA,
             tokenATokenInfo.mint,
-            tokenATokenInfo.currentEpoch
+            tokenATokenInfo.currentEpoch,
           ).amount
         : amountA,
       outAmountB: tokenBTokenInfo
         ? calculateTransferFeeExcludedAmount(
             amountB,
             tokenBTokenInfo.mint,
-            tokenBTokenInfo.currentEpoch
+            tokenBTokenInfo.currentEpoch,
           ).amount
         : amountB,
     };
@@ -1372,15 +1372,15 @@ export class CpAmm {
           calculateTransferFeeIncludedAmount(
             tokenAAmount,
             tokenAInfo.mint,
-            tokenAInfo.currentEpoch
-          ).transferFee
+            tokenAInfo.currentEpoch,
+          ).transferFee,
         )
       : tokenAAmount;
 
     const liquidityDelta = getLiquidityDeltaFromAmountA(
       actualAmountIn,
       initSqrtPrice,
-      maxSqrtPrice
+      maxSqrtPrice,
     );
 
     return liquidityDelta;
@@ -1393,7 +1393,7 @@ export class CpAmm {
    * @returns init sqrt price and liquidity in Q64 format.
    */
   preparePoolCreationParams(
-    params: PreparePoolCreationParams
+    params: PreparePoolCreationParams,
   ): PreparedPoolCreation {
     const {
       tokenAAmount,
@@ -1413,8 +1413,8 @@ export class CpAmm {
           calculateTransferFeeIncludedAmount(
             tokenAAmount,
             tokenAInfo.mint,
-            tokenAInfo.currentEpoch
-          ).transferFee
+            tokenAInfo.currentEpoch,
+          ).transferFee,
         )
       : tokenAAmount;
 
@@ -1423,8 +1423,8 @@ export class CpAmm {
           calculateTransferFeeIncludedAmount(
             tokenBAmount,
             tokenBInfo.mint,
-            tokenBInfo.currentEpoch
-          ).transferFee
+            tokenBInfo.currentEpoch,
+          ).transferFee,
         )
       : tokenBAmount;
 
@@ -1432,24 +1432,24 @@ export class CpAmm {
       tokenAAmount,
       tokenBAmount,
       minSqrtPrice,
-      maxSqrtPrice
+      maxSqrtPrice,
     );
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       actualAmountAIn,
       initSqrtPrice,
-      maxSqrtPrice
+      maxSqrtPrice,
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       actualAmountBIn,
       minSqrtPrice,
-      initSqrtPrice
+      initSqrtPrice,
     );
 
     const liquidityDelta = min(
       liquidityDeltaFromAmountA,
-      liquidityDeltaFromAmountB
+      liquidityDeltaFromAmountB,
     );
 
     return {
@@ -1668,7 +1668,7 @@ export class CpAmm {
    * @returns Transaction and related addresses.
    */
   async createCustomPoolWithDynamicConfig(
-    params: InitializeCustomizeablePoolWithDynamicConfigParams
+    params: InitializeCustomizeablePoolWithDynamicConfigParams,
   ): Promise<{
     tx: Transaction;
     pool: PublicKey;
@@ -1828,7 +1828,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         owner,
         tokenAAccount,
-        BigInt(maxAmountTokenA.toString())
+        BigInt(maxAmountTokenA.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -1838,7 +1838,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         owner,
         tokenBAccount,
-        BigInt(maxAmountTokenB.toString())
+        BigInt(maxAmountTokenB.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -1847,7 +1847,7 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
@@ -1876,7 +1876,7 @@ export class CpAmm {
     transaction.add(
       ...(preInstructions.length > 0 ? preInstructions : []),
       addLiquidityInstruction,
-      ...(postInstructions.length > 0 ? postInstructions : [])
+      ...(postInstructions.length > 0 ? postInstructions : []),
     );
 
     return transaction;
@@ -1892,7 +1892,7 @@ export class CpAmm {
    *
    **/
   async createPositionAndAddLiquidity(
-    params: CreatePositionAndAddLiquidity
+    params: CreatePositionAndAddLiquidity,
   ): TxBuilder {
     const {
       owner,
@@ -1930,7 +1930,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         owner,
         tokenAAccount,
-        BigInt(maxAmountTokenA.toString())
+        BigInt(maxAmountTokenA.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -1940,7 +1940,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         owner,
         tokenBAccount,
-        BigInt(maxAmountTokenB.toString())
+        BigInt(maxAmountTokenB.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -1949,7 +1949,7 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
@@ -1990,7 +1990,7 @@ export class CpAmm {
     transaction.add(
       ...(preInstructions.length > 0 ? preInstructions : []),
       addLiquidityInstruction,
-      ...(postInstructions.length > 0 ? postInstructions : [])
+      ...(postInstructions.length > 0 ? postInstructions : []),
     );
 
     return transaction;
@@ -2036,7 +2036,7 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
@@ -2121,7 +2121,7 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
@@ -2164,7 +2164,7 @@ export class CpAmm {
     transaction.add(
       ...(preInstructions.length > 0 ? preInstructions : []),
       removeAllLiquidityInstruction,
-      ...(postInstructions.length > 0 ? postInstructions : [])
+      ...(postInstructions.length > 0 ? postInstructions : []),
     );
 
     return transaction;
@@ -2194,7 +2194,7 @@ export class CpAmm {
     } = params;
 
     const [inputTokenProgram, outputTokenProgram] = inputTokenMint.equals(
-      tokenAMint
+      tokenAMint,
     )
       ? [tokenAProgram, tokenBProgram]
       : [tokenBProgram, tokenAProgram];
@@ -2221,7 +2221,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         receiver ?? payer,
         inputTokenAccount,
-        BigInt(amountIn.toString())
+        BigInt(amountIn.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -2230,7 +2230,7 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(receiver ?? payer);
@@ -2249,7 +2249,7 @@ export class CpAmm {
     if (baseFeeMode === BaseFeeMode.RateLimiter) {
       const currentPoint = await getCurrentPoint(
         this._program.provider.connection,
-        poolState.activationType
+        poolState.activationType,
       );
 
       const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(data);
@@ -2261,7 +2261,7 @@ export class CpAmm {
         rateLimiterPoolFees.feeIncrementBps,
         currentPoint,
         poolState.activationPoint,
-        tradeDirection
+        tradeDirection,
       );
     }
 
@@ -2324,7 +2324,7 @@ export class CpAmm {
     } = params;
 
     const [inputTokenProgram, outputTokenProgram] = inputTokenMint.equals(
-      tokenAMint
+      tokenAMint,
     )
       ? [tokenAProgram, tokenBProgram]
       : [tokenBProgram, tokenAProgram];
@@ -2366,7 +2366,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         receiver ?? payer,
         inputTokenAccount,
-        BigInt(amount.toString())
+        BigInt(amount.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -2375,7 +2375,7 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(receiver ?? payer);
@@ -2394,7 +2394,7 @@ export class CpAmm {
     if (baseFeeMode === BaseFeeMode.RateLimiter) {
       const currentPoint = await getCurrentPoint(
         this._program.provider.connection,
-        poolState.activationType
+        poolState.activationType,
       );
 
       const rateLimiterPoolFees = decodePodAlignedFeeRateLimiter(data);
@@ -2406,7 +2406,7 @@ export class CpAmm {
         rateLimiterPoolFees.feeIncrementBps,
         currentPoint,
         poolState.activationPoint,
-        tradeDirection
+        tradeDirection,
       );
     }
 
@@ -2570,7 +2570,7 @@ export class CpAmm {
    * @throws {Error} If the position is locked or cannot be closed
    */
   async removeAllLiquidityAndClosePosition(
-    params: RemoveAllLiquidityAndClosePositionParams
+    params: RemoveAllLiquidityAndClosePositionParams,
   ): TxBuilder {
     const {
       owner,
@@ -2590,7 +2590,7 @@ export class CpAmm {
     const { canUnlock, reason } = this.canUnlockPosition(
       positionState,
       vestings,
-      currentPoint
+      currentPoint,
     );
 
     if (!canUnlock) {
@@ -2617,7 +2617,7 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
@@ -2700,7 +2700,7 @@ export class CpAmm {
     const { canUnlock, reason } = this.canUnlockPosition(
       positionBState,
       positionBVestings,
-      currentPoint
+      currentPoint,
     );
 
     if (!canUnlock) {
@@ -2735,15 +2735,15 @@ export class CpAmm {
         (total, position) => {
           const available = getAvailableVestingLiquidity(
             position.vestingState,
-            currentPoint
+            currentPoint,
           );
           return total.add(available);
         },
-        new BN(0)
+        new BN(0),
       );
 
       positionBLiquidityDelta = positionBLiquidityDelta.add(
-        totalAvailableVestingLiquidity
+        totalAvailableVestingLiquidity,
       );
 
       const refreshVestingInstruction =
@@ -2763,14 +2763,14 @@ export class CpAmm {
       poolState.sqrtPrice,
       poolState.sqrtMaxPrice,
       positionBLiquidityDelta,
-      Rounding.Down
+      Rounding.Down,
     );
 
     const tokenBWithdrawAmount = getAmountBFromLiquidityDelta(
       poolState.sqrtMinPrice,
       poolState.sqrtPrice,
       positionBLiquidityDelta,
-      Rounding.Down
+      Rounding.Down,
     );
 
     const newLiquidityDelta = this.getLiquidityDelta({
@@ -2826,7 +2826,7 @@ export class CpAmm {
 
     if (
       [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58()
+        NATIVE_MINT.toBase58(),
       )
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
@@ -3004,7 +3004,7 @@ export class CpAmm {
         funder,
         funder,
         true,
-        rewardMintProgram
+        rewardMintProgram,
       );
 
     createFunderTokenAccountIx &&
@@ -3014,7 +3014,7 @@ export class CpAmm {
       const wrapSOLIx = wrapSOLInstruction(
         funder,
         funderTokenAccount,
-        BigInt(amount.toString())
+        BigInt(amount.toString()),
       );
 
       preInstructions.push(...wrapSOLIx);
@@ -3040,7 +3040,7 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async withdrawIneligibleReward(
-    params: WithdrawIneligibleRewardParams
+    params: WithdrawIneligibleRewardParams,
   ): TxBuilder {
     const { rewardIndex, pool, funder } = params;
     const poolState = await this.fetchPoolState(pool);
@@ -3058,7 +3058,7 @@ export class CpAmm {
         funder,
         funder,
         true,
-        tokenProgram
+        tokenProgram,
       );
     createFunderTokenAccountIx &&
       preInstructions.push(createFunderTokenAccountIx);
@@ -3200,7 +3200,7 @@ export class CpAmm {
     transaction.add(
       ...(preInstructions.length > 0 ? preInstructions : []),
       claimPositionFeeInstruction,
-      ...(postInstructions.length > 0 ? postInstructions : [])
+      ...(postInstructions.length > 0 ? postInstructions : []),
     );
 
     return transaction;
@@ -3281,7 +3281,7 @@ export class CpAmm {
     transaction.add(
       ...(preInstruction.length > 0 ? preInstruction : []),
       claimPositionFeeInstruction,
-      ...(postInstructions.length > 0 ? postInstructions : [])
+      ...(postInstructions.length > 0 ? postInstructions : []),
     );
 
     return transaction;
@@ -3316,7 +3316,7 @@ export class CpAmm {
         user,
         feePayer ?? user,
         true,
-        tokenProgram
+        tokenProgram,
       );
     createUserTokenAccountIx && preInstructions.push(createUserTokenAccountIx);
 

@@ -8,6 +8,7 @@ export type AmmProgram = Program<CpAmmTypes>;
 
 export type TxBuilder = Promise<Transaction>;
 
+// enums
 export enum Rounding {
   Up,
   Down,
@@ -64,12 +65,6 @@ export enum PoolVersion {
   V1,
 }
 
-export type FeeMode = {
-  feesOnInput: boolean;
-  feesOnTokenA: boolean;
-  hasReferral: boolean;
-};
-
 export enum PoolStatus {
   Enable,
   Disable,
@@ -81,13 +76,20 @@ export enum SwapMode {
   ExactOut,
 }
 
-// Account state types
+export type FeeMode = {
+  feesOnInput: boolean;
+  feesOnTokenA: boolean;
+  hasReferral: boolean;
+};
+
+// account state types
 export type PoolState = IdlAccounts<CpAmmTypes>["pool"];
 export type PositionState = IdlAccounts<CpAmmTypes>["position"];
 export type VestingState = IdlAccounts<CpAmmTypes>["vesting"];
 export type ConfigState = IdlAccounts<CpAmmTypes>["config"];
 export type TokenBadgeState = IdlAccounts<CpAmmTypes>["tokenBadge"];
 
+// program parameter types
 export type BorshFeeTimeScheduler =
   IdlTypes<CpAmmTypes>["borshFeeTimeScheduler"];
 export type BorshFeeMarketCapScheduler =
@@ -101,15 +103,6 @@ export type PodAlignedFeeMarketCapScheduler =
 export type PodAlignedFeeRateLimiter =
   IdlTypes<CpAmmTypes>["podAlignedFeeRateLimiter"];
 
-// Program params types
-// export type LockPositionParams = IdlTypes<CpAmm>["VestingParameters"];
-// export type AddLiquidityParams = IdlTypes<CpAmm>["AddLiquidityParameters"];
-// export type RemoveLiquidityParams =
-//   IdlTypes<CpAmm>["RemoveLiquidityParameters"];
-// export type SwapParams = IdlTypes<CpAmm>["SwapParameters"];
-// export type InitPoolParams = IdlTypes<CpAmm>["InitializePoolParameters"];
-// export type InitCustomizePoolParams =
-//   IdlTypes<CpAmm>["InitializeCustomizablePoolParameters"];
 export type RewardInfo = IdlTypes<CpAmmTypes>["rewardInfo"];
 export type UserRewardInfo = IdlTypes<CpAmmTypes>["userRewardInfo"];
 
@@ -549,7 +542,6 @@ export type Swap2Params = {
 export type LockPositionParams = {
   owner: PublicKey;
   payer: PublicKey;
-  vestingAccount: PublicKey;
   position: PublicKey;
   positionNftAccount: PublicKey;
   pool: PublicKey;
@@ -558,6 +550,8 @@ export type LockPositionParams = {
   cliffUnlockLiquidity: BN;
   liquidityPerPeriod: BN;
   numberOfPeriod: number;
+  vestingAccount?: PublicKey;
+  innerPosition?: boolean;
 };
 
 export type SetupFeeClaimAccountsParams = {
@@ -782,6 +776,7 @@ export type SplitPositionParams = {
   feeBPercentage: number;
   reward0Percentage: number;
   reward1Percentage: number;
+  innerVestingLiquidityPercentage: number;
 };
 
 export type SplitPosition2Params = {
@@ -799,7 +794,7 @@ export interface BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion,
+    poolVersion: PoolVersion
   ): boolean;
   getBaseFeeNumeratorFromIncludedFeeAmount(
     currentPoint: BN,
@@ -807,7 +802,7 @@ export interface BaseFeeHandler {
     tradeDirection: TradeDirection,
     includedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN,
+    currentSqrtPrice: BN
   ): BN;
   getBaseFeeNumeratorFromExcludedFeeAmount(
     currentPoint: BN,
@@ -815,7 +810,7 @@ export interface BaseFeeHandler {
     tradeDirection: TradeDirection,
     excludedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN,
+    currentSqrtPrice: BN
   ): BN;
   validateBaseFeeIsStatic(currentPoint: BN, activationPoint: BN): boolean;
   getMinFeeNumerator(): BN;

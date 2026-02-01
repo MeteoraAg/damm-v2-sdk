@@ -3,7 +3,6 @@
 ## Table of Contents
 
 - [Core Functions](#core-functions)
-
   - [createPool](#createpool)
   - [createCustomPool](#createcustompool)
   - [createCustomPoolWithDynamicConfig](#createcustompoolwithdynamicconfig)
@@ -37,7 +36,6 @@
   - [splitPosition2](#splitposition2)
 
 - [State Functions](#state-functions)
-
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
   - [fetchPoolStatesByTokenAMint](#fetchpoolstatesbytokenamint)
@@ -224,31 +222,31 @@ interface PoolFees {
 
 // For Fee Time Scheduler (baseFeeMode 0 or 1):
 interface FeeTimeSchedulerBaseFee {
-  cliffFeeNumerator: BN;       // Starting fee numerator (e.g., 500000000 = 50%)
-  baseFeeMode: number;         // 0 = Linear, 1 = Exponential
-  numberOfPeriod: number;      // Number of fee reduction periods
-  periodFrequency: BN;         // Time between periods (slots or seconds)
-  reductionFactor: BN;         // Fee reduction per period
+  cliffFeeNumerator: BN; // Starting fee numerator (e.g., 500000000 = 50%)
+  baseFeeMode: number; // 0 = Linear, 1 = Exponential
+  numberOfPeriod: number; // Number of fee reduction periods
+  periodFrequency: BN; // Time between periods (slots or seconds)
+  reductionFactor: BN; // Fee reduction per period
 }
 
 // For Rate Limiter (baseFeeMode 2):
 interface RateLimiterBaseFee {
-  cliffFeeNumerator: BN;       // Base fee numerator (e.g., 10000000 = 1%)
-  baseFeeMode: number;         // 2 = Rate Limiter
-  feeIncrementBps: number;     // Fee increment in basis points per reference amount
-  maxLimiterDuration: number;  // Maximum duration for rate limiter
-  maxFeeBps: number;           // Maximum fee cap in basis points
-  referenceAmount: BN;         // Reference amount for fee calculation
+  cliffFeeNumerator: BN; // Base fee numerator (e.g., 10000000 = 1%)
+  baseFeeMode: number; // 2 = Rate Limiter
+  feeIncrementBps: number; // Fee increment in basis points per reference amount
+  maxLimiterDuration: number; // Maximum duration for rate limiter
+  maxFeeBps: number; // Maximum fee cap in basis points
+  referenceAmount: BN; // Reference amount for fee calculation
 }
 
 // For Fee Market Cap Scheduler (baseFeeMode 3 or 4):
 interface FeeMarketCapSchedulerBaseFee {
-  cliffFeeNumerator: BN;              // Starting fee numerator (e.g., 500000000 = 50%)
-  baseFeeMode: number;                // 3 = Linear, 4 = Exponential
-  numberOfPeriod: number;             // Number of fee reduction periods
-  sqrtPriceStepBps: number;           // Sqrt price step in bps to advance one period
+  cliffFeeNumerator: BN; // Starting fee numerator (e.g., 500000000 = 50%)
+  baseFeeMode: number; // 3 = Linear, 4 = Exponential
+  numberOfPeriod: number; // Number of fee reduction periods
+  sqrtPriceStepBps: number; // Sqrt price step in bps to advance one period
   schedulerExpirationDuration: number; // Duration after which scheduler expires
-  reductionFactor: BN;                // Fee reduction per period
+  reductionFactor: BN; // Fee reduction per period
 }
 ```
 
@@ -1371,7 +1369,6 @@ interface LockPositionParams {
   owner: PublicKey; // The owner of the position
   pool: PublicKey; // The pool address
   payer: PublicKey; // The wallet paying for the transaction
-  vestingAccount: PublicKey; // The vesting account to create
   position: PublicKey; // The position address
   positionNftAccount: PublicKey; // The position NFT account
   cliffPoint: BN | null; // The cliff point (slot or timestamp)
@@ -1379,6 +1376,8 @@ interface LockPositionParams {
   cliffUnlockLiquidity: BN; // Amount to unlock at cliff
   liquidityPerPeriod: BN; // Amount to unlock per period
   numberOfPeriod: number; // Number of vesting periods
+  vestingAccount?: PublicKey; // The vesting account to create (optional)
+  innerPosition?: boolean; // Whether the position is an inner position (optional)
 }
 ```
 
@@ -1387,6 +1386,8 @@ interface LockPositionParams {
 A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
 
 **Example**
+
+With vesting account:
 
 ```typescript
 const vestingAccount = Keypair.generate();
@@ -1403,6 +1404,26 @@ const lockPositionTx = await cpAmm.lockPosition({
   cliffUnlockLiquidity: new BN(0), // No initial unlock
   liquidityPerPeriod: positionState.unlockedLiquidity.div(new BN(30)), // Unlock over 30 days
   numberOfPeriod: 30, // 30 periods
+});
+```
+
+Without vesting account:
+
+```typescript
+const vestingAccount = Keypair.generate();
+
+const lockPositionTx = await cpAmm.lockPosition({
+  owner: wallet.publicKey,
+  pool: poolAddress,
+  payer: wallet.publicKey,
+  position: positionAddress,
+  positionNftAccount: positionNftAccount,
+  cliffPoint: new BN(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days cliff
+  periodFrequency: new BN(24 * 60 * 60 * 1000), // 1 day periods
+  cliffUnlockLiquidity: new BN(0), // No initial unlock
+  liquidityPerPeriod: positionState.unlockedLiquidity.div(new BN(30)), // Unlock over 30 days
+  numberOfPeriod: 30, // 30 periods
+  innerPosition: true,
 });
 ```
 
@@ -2129,6 +2150,7 @@ interface SplitPositionParams {
   feeBPercentage: number; // The percentage of fee B to split
   reward0Percentage: number; // The percentage of reward 0 to split
   reward1Percentage: number; // The percentage of reward 1 to split
+  innerVestingLiquidityPercentage: number; // The percentage of inner vesting liquidity to split
 }
 ```
 
@@ -2183,6 +2205,7 @@ const splitPositionTx = await client.splitPosition({
   feeBPercentage: 50,
   reward0Percentage: 50,
   reward1Percentage: 50,
+  innerVestingLiquidityPercentage: 50,
 });
 ```
 
@@ -3339,10 +3362,10 @@ A `Buffer` containing the Borsh-encoded fee parameters.
 
 ```typescript
 const encoded = encodeFeeTimeSchedulerParams(
-  new BN(500000000),      // 50% starting fee
-  100,                     // 100 periods
-  new BN(6),               // 6 seconds between periods
-  new BN(4900000),         // reduction factor
+  new BN(500000000), // 50% starting fee
+  100, // 100 periods
+  new BN(6), // 6 seconds between periods
+  new BN(4900000), // reduction factor
   BaseFeeMode.FeeTimeSchedulerLinear
 );
 ```
@@ -3383,11 +3406,11 @@ A `Buffer` containing the Borsh-encoded fee parameters.
 
 ```typescript
 const encoded = encodeFeeMarketCapSchedulerParams(
-  new BN(500000000),       // 50% starting fee
-  100,                      // 100 periods
-  100,                      // 1% sqrt price step
-  86400,                    // 24 hours expiration
-  new BN(4950000),          // reduction factor
+  new BN(500000000), // 50% starting fee
+  100, // 100 periods
+  100, // 1% sqrt price step
+  86400, // 24 hours expiration
+  new BN(4950000), // reduction factor
   BaseFeeMode.FeeMarketCapSchedulerLinear
 );
 ```
@@ -3426,11 +3449,11 @@ A `Buffer` containing the Borsh-encoded fee parameters.
 
 ```typescript
 const encoded = encodeFeeRateLimiterParams(
-  new BN(10000000),         // 1% base fee
-  10,                        // 0.1% fee increment per reference amount
-  10,                        // 10 slots/seconds max duration
-  5000,                      // 50% max fee cap
-  new BN(1000000000)         // 1 SOL reference amount
+  new BN(10000000), // 1% base fee
+  10, // 0.1% fee increment per reference amount
+  10, // 10 slots/seconds max duration
+  5000, // 50% max fee cap
+  new BN(1000000000) // 1 SOL reference amount
 );
 ```
 
@@ -3678,7 +3701,7 @@ console.log(`Reference Amount: ${decoded.referenceAmount.toString()}`);
 
 When decoding `baseFee.data`, choose the decoder based on **data source** and **`baseFeeMode`**:
 
-| Data Source | Format | Size | baseFeeMode 0-1 | baseFeeMode 2 | baseFeeMode 3-4 |
-|-------------|--------|------|-----------------|---------------|-----------------|
-| `EvtInitializePool` event | Borsh | 30 bytes | `decodeFeeTimeSchedulerParams` | `decodeFeeRateLimiterParams` | `decodeFeeMarketCapSchedulerParams` |
-| `poolState` account | PodAligned | 32 bytes | `decodePodAlignedFeeTimeScheduler` | `decodePodAlignedFeeRateLimiter` | `decodePodAlignedFeeMarketCapScheduler` |
+| Data Source               | Format     | Size     | baseFeeMode 0-1                    | baseFeeMode 2                    | baseFeeMode 3-4                         |
+| ------------------------- | ---------- | -------- | ---------------------------------- | -------------------------------- | --------------------------------------- |
+| `EvtInitializePool` event | Borsh      | 30 bytes | `decodeFeeTimeSchedulerParams`     | `decodeFeeRateLimiterParams`     | `decodeFeeMarketCapSchedulerParams`     |
+| `poolState` account       | PodAligned | 32 bytes | `decodePodAlignedFeeTimeScheduler` | `decodePodAlignedFeeRateLimiter` | `decodePodAlignedFeeMarketCapScheduler` |

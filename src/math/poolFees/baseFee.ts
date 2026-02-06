@@ -44,13 +44,13 @@ export class FeeRateLimiter implements BaseFeeHandler {
     public feeIncrementBps: number,
     public maxFeeBps: number,
     public maxLimiterDuration: number,
-    public referenceAmount: BN
+    public referenceAmount: BN,
   ) {}
 
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion
+    poolVersion: PoolVersion,
   ): boolean {
     return validateFeeRateLimiter(
       this.cliffFeeNumerator,
@@ -60,7 +60,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
       this.referenceAmount,
       collectFeeMode,
       activationType,
-      poolVersion
+      poolVersion,
     );
   }
 
@@ -70,7 +70,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
     tradeDirection: TradeDirection,
     includedFeeAmount: BN,
     _initSqrtPrice: BN,
-    _currentSqrtPrice: BN
+    _currentSqrtPrice: BN,
   ): BN {
     if (
       isRateLimiterApplied(
@@ -80,7 +80,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
         this.feeIncrementBps,
         currentPoint,
         activationPoint,
-        tradeDirection
+        tradeDirection,
       )
     ) {
       return getFeeNumeratorFromIncludedFeeAmount(
@@ -88,7 +88,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
         this.referenceAmount,
         this.cliffFeeNumerator,
         this.maxFeeBps,
-        this.feeIncrementBps
+        this.feeIncrementBps,
       );
     } else {
       return this.cliffFeeNumerator;
@@ -101,7 +101,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
     tradeDirection: TradeDirection,
     excludedFeeAmount: BN,
     _initSqrtPrice: BN,
-    _currentSqrtPrice: BN
+    _currentSqrtPrice: BN,
   ): BN {
     if (
       isRateLimiterApplied(
@@ -111,7 +111,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
         this.feeIncrementBps,
         currentPoint,
         activationPoint,
-        tradeDirection
+        tradeDirection,
       )
     ) {
       return getFeeNumeratorFromExcludedFeeAmount(
@@ -119,7 +119,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
         this.referenceAmount,
         this.cliffFeeNumerator,
         this.maxFeeBps,
-        this.feeIncrementBps
+        this.feeIncrementBps,
       );
     } else {
       return this.cliffFeeNumerator;
@@ -133,7 +133,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
       this.maxLimiterDuration,
       this.referenceAmount,
       this.maxFeeBps,
-      this.feeIncrementBps
+      this.feeIncrementBps,
     );
   }
 
@@ -147,7 +147,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
       this.referenceAmount,
       this.cliffFeeNumerator,
       this.maxFeeBps,
-      this.feeIncrementBps
+      this.feeIncrementBps,
     );
   }
 }
@@ -161,13 +161,13 @@ export class FeeTimeScheduler implements BaseFeeHandler {
     public numberOfPeriod: number,
     public periodFrequency: BN,
     public reductionFactor: BN,
-    public feeTimeSchedulerMode: BaseFeeMode
+    public feeTimeSchedulerMode: BaseFeeMode,
   ) {}
 
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion
+    poolVersion: PoolVersion,
   ): boolean {
     return validateFeeTimeScheduler(
       this.numberOfPeriod,
@@ -175,7 +175,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
       this.reductionFactor,
       this.cliffFeeNumerator,
       this.feeTimeSchedulerMode,
-      poolVersion
+      poolVersion,
     );
   }
 
@@ -185,7 +185,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
     _tradeDirection: TradeDirection,
     _includedFeeAmount: BN,
     _initSqrtPrice: BN,
-    _currentSqrtPrice: BN
+    _currentSqrtPrice: BN,
   ): BN {
     return getFeeTimeBaseFeeNumerator(
       this.cliffFeeNumerator,
@@ -194,7 +194,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
       this.reductionFactor,
       this.feeTimeSchedulerMode,
       currentPoint,
-      activationPoint
+      activationPoint,
     );
   }
 
@@ -204,7 +204,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
     _tradeDirection: TradeDirection,
     _excludedFeeAmount: BN,
     _initSqrtPrice: BN,
-    _currentSqrtPrice: BN
+    _currentSqrtPrice: BN,
   ): BN {
     return getFeeTimeBaseFeeNumerator(
       this.cliffFeeNumerator,
@@ -213,7 +213,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
       this.reductionFactor,
       this.feeTimeSchedulerMode,
       currentPoint,
-      activationPoint
+      activationPoint,
     );
   }
 
@@ -222,7 +222,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
       currentPoint,
       activationPoint,
       new BN(this.numberOfPeriod),
-      this.periodFrequency
+      this.periodFrequency,
     );
   }
 
@@ -231,7 +231,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
       this.cliffFeeNumerator,
       this.numberOfPeriod,
       this.reductionFactor,
-      this.feeTimeSchedulerMode
+      this.feeTimeSchedulerMode,
     );
   }
 
@@ -250,13 +250,13 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
     public sqrtPriceStepBps: number,
     public schedulerExpirationDuration: number,
     public reductionFactor: BN,
-    public feeMarketCapSchedulerMode: BaseFeeMode
+    public feeMarketCapSchedulerMode: BaseFeeMode,
   ) {}
 
   validate(
     _collectFeeMode: CollectFeeMode,
     _activationType: ActivationType,
-    poolVersion: PoolVersion
+    poolVersion: PoolVersion,
   ): boolean {
     return validateFeeMarketCapScheduler(
       this.cliffFeeNumerator,
@@ -265,7 +265,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
       this.reductionFactor,
       new BN(this.schedulerExpirationDuration),
       this.feeMarketCapSchedulerMode,
-      poolVersion
+      poolVersion,
     );
   }
 
@@ -275,7 +275,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
     _tradeDirection: TradeDirection,
     _includedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN
+    currentSqrtPrice: BN,
   ): BN {
     return getFeeMarketCapBaseFeeNumerator(
       this.cliffFeeNumerator,
@@ -287,7 +287,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
       currentPoint,
       activationPoint,
       initSqrtPrice,
-      currentSqrtPrice
+      currentSqrtPrice,
     );
   }
 
@@ -297,7 +297,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
     _tradeDirection: TradeDirection,
     _excludedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN
+    currentSqrtPrice: BN,
   ): BN {
     return getFeeMarketCapBaseFeeNumerator(
       this.cliffFeeNumerator,
@@ -309,7 +309,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
       currentPoint,
       activationPoint,
       initSqrtPrice,
-      currentSqrtPrice
+      currentSqrtPrice,
     );
   }
 
@@ -317,7 +317,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
     return validateFeeMarketCapBaseFeeIsStatic(
       currentPoint,
       activationPoint,
-      new BN(this.schedulerExpirationDuration)
+      new BN(this.schedulerExpirationDuration),
     );
   }
 
@@ -326,7 +326,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
       this.cliffFeeNumerator,
       this.numberOfPeriod,
       this.reductionFactor,
-      this.feeMarketCapSchedulerMode
+      this.feeMarketCapSchedulerMode,
     );
   }
 
@@ -354,7 +354,7 @@ export function getBaseFeeHandler(rawData: number[]): BaseFeeHandler {
         poolFees.numberOfPeriod,
         poolFees.periodFrequency,
         poolFees.reductionFactor,
-        poolFees.baseFeeMode
+        poolFees.baseFeeMode,
       );
     }
     case BaseFeeMode.RateLimiter: {
@@ -364,7 +364,7 @@ export function getBaseFeeHandler(rawData: number[]): BaseFeeHandler {
         poolFees.feeIncrementBps,
         poolFees.maxFeeBps,
         poolFees.maxLimiterDuration,
-        poolFees.referenceAmount
+        poolFees.referenceAmount,
       );
     }
     case BaseFeeMode.FeeMarketCapSchedulerLinear:
@@ -376,7 +376,7 @@ export function getBaseFeeHandler(rawData: number[]): BaseFeeHandler {
         poolFees.sqrtPriceStepBps,
         poolFees.schedulerExpirationDuration,
         poolFees.reductionFactor,
-        poolFees.baseFeeMode
+        poolFees.baseFeeMode,
       );
     }
     default:

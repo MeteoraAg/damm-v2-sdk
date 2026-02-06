@@ -45,7 +45,7 @@ describe("Lock Inner Postion", () => {
       const prepareContext = await setupTestContext(
         context.banksClient,
         context.payer,
-        false
+        false,
       );
 
       creator = prepareContext.poolCreator;
@@ -69,7 +69,7 @@ describe("Lock Inner Postion", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -125,12 +125,12 @@ describe("Lock Inner Postion", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -170,7 +170,9 @@ describe("Lock Inner Postion", () => {
         .div(new BN(numberOfPeriod));
 
       const loss = liquidityToLock.sub(
-        cliffUnlockLiquidity.add(liquidityPerPeriod.mul(new BN(numberOfPeriod)))
+        cliffUnlockLiquidity.add(
+          liquidityPerPeriod.mul(new BN(numberOfPeriod)),
+        ),
       );
       cliffUnlockLiquidity = cliffUnlockLiquidity.add(loss);
 
@@ -189,7 +191,7 @@ describe("Lock Inner Postion", () => {
       };
 
       const lockInnerPositionTx = await ammInstance.lockPosition(
-        lockInnerPositionParams
+        lockInnerPositionParams,
       );
 
       await executeTransaction(context.banksClient, lockInnerPositionTx, [
@@ -213,7 +215,7 @@ describe("Lock Inner Postion", () => {
         context.banksClient,
         context.payer,
         true,
-        extensions
+        extensions,
       );
 
       creator = prepareContext.poolCreator;
@@ -237,7 +239,7 @@ describe("Lock Inner Postion", () => {
           },
         },
         6,
-        ActivationType.Timestamp
+        ActivationType.Timestamp,
       );
 
       const poolFees: PoolFeesParams = {
@@ -294,12 +296,12 @@ describe("Lock Inner Postion", () => {
       const poolState = await getPool(
         context.banksClient,
         ammInstance._program,
-        pool
+        pool,
       );
       const positionState = await getPosition(
         context.banksClient,
         ammInstance._program,
-        position
+        position,
       );
       const { liquidityDelta } = await ammInstance.getDepositQuote({
         inAmount: new BN(1000 * 10 ** DECIMALS),
@@ -339,7 +341,9 @@ describe("Lock Inner Postion", () => {
         .div(new BN(numberOfPeriod));
 
       const loss = liquidityToLock.sub(
-        cliffUnlockLiquidity.add(liquidityPerPeriod.mul(new BN(numberOfPeriod)))
+        cliffUnlockLiquidity.add(
+          liquidityPerPeriod.mul(new BN(numberOfPeriod)),
+        ),
       );
       cliffUnlockLiquidity = cliffUnlockLiquidity.add(loss);
 
@@ -358,7 +362,7 @@ describe("Lock Inner Postion", () => {
       };
 
       const lockInnerPositionTx = await ammInstance.lockPosition(
-        lockInnerPositionParams
+        lockInnerPositionParams,
       );
 
       await executeTransaction(context.banksClient, lockInnerPositionTx, [

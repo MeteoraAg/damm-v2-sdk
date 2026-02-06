@@ -539,7 +539,7 @@ export type Swap2Params = {
     }
 );
 
-export type LockPositionParams = {
+type _LockPositionParams = {
   owner: PublicKey;
   payer: PublicKey;
   position: PublicKey;
@@ -550,9 +550,17 @@ export type LockPositionParams = {
   cliffUnlockLiquidity: BN;
   liquidityPerPeriod: BN;
   numberOfPeriod: number;
-  vestingAccount?: PublicKey;
-  innerPosition?: boolean;
 };
+
+export type LockPositionParams =
+  | (_LockPositionParams & {
+      innerPosition?: false;
+      vestingAccount: PublicKey;
+    }) // lockPosition
+  | (_LockPositionParams & {
+      innerPosition: true;
+      vestingAccount?: never;
+    }); // lockInnerPosition
 
 export type SetupFeeClaimAccountsParams = {
   payer: PublicKey;
@@ -794,7 +802,7 @@ export interface BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion,
+    poolVersion: PoolVersion
   ): boolean;
   getBaseFeeNumeratorFromIncludedFeeAmount(
     currentPoint: BN,
@@ -802,7 +810,7 @@ export interface BaseFeeHandler {
     tradeDirection: TradeDirection,
     includedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN,
+    currentSqrtPrice: BN
   ): BN;
   getBaseFeeNumeratorFromExcludedFeeAmount(
     currentPoint: BN,
@@ -810,7 +818,7 @@ export interface BaseFeeHandler {
     tradeDirection: TradeDirection,
     excludedFeeAmount: BN,
     initSqrtPrice: BN,
-    currentSqrtPrice: BN,
+    currentSqrtPrice: BN
   ): BN;
   validateBaseFeeIsStatic(currentPoint: BN, activationPoint: BN): boolean;
   getMinFeeNumerator(): BN;

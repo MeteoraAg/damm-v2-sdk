@@ -1376,8 +1376,8 @@ interface LockPositionParams {
   cliffUnlockLiquidity: BN; // Amount to unlock at cliff
   liquidityPerPeriod: BN; // Amount to unlock per period
   numberOfPeriod: number; // Number of vesting periods
-  vestingAccount?: PublicKey; // The vesting account to create (optional)
-  innerPosition?: boolean; // Whether the position is an inner position (optional)
+  vestingAccount?: PublicKey; // The vesting account to create (required for when innerPosition is not provided or false)
+  innerPosition?: boolean; // Whether the position is an inner position (required to be true for when vestingAccount is not provided)
 }
 ```
 
@@ -1410,8 +1410,6 @@ const lockPositionTx = await cpAmm.lockPosition({
 Without vesting account:
 
 ```typescript
-const vestingAccount = Keypair.generate();
-
 const lockPositionTx = await cpAmm.lockPosition({
   owner: wallet.publicKey,
   pool: poolAddress,

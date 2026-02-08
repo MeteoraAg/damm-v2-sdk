@@ -106,6 +106,8 @@ export type PodAlignedFeeRateLimiter =
 export type RewardInfo = IdlTypes<CpAmmTypes>["rewardInfo"];
 export type UserRewardInfo = IdlTypes<CpAmmTypes>["userRewardInfo"];
 
+export type InnerVesting = IdlTypes<CpAmmTypes>["innerVesting"];
+
 /**
  * Dynamic fee parameters
  * @param binStep

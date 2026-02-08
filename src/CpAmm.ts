@@ -394,8 +394,17 @@ export class CpAmm {
     const { owner, position, positionNftAccount, pool, vestingAccounts } =
       params;
 
-    if (vestingAccounts.length == 0) {
-      return null;
+    const remainingAccounts: AccountMeta[] = [];
+    if (vestingAccounts.length !== 0) {
+      remainingAccounts.push(
+        ...vestingAccounts.map((pubkey: PublicKey) => {
+          return {
+            isSigner: false,
+            isWritable: true,
+            pubkey,
+          };
+        }),
+      );
     }
 
     return await this._program.methods
@@ -406,15 +415,7 @@ export class CpAmm {
         pool,
         owner,
       })
-      .remainingAccounts(
-        vestingAccounts.map((pubkey: PublicKey) => {
-          return {
-            isSigner: false,
-            isWritable: true,
-            pubkey,
-          };
-        }),
-      )
+      .remainingAccounts(remainingAccounts)
       .instruction();
   }
 

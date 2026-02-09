@@ -12,9 +12,9 @@ export function isVestingComplete(
   vestingData: VestingState,
   currentPoint: BN,
 ): boolean {
-  const cliffPoint = vestingData.cliffPoint;
-  const periodFrequency = vestingData.periodFrequency;
-  const numberOfPeriods = vestingData.numberOfPeriod;
+  const cliffPoint = vestingData.innerVesting.cliffPoint;
+  const periodFrequency = vestingData.innerVesting.periodFrequency;
+  const numberOfPeriods = vestingData.innerVesting.numberOfPeriod;
 
   const endPoint = cliffPoint.add(periodFrequency.muln(numberOfPeriods));
 
@@ -27,8 +27,10 @@ export function isVestingComplete(
  * @returns The total locked liquidity amount
  */
 export function getTotalLockedLiquidity(vestingData: VestingState): BN {
-  return vestingData.cliffUnlockLiquidity.add(
-    vestingData.liquidityPerPeriod.mul(new BN(vestingData.numberOfPeriod)),
+  return vestingData.innerVesting.cliffUnlockLiquidity.add(
+    vestingData.innerVesting.liquidityPerPeriod.mul(
+      new BN(vestingData.innerVesting.numberOfPeriod),
+    ),
   );
 }
 
@@ -50,7 +52,7 @@ export function getAvailableVestingLiquidity(
     liquidityPerPeriod,
     numberOfPeriod,
     totalReleasedLiquidity,
-  } = vestingData;
+  } = vestingData.innerVesting;
 
   if (currentPoint.lt(cliffPoint)) {
     return new BN(0);

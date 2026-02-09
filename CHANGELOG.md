@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.3] [PR #97](https://github.com/MeteoraAg/damm-v2-sdk/pull/97)
+
+### Added
+
+- Added `innerPosition` parameter to `lockPosition` function and made `vestingAccount` optional to allow locking inner position without vesting account
+- Added `innerVestingLiquidityPercentage` parameter to `splitPosition` function to allow splitting inner position with vesting schedule
+
+### Fixed
+
+- Fixed vesting helper functions to fetch from `innerVesting` states
+
 ## damm_v2_sdk [1.3.2]
 
 ### Fixed

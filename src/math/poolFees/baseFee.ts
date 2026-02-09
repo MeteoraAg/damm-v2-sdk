@@ -11,6 +11,8 @@ import {
   getFeeNumeratorFromIncludedFeeAmount,
   getFeeNumeratorFromExcludedFeeAmount,
   isRateLimiterApplied,
+  getRateLimiterMaxBaseFeeNumerator,
+  getRateLimiterMinBaseFeeNumerator,
 } from "./rateLimiter";
 import {
   getFeeTimeBaseFeeNumerator,
@@ -31,6 +33,7 @@ import {
   decodePodAlignedFeeTimeScheduler,
   decodePodAlignedFeeMarketCapScheduler,
 } from "../../helpers";
+import { U64_MAX } from "../../constants";
 
 /**
  * Fee Rate Limiter class
@@ -134,8 +137,18 @@ export class FeeRateLimiter implements BaseFeeHandler {
     );
   }
 
-  getMinBaseFeeNumerator(): BN {
-    return this.cliffFeeNumerator;
+  getMinFeeNumerator(): BN {
+    return getRateLimiterMinBaseFeeNumerator(this.cliffFeeNumerator);
+  }
+
+  getMaxFeeNumerator(): BN {
+    return getRateLimiterMaxBaseFeeNumerator(
+      U64_MAX,
+      this.referenceAmount,
+      this.cliffFeeNumerator,
+      this.maxFeeBps,
+      this.feeIncrementBps,
+    );
   }
 }
 
@@ -213,13 +226,17 @@ export class FeeTimeScheduler implements BaseFeeHandler {
     );
   }
 
-  getMinBaseFeeNumerator(): BN {
+  getMinFeeNumerator(): BN {
     return getFeeTimeMinBaseFeeNumerator(
       this.cliffFeeNumerator,
       this.numberOfPeriod,
       this.reductionFactor,
       this.feeTimeSchedulerMode,
     );
+  }
+
+  getMaxFeeNumerator(): BN {
+    return this.cliffFeeNumerator;
   }
 }
 
@@ -304,13 +321,17 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
     );
   }
 
-  getMinBaseFeeNumerator(): BN {
+  getMinFeeNumerator(): BN {
     return getFeeMarketCapMinBaseFeeNumerator(
       this.cliffFeeNumerator,
       this.numberOfPeriod,
       this.reductionFactor,
       this.feeMarketCapSchedulerMode,
     );
+  }
+
+  getMaxFeeNumerator(): BN {
+    return this.cliffFeeNumerator;
   }
 }
 

@@ -161,6 +161,7 @@ describe("Split Position", () => {
         feeBPercentage: 50,
         reward0Percentage: 50,
         reward1Percentage: 50,
+        innerVestingLiquidityPercentage: 50,
       };
 
       const splitPositionTx =
@@ -329,6 +330,7 @@ describe("Split Position", () => {
         feeBPercentage: 50,
         reward0Percentage: 50,
         reward1Percentage: 50,
+        innerVestingLiquidityPercentage: 50,
       };
 
       const splitPositionTx =

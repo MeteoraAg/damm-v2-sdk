@@ -8,7 +8,7 @@ export type CpAmm = {
   address: "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG";
   metadata: {
     name: "cpAmm";
-    version: "0.1.7";
+    version: "0.1.8";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -1218,6 +1218,60 @@ export type CpAmm = {
       ];
     },
     {
+      name: "fixConfigFeeParams";
+      discriminator: [38, 30, 216, 81, 250, 177, 243, 254];
+      accounts: [
+        {
+          name: "config";
+          writable: true;
+        },
+        {
+          name: "operator";
+        },
+        {
+          name: "signer";
+          signer: true;
+        },
+      ];
+      args: [
+        {
+          name: "params";
+          type: {
+            defined: {
+              name: "baseFeeParameters";
+            };
+          };
+        },
+      ];
+    },
+    {
+      name: "fixPoolFeeParams";
+      discriminator: [132, 98, 81, 196, 44, 58, 120, 193];
+      accounts: [
+        {
+          name: "pool";
+          writable: true;
+        },
+        {
+          name: "operator";
+        },
+        {
+          name: "signer";
+          signer: true;
+        },
+      ];
+      args: [
+        {
+          name: "params";
+          type: {
+            defined: {
+              name: "baseFeeParameters";
+            };
+          };
+        },
+      ];
+    },
+    {
       name: "fundReward";
       discriminator: [188, 50, 249, 165, 93, 151, 38, 63];
       accounts: [
@@ -2029,6 +2083,71 @@ export type CpAmm = {
         {
           name: "funder";
           type: "pubkey";
+        },
+      ];
+    },
+    {
+      name: "lockInnerPosition";
+      discriminator: [72, 19, 49, 204, 18, 122, 23, 90];
+      accounts: [
+        {
+          name: "pool";
+          relations: ["position"];
+        },
+        {
+          name: "position";
+          writable: true;
+        },
+        {
+          name: "positionNftAccount";
+          docs: ["The token account for nft"];
+        },
+        {
+          name: "owner";
+          docs: ["owner of position"];
+          signer: true;
+        },
+        {
+          name: "eventAuthority";
+          pda: {
+            seeds: [
+              {
+                kind: "const";
+                value: [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121,
+                ];
+              },
+            ];
+          };
+        },
+        {
+          name: "program";
+        },
+      ];
+      args: [
+        {
+          name: "params";
+          type: {
+            defined: {
+              name: "vestingParameters";
+            };
+          };
         },
       ];
     },
@@ -3240,6 +3359,10 @@ export type CpAmm = {
     {
       name: "evtSplitPosition2";
       discriminator: [165, 32, 203, 174, 72, 100, 233, 103];
+    },
+    {
+      name: "evtSplitPosition3";
+      discriminator: [232, 117, 190, 218, 85, 162, 207, 78];
     },
     {
       name: "evtSwap2";
@@ -4712,6 +4835,70 @@ export type CpAmm = {
       };
     },
     {
+      name: "evtSplitPosition3";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "pool";
+            type: "pubkey";
+          },
+          {
+            name: "firstOwner";
+            type: "pubkey";
+          },
+          {
+            name: "secondOwner";
+            type: "pubkey";
+          },
+          {
+            name: "firstPosition";
+            type: "pubkey";
+          },
+          {
+            name: "secondPosition";
+            type: "pubkey";
+          },
+          {
+            name: "currentSqrtPrice";
+            type: "u128";
+          },
+          {
+            name: "amountSplits";
+            type: {
+              defined: {
+                name: "splitAmountInfo2";
+              };
+            };
+          },
+          {
+            name: "firstPositionInfo";
+            type: {
+              defined: {
+                name: "splitPositionInfo2";
+              };
+            };
+          },
+          {
+            name: "secondPositionInfo";
+            type: {
+              defined: {
+                name: "splitPositionInfo2";
+              };
+            };
+          },
+          {
+            name: "splitPositionParameters";
+            type: {
+              defined: {
+                name: "splitPositionParameters3";
+              };
+            };
+          },
+        ];
+      };
+    },
+    {
       name: "evtSwap2";
       type: {
         kind: "struct";
@@ -4950,6 +5137,48 @@ export type CpAmm = {
             docs: ["activation point"];
             type: {
               option: "u64";
+            };
+          },
+        ];
+      };
+    },
+    {
+      name: "innerVesting";
+      serialization: "bytemuck";
+      repr: {
+        kind: "c";
+      };
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "cliffPoint";
+            type: "u64";
+          },
+          {
+            name: "periodFrequency";
+            type: "u64";
+          },
+          {
+            name: "cliffUnlockLiquidity";
+            type: "u128";
+          },
+          {
+            name: "liquidityPerPeriod";
+            type: "u128";
+          },
+          {
+            name: "totalReleasedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "numberOfPeriod";
+            type: "u16";
+          },
+          {
+            name: "padding";
+            type: {
+              array: ["u8", 14];
             };
           },
         ];
@@ -5583,11 +5812,18 @@ export type CpAmm = {
             };
           },
           {
+            name: "innerVesting";
+            docs: ["inner vesting info"];
+            type: {
+              defined: {
+                name: "innerVesting";
+              };
+            };
+          },
+          {
             name: "padding";
             docs: ["padding for future usage"];
-            type: {
-              array: ["u128", 6];
-            };
+            type: "u128";
           },
         ];
       };
@@ -5755,12 +5991,84 @@ export type CpAmm = {
       };
     },
     {
+      name: "splitAmountInfo2";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "permanentLockedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "unlockedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "vestedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "feeA";
+            type: "u64";
+          },
+          {
+            name: "feeB";
+            type: "u64";
+          },
+          {
+            name: "reward0";
+            type: "u64";
+          },
+          {
+            name: "reward1";
+            type: "u64";
+          },
+        ];
+      };
+    },
+    {
       name: "splitPositionInfo";
       type: {
         kind: "struct";
         fields: [
           {
             name: "liquidity";
+            type: "u128";
+          },
+          {
+            name: "feeA";
+            type: "u64";
+          },
+          {
+            name: "feeB";
+            type: "u64";
+          },
+          {
+            name: "reward0";
+            type: "u64";
+          },
+          {
+            name: "reward1";
+            type: "u64";
+          },
+        ];
+      };
+    },
+    {
+      name: "splitPositionInfo2";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "unlockedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "permanentLockedLiquidity";
+            type: "u128";
+          },
+          {
+            name: "vestedLiquidity";
             type: "u128";
           },
           {
@@ -5830,10 +6138,15 @@ export type CpAmm = {
             type: "u8";
           },
           {
+            name: "innerVestingLiquidityPercentage";
+            docs: ["Percentage of inner vesting liquidity"];
+            type: "u8";
+          },
+          {
             name: "padding";
             docs: ["padding for future"];
             type: {
-              array: ["u8", 16];
+              array: ["u8", 15];
             };
           },
         ];
@@ -5866,6 +6179,42 @@ export type CpAmm = {
           },
           {
             name: "reward1Numerator";
+            type: "u32";
+          },
+        ];
+      };
+    },
+    {
+      name: "splitPositionParameters3";
+      type: {
+        kind: "struct";
+        fields: [
+          {
+            name: "unlockedLiquidityNumerator";
+            type: "u32";
+          },
+          {
+            name: "permanentLockedLiquidityNumerator";
+            type: "u32";
+          },
+          {
+            name: "feeANumerator";
+            type: "u32";
+          },
+          {
+            name: "feeBNumerator";
+            type: "u32";
+          },
+          {
+            name: "reward0Numerator";
+            type: "u32";
+          },
+          {
+            name: "reward1Numerator";
+            type: "u32";
+          },
+          {
+            name: "innerVestingLiquidityNumerator";
             type: "u32";
           },
         ];
@@ -6101,33 +6450,11 @@ export type CpAmm = {
             type: "pubkey";
           },
           {
-            name: "cliffPoint";
-            type: "u64";
-          },
-          {
-            name: "periodFrequency";
-            type: "u64";
-          },
-          {
-            name: "cliffUnlockLiquidity";
-            type: "u128";
-          },
-          {
-            name: "liquidityPerPeriod";
-            type: "u128";
-          },
-          {
-            name: "totalReleasedLiquidity";
-            type: "u128";
-          },
-          {
-            name: "numberOfPeriod";
-            type: "u16";
-          },
-          {
-            name: "padding";
+            name: "innerVesting";
             type: {
-              array: ["u8", 14];
+              defined: {
+                name: "innerVesting";
+              };
             };
           },
           {
@@ -6184,6 +6511,11 @@ export type CpAmm = {
       value: "[203, 16, 199, 186, 184, 141, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0]";
     },
     {
+      name: "currentPoolVersion";
+      type: "u8";
+      value: "1";
+    },
+    {
       name: "customizablePoolPrefix";
       type: "bytes";
       value: "[99, 112, 111, 111, 108]";
@@ -6203,11 +6535,26 @@ export type CpAmm = {
       value: "10000";
     },
     {
+      name: "maxFeeNumeratorV0";
+      type: "u64";
+      value: "500000000";
+    },
+    {
+      name: "maxFeeNumeratorV1";
+      type: "u64";
+      value: "990000000";
+    },
+    {
       name: "maxSqrtPriceLeBytes";
       type: {
         array: ["u8", 16];
       };
       value: "[155, 87, 105, 78, 169, 26, 92, 132, 177, 196, 254, 255, 0, 0, 0, 0]";
+    },
+    {
+      name: "minFeeNumerator";
+      type: "u64";
+      value: "100000";
     },
     {
       name: "minSqrtPriceLeBytes";

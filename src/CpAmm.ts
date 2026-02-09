@@ -394,8 +394,17 @@ export class CpAmm {
     const { owner, position, positionNftAccount, pool, vestingAccounts } =
       params;
 
-    if (vestingAccounts.length == 0) {
-      return null;
+    const remainingAccounts: AccountMeta[] = [];
+    if (vestingAccounts.length !== 0) {
+      remainingAccounts.push(
+        ...vestingAccounts.map((pubkey: PublicKey) => {
+          return {
+            isSigner: false,
+            isWritable: true,
+            pubkey,
+          };
+        }),
+      );
     }
 
     return await this._program.methods
@@ -406,15 +415,7 @@ export class CpAmm {
         pool,
         owner,
       })
-      .remainingAccounts(
-        vestingAccounts.map((pubkey: PublicKey) => {
-          return {
-            isSigner: false,
-            isWritable: true,
-            pubkey,
-          };
-        }),
-      )
+      .remainingAccounts(remainingAccounts)
       .instruction();
   }
 
@@ -2457,7 +2458,6 @@ export class CpAmm {
       owner,
       pool,
       payer,
-      vestingAccount,
       position,
       positionNftAccount,
       cliffPoint,
@@ -2465,26 +2465,46 @@ export class CpAmm {
       cliffUnlockLiquidity,
       liquidityPerPeriod,
       numberOfPeriod,
+      vestingAccount,
+      innerPosition,
     } = params;
-    const lockPositionParams = {
-      cliffPoint,
-      periodFrequency,
-      cliffUnlockLiquidity,
-      liquidityPerPeriod,
-      numberOfPeriod,
-    };
-    return await this._program.methods
-      .lockPosition(lockPositionParams)
-      .accountsPartial({
-        position,
-        positionNftAccount,
-        vesting: vestingAccount,
-        pool: pool,
-        owner: owner,
-        payer: payer,
-        systemProgram: SystemProgram.programId,
-      })
-      .transaction();
+
+    if (innerPosition) {
+      return await this._program.methods
+        .lockInnerPosition({
+          cliffPoint,
+          periodFrequency,
+          cliffUnlockLiquidity,
+          liquidityPerPeriod,
+          numberOfPeriod,
+        })
+        .accountsPartial({
+          pool,
+          position,
+          positionNftAccount,
+          owner,
+        })
+        .transaction();
+    } else {
+      return await this._program.methods
+        .lockPosition({
+          cliffPoint,
+          periodFrequency,
+          cliffUnlockLiquidity,
+          liquidityPerPeriod,
+          numberOfPeriod,
+        })
+        .accountsPartial({
+          position,
+          positionNftAccount,
+          vesting: vestingAccount,
+          pool: pool,
+          owner: owner,
+          payer: payer,
+          systemProgram: SystemProgram.programId,
+        })
+        .transaction();
+    }
   }
 
   /**
@@ -3344,6 +3364,7 @@ export class CpAmm {
       feeBPercentage,
       reward0Percentage,
       reward1Percentage,
+      innerVestingLiquidityPercentage,
     } = params;
 
     return await this._program.methods
@@ -3354,7 +3375,8 @@ export class CpAmm {
         feeBPercentage,
         reward0Percentage,
         reward1Percentage,
-        padding: new Array(16).fill(0),
+        innerVestingLiquidityPercentage,
+        padding: new Array(15).fill(0),
       })
       .accountsPartial({
         pool,

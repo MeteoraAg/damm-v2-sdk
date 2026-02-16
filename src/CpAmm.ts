@@ -165,7 +165,6 @@ export class CpAmm {
       { ataPubkey: tokenBAta, ix: createOutputTokenAccountIx },
     ] = await Promise.all([
       getOrCreateATAInstruction(
-        this._program.provider.connection,
         tokenAMint,
         tokenAOwner,
         payer,
@@ -173,7 +172,6 @@ export class CpAmm {
         tokenAProgram,
       ),
       getOrCreateATAInstruction(
-        this._program.provider.connection,
         tokenBMint,
         tokenBOwner,
         payer,
@@ -3000,7 +2998,6 @@ export class CpAmm {
 
     const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
       await getOrCreateATAInstruction(
-        this._program.provider.connection,
         rewardMint,
         funder,
         funder,
@@ -3053,14 +3050,7 @@ export class CpAmm {
     const preInstructions: TransactionInstruction[] = [];
     const postInstructions: TransactionInstruction[] = [];
     const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
-      await getOrCreateATAInstruction(
-        this._program.provider.connection,
-        mint,
-        funder,
-        funder,
-        true,
-        tokenProgram,
-      );
+      await getOrCreateATAInstruction(mint, funder, funder, true, tokenProgram);
     createFunderTokenAccountIx &&
       preInstructions.push(createFunderTokenAccountIx);
 
@@ -3312,7 +3302,6 @@ export class CpAmm {
     const postInstructions: TransactionInstruction[] = [];
     const { ataPubkey: userTokenAccount, ix: createUserTokenAccountIx } =
       await getOrCreateATAInstruction(
-        this._program.provider.connection,
         rewardInfo.mint,
         user,
         feePayer ?? user,

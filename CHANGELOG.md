@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.4] [PR #98](https://github.com/MeteoraAg/damm-v2-sdk/pull/98)
+
+### Fixed
+
+- Always `createAssociatedTokenAccountIdempotentInstruction` when creating transactions that require ATAs since the user may close their ATA after the transaction is crafted and before the transaction is executed.
+
 ## damm_v2_sdk [1.3.3] [PR #97](https://github.com/MeteoraAg/damm-v2-sdk/pull/97)
 
 ### Added

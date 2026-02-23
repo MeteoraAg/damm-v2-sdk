@@ -1238,6 +1238,18 @@ export class CpAmm {
       sqrtPrice,
     } = params;
 
+    if (isTokenA && sqrtPrice.gte(maxSqrtPrice)) {
+      throw new Error(
+        "Cannot deposit token A: pool price is at the upper bound (sqrtPrice == maxSqrtPrice). All liquidity is in token B.",
+      );
+    }
+
+    if (!isTokenA && sqrtPrice.lte(minSqrtPrice)) {
+      throw new Error(
+        "Cannot deposit token B: pool price is at the lower bound (sqrtPrice == minSqrtPrice). All liquidity is in token A.",
+      );
+    }
+
     const actualAmountIn = inputTokenInfo
       ? calculateTransferFeeExcludedAmount(
           inAmount,
@@ -1315,6 +1327,17 @@ export class CpAmm {
       tokenATokenInfo,
       tokenBTokenInfo,
     } = params;
+
+    if (liquidityDelta.isZero()) {
+      throw new Error(
+        "Cannot withdraw: liquidityDelta must be greater than zero.",
+      );
+    }
+
+    if (sqrtPrice.isZero()) {
+      throw new Error("Cannot withdraw: sqrtPrice must be greater than zero.");
+    }
+
     const amountA = getAmountAFromLiquidityDelta(
       sqrtPrice,
       maxSqrtPrice,

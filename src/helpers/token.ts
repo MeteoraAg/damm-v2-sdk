@@ -54,43 +54,28 @@ export const getTokenDecimals = async (
  * @returns The ATA instruction
  */
 export const getOrCreateATAInstruction = async (
-  connection: Connection,
   tokenMint: PublicKey,
   owner: PublicKey,
   payer: PublicKey = owner,
   allowOwnerOffCurve = true,
   tokenProgram: PublicKey,
 ): Promise<{ ataPubkey: PublicKey; ix?: TransactionInstruction }> => {
-  const toAccount = getAssociatedTokenAddressSync(
+  const ataPubkey = getAssociatedTokenAddressSync(
     tokenMint,
     owner,
     allowOwnerOffCurve,
     tokenProgram,
   );
 
-  try {
-    await getAccount(connection, toAccount);
-    return { ataPubkey: toAccount, ix: undefined };
-  } catch (e) {
-    if (
-      e instanceof TokenAccountNotFoundError ||
-      e instanceof TokenInvalidAccountOwnerError
-    ) {
-      const ix = createAssociatedTokenAccountIdempotentInstruction(
-        payer,
-        toAccount,
-        owner,
-        tokenMint,
-        tokenProgram,
-      );
+  const ix = createAssociatedTokenAccountIdempotentInstruction(
+    payer,
+    ataPubkey,
+    owner,
+    tokenMint,
+    tokenProgram,
+  );
 
-      return { ataPubkey: toAccount, ix };
-    } else {
-      /* handle error */
-      console.error("Error::getOrCreateATAInstruction", e);
-      throw e;
-    }
-  }
+  return { ataPubkey, ix };
 };
 
 /**

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.6] [PR #100](https://github.com/MeteoraAg/damm-v2-sdk/pull/100)
+
+### Fixed
+
+- Added error message for `DepositTokenNotAcceptedError`
+
 ## damm_v2_sdk [1.3.5] [PR #99](https://github.com/MeteoraAg/damm-v2-sdk/pull/99)
 
 ### Fixed

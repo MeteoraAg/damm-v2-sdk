@@ -4,6 +4,7 @@ import invariant from "invariant";
 
 import CpAmmIDL from "./idl/cp_amm.json";
 import type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
+import { DepositTokenNotAcceptedError } from "./errors";
 import {
   Connection,
   Transaction,
@@ -1239,15 +1240,11 @@ export class CpAmm {
     } = params;
 
     if (isTokenA && sqrtPrice.gte(maxSqrtPrice)) {
-      throw new Error(
-        "Cannot deposit token A: pool price is at the upper bound (sqrtPrice == maxSqrtPrice). All liquidity is in token B.",
-      );
+      throw new DepositTokenNotAcceptedError("B");
     }
 
     if (!isTokenA && sqrtPrice.lte(minSqrtPrice)) {
-      throw new Error(
-        "Cannot deposit token B: pool price is at the lower bound (sqrtPrice == minSqrtPrice). All liquidity is in token A.",
-      );
+      throw new DepositTokenNotAcceptedError("A");
     }
 
     const actualAmountIn = inputTokenInfo

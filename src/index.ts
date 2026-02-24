@@ -1,4 +1,5 @@
 export * from "./CpAmm";
+export * from "./errors";
 export * from "./pda";
 export * from "./types";
 export * from "./constants";

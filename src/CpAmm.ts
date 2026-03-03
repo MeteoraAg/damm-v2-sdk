@@ -20,7 +20,6 @@ import {
   BuildAddLiquidityParams,
   BuildLiquidatePositionInstructionParams,
   BuildRemoveAllLiquidityInstructionParams,
-  ClaimPartnerFeeParams,
   ClaimPositionFeeInstructionParams,
   ClaimPositionFeeParams,
   ClaimPositionFeeParams2,
@@ -1134,7 +1133,8 @@ export class CpAmm {
       minSwapOutAmount: swapResult.minimumAmountOut,
       totalFee: swapResult.tradingFee
         .add(swapResult.protocolFee)
-        .add(swapResult.partnerFee)
+        .add(swapResult.claimingFee)
+        .add(swapResult.compoundingFee)
         .add(swapResult.referralFee),
       priceImpact: swapResult.priceImpact,
     };
@@ -3095,65 +3095,48 @@ export class CpAmm {
       .transaction();
   }
 
+  // claimPartnerFee() removed in SDK v2.0.0
+  // The claim_partner_fee instruction was removed in DAMM v2 program v0.2.0.
+  // See MIGRATION_GUIDE.md for details.
+
   /**
-   * Builds a transaction to claim partner fee rewards.
-   * @param {ClaimPartnerFeeParams} params - Claim parameters including amounts and partner address.
-   * @returns Transaction builder.
+   * Migrates a legacy V0 pool to V1 layout, enabling on-chain reserve tracking
+   * (tokenAAmount / tokenBAmount fields on PoolState).
+   *
+   * This instruction is permissioned — the pool's `owner` or configured `operator`
+   * must sign. It is a one-time, forward-only migration; V1 → V0 is not possible.
+   *
+   * @param poolAddress        - Public key of the pool to migrate
+   * @param ownerOrOperator    - Public key of pool owner or operator (must sign)
+   * @returns Transaction that calls fix_pool_layout_version on-chain
+   *
+   * @example
+   * const tx = await cpAmm.fixPoolLayoutVersion(poolPubkey, operatorKeypair.publicKey);
+   * await sendAndConfirmTransaction(connection, tx, [operatorKeypair]);
    */
-  async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
-    const {
-      feePayer,
-      receiver,
-      tempWSolAccount,
-      partner,
-      pool,
-      maxAmountA,
-      maxAmountB,
-    } = params;
-    const poolState = await this.fetchPoolState(pool);
-    const {
-      tokenAVault,
-      tokenBVault,
-      tokenAMint,
-      tokenBMint,
-      tokenAFlag,
-      tokenBFlag,
-    } = poolState;
+  async fixPoolLayoutVersion(
+    poolAddress: PublicKey,
+    ownerOrOperator: PublicKey,
+  ): TxBuilder {
+    const poolState = await this.fetchPoolState(poolAddress);
 
-    const tokenAProgram = getTokenProgram(tokenAFlag);
-    const tokenBProgram = getTokenProgram(tokenBFlag);
+    if ((poolState as any).layoutVersion === 1) {
+      throw new Error(
+        `Pool ${poolAddress.toBase58()} is already at layout version V1. No migration needed.`,
+      );
+    }
 
-    const payer = feePayer ?? partner;
-    const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
-      await this.setupFeeClaimAccounts({
-        payer,
-        owner: partner,
-        tokenAMint,
-        tokenBMint,
-        tokenAProgram,
-        tokenBProgram,
-        receiver,
-        tempWSolAccount,
-      });
-
-    return await this._program.methods
-      .claimPartnerFee(maxAmountA, maxAmountB)
+    // NOTE: fixPoolLayoutVersion is a new instruction in DAMM v2 program v0.2.0.
+    // The IDL will be updated when the on-chain program upgrades. Cast to any for now.
+    const ix = await (this._program.methods as any)
+      .fixPoolLayoutVersion()
       .accountsPartial({
-        poolAuthority: this.poolAuthority,
-        pool,
-        tokenAAccount,
-        tokenBAccount,
-        tokenAVault,
-        tokenBVault,
-        tokenAMint,
-        tokenBMint,
-        partner,
-        tokenAProgram,
-        tokenBProgram,
+        pool: poolAddress,
+        owner: ownerOrOperator,
       })
-      .preInstructions(preInstructions)
-      .postInstructions(postInstructions)
-      .transaction();
+      .instruction();
+
+    return new Transaction().add(ix);
   }
 
   /**

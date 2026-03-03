@@ -1,7 +1,7 @@
 import { BN } from "@coral-xyz/anchor";
 import { BASIS_POINT_MAX, LIQUIDITY_SCALE } from "../constants";
 import Decimal from "decimal.js";
-import { PoolState, PositionState, RewardInfo, SwapMode } from "../types";
+import { CollectFeeMode, PoolLayoutVersion, PoolState, PositionState, RewardInfo, SwapMode } from "../types";
 
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
@@ -392,4 +392,25 @@ export function getUserRewardPending(
     userPendingReward: userRewardInfo.rewardPendings.add(newReward),
     userRewardPerPeriod: userRewardPerPeriod,
   };
+}
+
+/**
+ * Returns on-chain reserve amounts for V1 layout pools.
+ * Returns null for V0 layout pools (call fixPoolLayoutVersion() first).
+ */
+export function getPoolReserves(
+  pool: PoolState,
+): { tokenAAmount: BN; tokenBAmount: BN } | null {
+  if ((pool as any).layoutVersion !== PoolLayoutVersion.V1) return null;
+  return {
+    tokenAAmount: (pool as any).tokenAAmount,
+    tokenBAmount: (pool as any).tokenBAmount,
+  };
+}
+
+/**
+ * Returns true if pool uses Compounding fee collection mode.
+ */
+export function isCompoundingPool(pool: PoolState): boolean {
+  return pool.collectFeeMode === CollectFeeMode.Compounding;
 }

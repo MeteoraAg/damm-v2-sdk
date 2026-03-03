@@ -3,10 +3,10 @@ import {
   calculateTransferFeeIncludedAmount,
   getAmountWithSlippage,
   getPriceImpact,
-  hasPartner,
   isSwapEnabled,
 } from "../helpers";
 import {
+  CollectFeeMode,
   FeeMode,
   PoolState,
   Quote2Result,
@@ -52,8 +52,10 @@ export function getSwapResultFromExactInput(
   let actualProtocolFee = new BN(0);
   let actualTradingFee = new BN(0);
   let actualReferralFee = new BN(0);
-  let actualPartnerFee = new BN(0);
+  let actualClaimingFee = new BN(0);
+  let actualCompoundingFee = new BN(0);
 
+  const collectFeeMode = poolState.collectFeeMode as CollectFeeMode;
   const maxFeeNumerator = getMaxFeeNumerator(poolState.version);
 
   // We can compute the trade_fee_numerator here. Instead of separately for amount_in, and amount_out.
@@ -73,19 +75,20 @@ export function getSwapResultFromExactInput(
 
   let actualAmountIn: BN;
   if (feeMode.feesOnInput) {
-    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+    const { amount, tradingFee, protocolFee, claimingFee, compoundingFee, referralFee } =
       getFeeOnAmount(
         poolState.poolFees,
         amountIn,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState),
+        collectFeeMode,
       );
 
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
     actualReferralFee = referralFee;
-    actualPartnerFee = partnerFee;
+    actualClaimingFee = claimingFee;
+    actualCompoundingFee = compoundingFee;
 
     actualAmountIn = amount;
   } else {
@@ -104,19 +107,20 @@ export function getSwapResultFromExactInput(
   if (feeMode.feesOnInput) {
     actualAmountOut = outputAmount;
   } else {
-    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+    const { amount, tradingFee, protocolFee, claimingFee, compoundingFee, referralFee } =
       getFeeOnAmount(
         poolState.poolFees,
         outputAmount,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState),
+        collectFeeMode,
       );
 
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
     actualReferralFee = referralFee;
-    actualPartnerFee = partnerFee;
+    actualClaimingFee = claimingFee;
+    actualCompoundingFee = compoundingFee;
 
     actualAmountOut = amount;
   }
@@ -129,7 +133,8 @@ export function getSwapResultFromExactInput(
     nextSqrtPrice: nextSqrtPrice,
     tradingFee: actualTradingFee,
     protocolFee: actualProtocolFee,
-    partnerFee: actualPartnerFee,
+    claimingFee: actualClaimingFee,
+    compoundingFee: actualCompoundingFee,
     referralFee: actualReferralFee,
   };
 }
@@ -235,8 +240,10 @@ export function getSwapResultFromPartialInput(
   let actualProtocolFee = new BN(0);
   let actualTradingFee = new BN(0);
   let actualReferralFee = new BN(0);
-  let actualPartnerFee = new BN(0);
+  let actualClaimingFee = new BN(0);
+  let actualCompoundingFee = new BN(0);
 
+  const collectFeeMode = poolState.collectFeeMode as CollectFeeMode;
   const maxFeeNumerator = getMaxFeeNumerator(poolState.version);
 
   const tradeFeeNumerator = getTotalTradingFeeFromIncludedFeeAmount(
@@ -252,18 +259,19 @@ export function getSwapResultFromPartialInput(
 
   let actualAmountIn: BN;
   if (feeMode.feesOnInput) {
-    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+    const { amount, tradingFee, protocolFee, claimingFee, compoundingFee, referralFee } =
       getFeeOnAmount(
         poolState.poolFees,
         amountIn,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState),
+        collectFeeMode,
       );
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
     actualReferralFee = referralFee;
-    actualPartnerFee = partnerFee;
+    actualClaimingFee = claimingFee;
+    actualCompoundingFee = compoundingFee;
 
     actualAmountIn = amount;
   } else {
@@ -306,17 +314,18 @@ export function getSwapResultFromPartialInput(
         actualAmountIn,
       );
 
-      const { tradingFee, protocolFee, referralFee, partnerFee } = splitFees(
+      const { tradingFee, protocolFee, referralFee, claimingFee, compoundingFee } = splitFees(
         poolState.poolFees,
         feeAmount,
         feeMode.hasReferral,
-        hasPartner(poolState),
+        collectFeeMode,
       );
 
       actualProtocolFee = protocolFee;
       actualTradingFee = tradingFee;
       actualReferralFee = referralFee;
-      actualPartnerFee = partnerFee;
+      actualClaimingFee = claimingFee;
+      actualCompoundingFee = compoundingFee;
 
       includedFeeInputAmount = includedFeeAmount;
     } else {
@@ -330,18 +339,19 @@ export function getSwapResultFromPartialInput(
   if (feeMode.feesOnInput) {
     actualAmountOut = outputAmount;
   } else {
-    const { amount, tradingFee, protocolFee, partnerFee, referralFee } =
+    const { amount, tradingFee, protocolFee, claimingFee, compoundingFee, referralFee } =
       getFeeOnAmount(
         poolState.poolFees,
         outputAmount,
         tradeFeeNumerator,
         feeMode.hasReferral,
-        hasPartner(poolState),
+        collectFeeMode,
       );
     actualProtocolFee = protocolFee;
     actualTradingFee = tradingFee;
     actualReferralFee = referralFee;
-    actualPartnerFee = partnerFee;
+    actualClaimingFee = claimingFee;
+    actualCompoundingFee = compoundingFee;
 
     actualAmountOut = amount;
   }
@@ -354,7 +364,8 @@ export function getSwapResultFromPartialInput(
     nextSqrtPrice,
     tradingFee: actualTradingFee,
     protocolFee: actualProtocolFee,
-    partnerFee: actualPartnerFee,
+    claimingFee: actualClaimingFee,
+    compoundingFee: actualCompoundingFee,
     referralFee: actualReferralFee,
   };
 }
@@ -484,8 +495,10 @@ export function getSwapResultFromExactOutput(
   let actualProtocolFee = new BN(0);
   let actualTradingFee = new BN(0);
   let actualReferralFee = new BN(0);
-  let actualPartnerFee = new BN(0);
+  let actualClaimingFee = new BN(0);
+  let actualCompoundingFee = new BN(0);
 
+  const collectFeeMode = poolState.collectFeeMode as CollectFeeMode;
   const maxFeeNumerator = getMaxFeeNumerator(poolState.version);
 
   let includedFeeAmountOut: BN;
@@ -512,13 +525,14 @@ export function getSwapResultFromExactOutput(
       poolState.poolFees,
       feeAmount,
       feeMode.hasReferral,
-      hasPartner(poolState),
+      collectFeeMode,
     );
 
     actualTradingFee = split.tradingFee;
     actualProtocolFee = split.protocolFee;
     actualReferralFee = split.referralFee;
-    actualPartnerFee = split.partnerFee;
+    actualClaimingFee = split.claimingFee;
+    actualCompoundingFee = split.compoundingFee;
 
     includedFeeAmountOut = includedFeeAmount;
   }
@@ -559,13 +573,14 @@ export function getSwapResultFromExactOutput(
       poolState.poolFees,
       feeAmount,
       feeMode.hasReferral,
-      hasPartner(poolState),
+      collectFeeMode,
     );
 
     actualTradingFee = split.tradingFee;
     actualProtocolFee = split.protocolFee;
     actualReferralFee = split.referralFee;
-    actualPartnerFee = split.partnerFee;
+    actualClaimingFee = split.claimingFee;
+    actualCompoundingFee = split.compoundingFee;
 
     includedFeeInputAmount = includedFeeAmount;
   } else {
@@ -580,7 +595,8 @@ export function getSwapResultFromExactOutput(
     nextSqrtPrice: nextSqrtPrice,
     tradingFee: actualTradingFee,
     protocolFee: actualProtocolFee,
-    partnerFee: actualPartnerFee,
+    claimingFee: actualClaimingFee,
+    compoundingFee: actualCompoundingFee,
     referralFee: actualReferralFee,
   };
 }

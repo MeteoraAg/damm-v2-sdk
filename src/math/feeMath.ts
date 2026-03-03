@@ -99,7 +99,8 @@ export function getFeeMode(
       feesOnTokenA = true;
     }
   } else {
-    // CollectFeeMode::OnlyB
+    // CollectFeeMode::OnlyB or CollectFeeMode::Compounding
+    // Compounding pools collect fees in token B (same direction as OnlyB)
     if (tradeDirection === TradeDirection.AtoB) {
       feesOnInput = false;
       feesOnTokenA = false;
@@ -219,50 +220,67 @@ export function getTotalTradingFeeFromExcludedFeeAmount(
 }
 
 /**
- * Splits the fees
+ * Splits the fees into protocol, claiming, compounding, and referral portions.
+ *
+ * For CollectFeeMode.Compounding pools:
+ *   - claimingFee = lpFee * (BASIS_POINT_MAX - compoundingFeeBps) / BASIS_POINT_MAX
+ *   - compoundingFee = lpFee * compoundingFeeBps / BASIS_POINT_MAX
+ *
+ * For BothToken / OnlyB pools:
+ *   - claimingFee = full LP fee
+ *   - compoundingFee = 0
+ *
  * @param poolFees - The pool fees
  * @param feeAmount - The fee amount
- * @param hasReferral - The has referral
- * @param hasPartner - The has partner
+ * @param hasReferral - Whether a referral account is present
+ * @param collectFeeMode - The pool's fee collection mode
  * @returns The split fees
  */
 export function splitFees(
   poolFees: PoolFeesStruct,
   feeAmount: BN,
   hasReferral: boolean,
-  hasPartner: boolean,
+  collectFeeMode: CollectFeeMode,
 ): SplitFees {
+  const BASIS_POINT_MAX_BN = new BN(BASIS_POINT_MAX);
+
   // protocol_fee = feeAmount * protocol_fee_percent / 100 (rounded down)
   const protocolFee = feeAmount.muln(poolFees.protocolFeePercent).divn(100);
 
   // trading_fee = feeAmount - protocol_fee
   const tradingFee = feeAmount.sub(protocolFee);
 
-  // referral_fee = protocol_fee * referral_fee_percent / 100 (rounded down) if hasReferral else 0
+  // remaining_fee after protocol cut
+  let remainingFee = tradingFee;
+
+  // referral_fee = remainingFee * referral_fee_percent / 100 (rounded down) if hasReferral else 0
   let referralFee = new BN(0);
   if (hasReferral) {
-    referralFee = protocolFee.muln(poolFees.referralFeePercent).divn(100);
+    referralFee = remainingFee.muln(poolFees.referralFeePercent).divn(100);
+    remainingFee = remainingFee.sub(referralFee);
   }
 
-  // protocol_fee_after_referral_fee = protocol_fee - referral_fee
-  const protocolFeeAfterReferral = protocolFee.sub(referralFee);
+  // Compounding fee split (only for Compounding mode)
+  let compoundingFee = new BN(0);
+  let claimingFee = remainingFee;
 
-  // partner_fee = protocol_fee_after_referral_fee * partner_fee_percent / 100 (rounded down) if hasPartner && partner_fee_percent > 0 else 0
-  let partnerFee = new BN(0);
-  if (hasPartner && poolFees.partnerFeePercent > 0) {
-    partnerFee = protocolFeeAfterReferral
-      .muln(poolFees.partnerFeePercent)
-      .divn(100);
+  if (
+    collectFeeMode === CollectFeeMode.Compounding &&
+    (poolFees as any).compoundingFeeBps &&
+    (poolFees as any).compoundingFeeBps.gtn(0)
+  ) {
+    compoundingFee = remainingFee
+      .mul((poolFees as any).compoundingFeeBps)
+      .div(BASIS_POINT_MAX_BN);
+    claimingFee = remainingFee.sub(compoundingFee);
   }
-
-  // protocol_fee = protocol_fee_after_referral_fee - partner_fee
-  const finalProtocolFee = protocolFeeAfterReferral.sub(partnerFee);
 
   return {
     tradingFee,
-    protocolFee: finalProtocolFee,
+    protocolFee,
     referralFee,
-    partnerFee,
+    claimingFee,
+    compoundingFee,
   };
 }
 
@@ -271,8 +289,8 @@ export function splitFees(
  * @param poolFees - The pool fees
  * @param amount - The amount
  * @param tradeFeeNumerator - The trade fee numerator
- * @param hasReferral - The has referral
- * @param hasPartner - The has partner
+ * @param hasReferral - Whether a referral account is present
+ * @param collectFeeMode - The pool's fee collection mode
  * @returns The fee on amount result
  */
 export function getFeeOnAmount(
@@ -280,7 +298,7 @@ export function getFeeOnAmount(
   amount: BN,
   tradeFeeNumerator: BN,
   hasReferral: boolean,
-  hasPartner: boolean,
+  collectFeeMode: CollectFeeMode,
 ): FeeOnAmountResult {
   // get the amount and trading fee after excluding the fee from the amount
   const { excludedFeeAmount, tradingFee } = getExcludedFeeAmount(
@@ -288,19 +306,20 @@ export function getFeeOnAmount(
     amount,
   );
 
-  // split the trading fee into protocol, referral, and partner fees
+  // split the trading fee into protocol, referral, claiming, and compounding fees
   const splitFeesResult = splitFees(
     poolFees,
     tradingFee,
     hasReferral,
-    hasPartner,
+    collectFeeMode,
   );
 
   return {
     amount: excludedFeeAmount,
     tradingFee: splitFeesResult.tradingFee,
     protocolFee: splitFeesResult.protocolFee,
-    partnerFee: splitFeesResult.partnerFee,
+    claimingFee: splitFeesResult.claimingFee,
+    compoundingFee: splitFeesResult.compoundingFee,
     referralFee: splitFeesResult.referralFee,
   };
 }

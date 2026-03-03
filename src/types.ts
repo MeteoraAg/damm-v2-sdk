@@ -48,6 +48,17 @@ export enum BaseFeeMode {
 export enum CollectFeeMode {
   BothToken,
   OnlyB,
+  Compounding, // Fee collected in quote token, auto-compounded back into reserves
+}
+
+/**
+ * Pool account layout version.
+ * V0 pools do NOT track token reserves on-chain.
+ * V1 pools track tokenAAmount and tokenBAmount; call fixPoolLayoutVersion() to migrate V0 → V1.
+ */
+export enum PoolLayoutVersion {
+  V0 = 0,
+  V1 = 1,
 }
 
 export enum TradeDirection {
@@ -199,6 +210,25 @@ export type InitializeCustomizeablePoolParams = {
   tokenAProgram: PublicKey;
   tokenBProgram: PublicKey;
   isLockLiquidity?: boolean;
+  /** Required when collectFeeMode === CollectFeeMode.Compounding (in basis points) */
+  compoundingFeeBps?: BN;
+};
+
+export type CreateConfigParams = {
+  payer: PublicKey;
+  config: PublicKey;
+  tradeFeeNumerator: BN;
+  protocolFeePercent: number;
+  partnerFeePercent: number;
+  referralFeePercent: number;
+  collectFeeMode: CollectFeeMode;
+  activationType: number;
+  /**
+   * Required when collectFeeMode === CollectFeeMode.Compounding.
+   * Expressed in basis points (e.g. 500 = 5%).
+   * The compounded portion is added back to pool reserves on each swap.
+   */
+  compoundingFeeBps?: BN;
 };
 
 export type InitializeCustomizeablePoolWithDynamicConfigParams =
@@ -483,7 +513,24 @@ export type SwapAmount = {
   nextSqrtPrice: BN;
 };
 
-export type SwapResult2 = IdlTypes<CpAmmTypes>["swapResult2"];
+/**
+ * SwapResult2 — updated for DAMM v2 program v0.2.0.
+ * Breaking change: `partnerFee` removed; replaced by `claimingFee` + `compoundingFee`.
+ */
+export type SwapResult2 = {
+  includedFeeInputAmount: BN;
+  excludedFeeInputAmount: BN;
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  amountLeft: BN;
+  tradingFee: BN;
+  protocolFee: BN;
+  /** Fee distributed to LPs / claiming accounts */
+  claimingFee: BN;
+  /** Fee compounded back into pool reserves (Compounding mode only; BN(0) otherwise) */
+  compoundingFee: BN;
+  referralFee: BN;
+};
 
 export interface Quote2Result extends SwapResult2 {
   priceImpact: Decimal;
@@ -685,15 +732,11 @@ export type WithdrawIneligibleRewardParams = {
   funder: PublicKey;
 };
 
-export type ClaimPartnerFeeParams = {
-  partner: PublicKey;
-  pool: PublicKey;
-  maxAmountA: BN;
-  maxAmountB: BN;
-  receiver?: PublicKey;
-  feePayer?: PublicKey;
-  tempWSolAccount?: PublicKey;
-};
+/**
+ * @deprecated ClaimPartnerFeeParams removed in SDK v2.0.0.
+ * The claimPartnerFee instruction was removed in DAMM v2 program v0.2.0.
+ */
+// ClaimPartnerFeeParams intentionally removed — see MIGRATION_GUIDE.md
 
 export type ClaimRewardParams = {
   user: PublicKey;
@@ -831,7 +874,10 @@ export interface FeeOnAmountResult {
   amount: BN;
   tradingFee: BN;
   protocolFee: BN;
-  partnerFee: BN;
+  /** Fee distributed to LP claimers (replaces partnerFee from v1.x) */
+  claimingFee: BN;
+  /** Fee compounded back into pool reserves (Compounding mode only) */
+  compoundingFee: BN;
   referralFee: BN;
 }
 
@@ -839,5 +885,8 @@ export interface SplitFees {
   tradingFee: BN;
   protocolFee: BN;
   referralFee: BN;
-  partnerFee: BN;
+  /** Fee distributed to LP claimers (replaces partnerFee from v1.x) */
+  claimingFee: BN;
+  /** Fee compounded back into pool reserves (Compounding mode only) */
+  compoundingFee: BN;
 }

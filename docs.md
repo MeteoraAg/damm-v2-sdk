@@ -1,5 +1,10 @@
 # Dynamic DAMM-V2 SDK: Function Documentation
 
+> **SDK v2.0.0 — targets DAMM v2 on-chain program v0.2.0**
+> See [CHANGELOG.md](./CHANGELOG.md) and [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md)
+> for all breaking changes, including the `partnerFee` → `claimingFee + compoundingFee` rename.
+
+
 ## Table of Contents
 
 - [Core Functions](#core-functions)
@@ -23,7 +28,7 @@
   - [refreshVesting](#refreshvesting)
   - [claimPositionFee](#claimpositionfee)
   - [claimPositionFee2](#claimpositionfee2)
-  - [claimPartnerFee](#claimpartnerfee)
+  - [fixPoolLayoutVersion](#fixpoollayoutversion)
   - [initializeReward](#initializereward)
   - [initializeAndFundReward](#initializeandfundreward)
   - [updateRewardDuration](#updaterewardduration)
@@ -1660,51 +1665,54 @@ const claimFeeTx = await cpAmm.claimPositionFee2({
 
 ---
 
-### claimPartnerFee
+### fixPoolLayoutVersion
 
-Claims partner fee rewards. (Deprecating soon)
+Migrates a legacy V0 pool to V1 layout, enabling on-chain reserve tracking
+(`tokenAAmount` / `tokenBAmount` fields on `PoolState`).
+
+> **Added in SDK v2.0.0** — corresponds to the `fix_pool_layout_version` instruction
+> in DAMM v2 program v0.2.0.
 
 **Function**
 
 ```typescript
-async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder
+async fixPoolLayoutVersion(
+  poolAddress: PublicKey,
+  ownerOrOperator: PublicKey,
+): TxBuilder
 ```
 
 **Parameters**
 
-```typescript
-interface ClaimPartnerFeeParams {
-  partner: PublicKey; // Partner address to receive fees
-  pool: PublicKey; // The pool address
-  maxAmountA: BN; // Maximum amount of token A to claim
-  maxAmountB: BN; // Maximum amount of token B to claim
-}
-```
+| Param              | Type        | Description                                 |
+|--------------------|-------------|---------------------------------------------|
+| `poolAddress`      | `PublicKey` | Pool to migrate                             |
+| `ownerOrOperator`  | `PublicKey` | Pool owner or operator — must sign the tx   |
 
 **Returns**
 
-A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+A transaction that calls `fix_pool_layout_version` on-chain.
 
 **Example**
 
 ```typescript
-const poolState = await cpAmm.fetchPoolState(poolAddress);
+import { PoolLayoutVersion } from "@meteora-ag/cp-amm-sdk";
 
-const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
-  partner: partnerWallet.publicKey,
-  pool: poolAddress,
-  maxAmountA: new BN(1_000_000_000), // 1,000 USDC
-  maxAmountB: new BN(5_000_000_000), // 5 SOL
-});
+const poolState = await cpAmm.fetchPoolState(poolKey);
+
+if ((poolState as any).layoutVersion === PoolLayoutVersion.V0) {
+  const tx = await cpAmm.fixPoolLayoutVersion(poolKey, operatorKeypair.publicKey);
+  await sendAndConfirmTransaction(connection, tx, [operatorKeypair]);
+  console.log("Pool migrated to V1 layout — reserves now tracked on-chain.");
+}
 ```
 
 **Notes**
 
-- Partner fees are a portion of trading fees directed to a specific account
-- Only the configured partner address can claim these fees
-- Partner fees must be enabled in the pool configuration
-- The SDK handles wrapping/unwrapping of SOL automatically
-- Token accounts are created automatically if they don't exist
+- One-way migration; V1 → V0 is not possible
+- Requires the pool owner or a configured operator to sign
+- After migration, `getPoolReserves(poolState)` returns live on-chain reserve amounts
+- Throws if the pool is already at V1 layout
 
 ---
 

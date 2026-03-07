@@ -208,9 +208,24 @@ export async function setupTestContext(
   const rewardMintKeypair = Keypair.generate();
 
   if (token2022) {
-    await createToken2022(banksClient, rootKeypair, tokenAMintKeypair, extensions);
-    await createToken2022(banksClient, rootKeypair, tokenBMintKeypair, extensions);
-    await createToken2022(banksClient, rootKeypair, rewardMintKeypair, extensions);
+    await createToken2022(
+      banksClient,
+      rootKeypair,
+      tokenAMintKeypair,
+      extensions,
+    );
+    await createToken2022(
+      banksClient,
+      rootKeypair,
+      tokenBMintKeypair,
+      extensions,
+    );
+    await createToken2022(
+      banksClient,
+      rootKeypair,
+      rewardMintKeypair,
+      extensions,
+    );
 
     for (const publicKey of [
       payer.publicKey,

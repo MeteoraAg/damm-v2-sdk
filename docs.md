@@ -13,7 +13,9 @@
   - [getDepositQuote](#getdepositquote)
   - [getWithdrawQuote](#getwithdrawquote)
   - [swap](#swap)
+  - [swap2](#swap2)
   - [addLiquidity](#addliquidity)
+  - [createPositionAndAddLiquidity](#createpositionandaddliquidity)
   - [removeLiquidity](#removeliquidity)
   - [removeAllLiquidity](#removeallliquidity)
   - [removeAllLiquidityAndClosePosition](#removeallliquidityandcloseposition)
@@ -23,7 +25,6 @@
   - [refreshVesting](#refreshvesting)
   - [claimPositionFee](#claimpositionfee)
   - [claimPositionFee2](#claimpositionfee2)
-  - [claimPartnerFee](#claimpartnerfee)
   - [initializeReward](#initializereward)
   - [initializeAndFundReward](#initializeandfundreward)
   - [updateRewardDuration](#updaterewardduration)
@@ -39,7 +40,11 @@
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
   - [fetchPoolStatesByTokenAMint](#fetchpoolstatesbytokenamint)
+  - [fetchPoolFees](#fetchpoolfees)
   - [fetchPositionState](#fetchpositionstate)
+  - [getMultipleConfigs](#getmultipleconfigs)
+  - [getMultiplePools](#getmultiplepools)
+  - [getMultiplePositions](#getmultiplepositions)
   - [getAllConfigs](#getallconfigs)
   - [getAllPools](#getallpools)
   - [getAllPositions](#getallpositions)
@@ -48,10 +53,13 @@
   - [getPositionsByUser](#getpositionsbyuser)
   - [getAllVestingsByPosition](#getallvestingsbyposition)
   - [isLockedPosition](#islockedposition)
+  - [isPermanentLockedPosition](#ispermanentlockedposition)
+  - [canUnlockPosition](#canunlockposition)
   - [isPoolExist](#ispoolexist)
 
 - [Helper Functions](#helper-functions)
   - [preparePoolCreationParams](#preparepoolcreationparams)
+  - [preparePoolCreationSingleSide](#preparepoolcreationsingleside)
   - [isVestingComplete](#isvestingcomplete)
   - [getTotalLockedLiquidity](#gettotallockedliquidity)
   - [getAvailableVestingLiquidity](#getavailablevestingliquidity)
@@ -119,18 +127,19 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 **Example**
 
 ```typescript
-// First, prepare the pool creation parameters
-const configState = await cpAmm.getConfigState(configAccount);
+// First, fetch the config and prepare pool creation parameters
+const configState = await cpAmm.fetchConfigState(configAddress);
 const initPrice = 10; // 1 base token = 10 quote token
-const {actualInputAmount, consumedInputAmount, outputAmount, liquidityDelta} = cpAmm.getDepositQuote({
-  inAmount: new BN(5_000_000_000), // 5 tokenA (base token) with 9 decimals
-  isTokenA: true;
+const initSqrtPrice = getSqrtPriceFromPrice(initPrice, tokenADecimal, tokenBDecimal);
+
+// Use preparePoolCreationParams to compute initial liquidity
+const { liquidityDelta } = cpAmm.preparePoolCreationParams({
+  tokenAAmount: new BN(5_000_000_000), // 5 tokenA with 9 decimals
+  tokenBAmount: new BN(50_000_000_000), // 50 tokenB with 9 decimals
   minSqrtPrice: configState.sqrtMinPrice,
-  maxSqrtPrice: configState.sqrtMinPrice,
-  sqrtPrice: getSqrtPriceFromPrice(initPrice, tokenADecimal, tokenBDecimal),
-  inputTokenInfo, // provide if input token is token2022
-  outputTokenInfo // provide if output token is token2022
-})
+  maxSqrtPrice: configState.sqrtMaxPrice,
+  collectFeeMode: configState.collectFeeMode,
+});
 
 const createPoolTx = await cpAmm.createPool({
   payer: wallet.publicKey,
@@ -140,12 +149,12 @@ const createPoolTx = await cpAmm.createPool({
   tokenAMint,
   tokenBMint,
   activationPoint: null,
-  tokenAAmount: consumedInputAmount,
-  tokenBAmount: outputAmount,
-  initSqrtPrice: getSqrtPriceFromPrice(initPrice, tokenADecimal, tokenBDecimal);,
-  liquidityDelta: liquidityDelta,
+  tokenAAmount: new BN(5_000_000_000),
+  tokenBAmount: new BN(50_000_000_000),
+  initSqrtPrice,
+  liquidityDelta,
   tokenAProgram,
-  tokenBProgram
+  tokenBProgram,
 });
 ```
 
@@ -188,29 +197,21 @@ interface InitializeCustomizeablePoolParams {
   sqrtMaxPrice: BN; // Maximum sqrt price
   initSqrtPrice: BN; // Initial sqrt price in Q64 format
   liquidityDelta: BN; // Initial liquidity in Q64 format
+  poolFees: PoolFeesParams; // Fee configuration
+  hasAlphaVault: boolean; // Whether the pool has an alpha vault
+  collectFeeMode: number; // How fees are collected (0: BothToken, 1: OnlyB, 2: Compounding)
+  activationPoint: BN | null; // The slot or timestamp for activation (null for immediate)
+  activationType: number; // 0: slot, 1: timestamp
   tokenAProgram: PublicKey; // Token program for token A
   tokenBProgram: PublicKey; // Token program for token B
-  poolFees: PoolFees; // Fee configuration
-  hasAlphaVault: boolean; // Whether the pool has an alpha vault
-  collectFeeMode: number; // How fees are collected (0: normal, 1: alpha)
-  activationPoint: BN; // The slot or timestamp for activation
-  activationType: number; // 0: slot, 1: timestamp
   isLockLiquidity?: boolean; // true if you wanna permanent lock position after pool created.
 }
 
-interface PoolFees {
-  baseFee: BaseFee; // Base fee configuration (see below for different modes)
-  padding: number[];
-  dynamicFee?: {
-    // Optional dynamic fee configuration
-    binStep: number;
-    binStepU128: BN;
-    filterPeriod: number;
-    decayPeriod: number;
-    reductionFactor: number;
-    variableFeeControl: number;
-    maxVolatilityAccumulator: number;
-  };
+interface PoolFeesParams {
+  baseFee: BaseFee; // Base fee configuration (encoded via getBaseFeeParams)
+  compoundingFeeBps: number; // Compounding fee in basis points (only for Compounding collect fee mode)
+  padding: number; // Padding for future use
+  dynamicFee: DynamicFee | null; // Optional dynamic fee configuration (via getDynamicFeeParams), null to disable
 }
 
 // Base Fee Mode Types:
@@ -267,6 +268,7 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
   tokenBAmount: new BN(20_000_000),
   minSqrtPrice: MIN_SQRT_PRICE,
   maxSqrtPrice: MAX_SQRT_PRICE,
+  collectFeeMode: CollectFeeMode.BothToken,
 });
 
 const baseFeeParams = getBaseFeeParams(
@@ -285,7 +287,8 @@ const baseFeeParams = getBaseFeeParams(
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
   baseFee: baseFeeParams,
-  padding: [],
+  compoundingFeeBps: 0,
+  padding: 0,
   dynamicFee: dynamicFeeParams,
 };
 
@@ -303,7 +306,7 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
   liquidityDelta: liquidityDelta,
   poolFees,
   hasAlphaVault: false,
-  collectFeeMode: 0, // 0: BothToken, 1: onlyB
+  collectFeeMode: 0, // 0: BothToken, 1: OnlyB, 2: Compounding
   activationPoint: new BN(Date.now()),
   activationType: 1, // 0: slot, 1: timestamp
   tokenAProgram,
@@ -349,7 +352,7 @@ interface InitializeCustomizeablePoolWithDynamicConfigParams {
   liquidityDelta: BN; // Initial liquidity in Q64 format
   poolFees: PoolFeesParams; // Fee configuration
   hasAlphaVault: boolean; // Whether the pool has an alpha vault
-  collectFeeMode: number; // How fees are collected (0: normal, 1: alpha)
+  collectFeeMode: number; // How fees are collected (0: BothToken, 1: OnlyB, 2: Compounding)
   activationPoint: BN | null; // The slot or timestamp for activation (null for immediate)
   activationType: number; // 0: slot, 1: timestamp
   tokenAProgram: PublicKey; // Token program for token A
@@ -383,6 +386,7 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.getLiquidityDelta({
   sqrtMaxPrice,
   sqrtMinPrice,
   sqrtPrice,
+  collectFeeMode: CollectFeeMode.BothToken,
 });
 
 const baseFeeParams = getBaseFeeParams(
@@ -401,13 +405,14 @@ const baseFeeParams = getBaseFeeParams(
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
   baseFee: baseFeeParams,
-  padding: [],
+  compoundingFeeBps: 0,
+  padding: 0,
   dynamicFee: dynamicFeeParams,
 };
 
 const { tx, pool, position } = await cpAmm.createCustomPoolWithDynamicConfig({
-  payer
-  creator,
+  payer: wallet.publicKey,
+  creator: wallet.publicKey,
   config: dynamicConfigAddress,
   poolCreatorAuthority: poolCreatorAuth.publicKey,
   positionNft: positionNftMint,
@@ -421,7 +426,7 @@ const { tx, pool, position } = await cpAmm.createCustomPoolWithDynamicConfig({
   liquidityDelta,
   poolFees,
   hasAlphaVault: false,
-  collectFeeMode: 0, // 0: Both tokens, 1: Only token B
+  collectFeeMode: 0, // 0: BothToken, 1: OnlyB, 2: Compounding
   activationPoint: null,
   activationType: 1, // 0: slot, 1: timestamp
   tokenAProgram: TOKEN_PROGRAM_ID,
@@ -495,6 +500,7 @@ interface LiquidityDeltaParams {
   sqrtMaxPrice: BN; // Maximum sqrt price for the range
   sqrtMinPrice: BN; // Minimum sqrt price for the range
   sqrtPrice: BN; // Current sqrt price
+  collectFeeMode: CollectFeeMode; // How fees are collected (BothToken, OnlyB, or Compounding)
 }
 ```
 
@@ -608,9 +614,9 @@ async getQuote2(params: GetQuote2Params): Promise<{
   amountLeft: BN;
   outputAmount: BN;
   nextSqrtPrice: BN;
-  tradingFee: BN;
+  claimingFee: BN;
+  compoundingFee: BN;
   protocolFee: BN;
-  partnerFee: BN; // Deprecating soon
   referralFee: BN;
   priceImpact: Decimal;
   minimumAmountOut?: BN;
@@ -652,9 +658,9 @@ An object containing:
 - `amountLeft`: The remaining amount after the swap (if any)
 - `outputAmount`: The expected output amount
 - `nextSqrtPrice`: The next sqrt price after the swap
-- `tradingFee`: The trading fee charged for the swap
+- `claimingFee`: The portion of the trading fee claimable by LPs
+- `compoundingFee`: The portion of the trading fee compounded back into pool liquidity (only for `Compounding` collect fee mode)
 - `protocolFee`: The protocol fee charged for the swap
-- `partnerFee`: The partner fee charged for the swap (Deprecating soon)
 - `referralFee`: The referral fee charged for the swap
 - `priceImpact`: The price impact of the swap
 - `minimumAmountOut` (optional): The minimum output amount guaranteed (for ExactIn and PartialFill modes)
@@ -716,6 +722,10 @@ interface GetDepositQuoteParams {
     mint: Mint;
     currentEpoch: number;
   }; // Token info for Token2022 transfer fee calculations
+  collectFeeMode: CollectFeeMode; // How fees are collected (BothToken, OnlyB, or Compounding)
+  tokenAAmount: BN; // Current token A amount in the pool (required for Compounding mode)
+  tokenBAmount: BN; // Current token B amount in the pool (required for Compounding mode)
+  liquidity: BN; // Current liquidity of the pool (required for Compounding mode)
 }
 ```
 
@@ -739,6 +749,10 @@ const depositQuote = await cpAmm.getDepositQuote({
   minSqrtPrice: poolState.sqrtMinPrice,
   maxSqrtPrice: poolState.sqrtMaxPrice,
   sqrtPrice: poolState.sqrtPrice,
+  collectFeeMode: poolState.collectFeeMode,
+  tokenAAmount: poolState.tokenAAmount,
+  tokenBAmount: poolState.tokenBAmount,
+  liquidity: poolState.liquidity,
 });
 
 console.log(`Liquidity delta: ${depositQuote.liquidityDelta.toString()}`);
@@ -779,6 +793,10 @@ interface GetWithdrawQuoteParams {
     mint: Mint;
     currentEpoch: number;
   }; // Token info for Token2022 transfer fee calculations
+  collectFeeMode: CollectFeeMode; // How fees are collected (BothToken, OnlyB, or Compounding)
+  tokenAAmount: BN; // Current token A amount in the pool (required for Compounding mode)
+  tokenBAmount: BN; // Current token B amount in the pool (required for Compounding mode)
+  liquidity: BN; // Current liquidity of the pool (required for Compounding mode)
 }
 ```
 
@@ -804,6 +822,10 @@ const withdrawQuote = await cpAmm.getWithdrawQuote({
   sqrtPrice: poolState.sqrtPrice,
   minSqrtPrice: poolState.sqrtMinPrice,
   maxSqrtPrice: poolState.sqrtMaxPrice,
+  collectFeeMode: poolState.collectFeeMode,
+  tokenAAmount: poolState.tokenAAmount,
+  tokenBAmount: poolState.tokenBAmount,
+  liquidity: poolState.liquidity,
 });
 
 console.log(`Expected token A: ${withdrawQuote.outAmountA.toString()}`);
@@ -910,25 +932,24 @@ async swap2(params: Swap2Params): TxBuilder
 **Parameters**
 
 ```typescript
-interface SwapParams {
+interface Swap2Params {
   payer: PublicKey; // The wallet paying for the transaction
   pool: PublicKey; // Address of the pool to swap in
   inputTokenMint: PublicKey; // Mint of the input token
   outputTokenMint: PublicKey; // Mint of the output token
-  tokenAVault: PublicKey; // Pool's token A vault
-  tokenBVault: PublicKey; // Pool's token B vault
   tokenAMint: PublicKey; // Pool's token A mint
   tokenBMint: PublicKey; // Pool's token B mint
+  tokenAVault: PublicKey; // Pool's token A vault
+  tokenBVault: PublicKey; // Pool's token B vault
   tokenAProgram: PublicKey; // Token program for token A
   tokenBProgram: PublicKey; // Token program for token B
+  referralTokenAccount: PublicKey | null; // Referral account for fees, null if none
   receiver?: PublicKey; // Optional receiver of the input and output tokens
-  referralTokenAccount?: PublicKey; // Optional referral account for fees
-  poolState?: PoolState; // Optional pool state to pass in to atomically fetch the pool state
-  swapMode: SwapMode; // The swap mode
-  amountIn?: BN; // The amount of input token to swap (for ExactIn and PartialFill modes)
-  amountOut?: BN; // The amount of output token to swap (for ExactOut mode)
-  minimumAmountOut?: BN; // Minimum amount of output token (slippage protection) for ExactIn and PartialFill modes
-  maximumAmountIn?: BN; // Maximum amount of input token (slippage protection) for ExactOut mode
+  poolState?: PoolState; // Optional pool state to avoid refetching
+  // Union type: provide one of the following swap mode configurations:
+  // ExactIn: { swapMode: SwapMode.ExactIn, amountIn: BN, minimumAmountOut: BN }
+  // ExactOut: { swapMode: SwapMode.ExactOut, amountOut: BN, maximumAmountIn: BN }
+  // PartialFill: { swapMode: SwapMode.PartialFill, amountIn: BN, minimumAmountOut: BN }
 }
 ```
 
@@ -1035,6 +1056,10 @@ const depositQuote = await cpAmm.getDepositQuote({
   minSqrtPrice: poolState.sqrtMinPrice,
   maxSqrtPrice: poolState.sqrtMaxPrice,
   sqrtPrice: poolState.sqrtPrice,
+  collectFeeMode: poolState.collectFeeMode,
+  tokenAAmount: poolState.tokenAAmount,
+  tokenBAmount: poolState.tokenBAmount,
+  liquidity: poolState.liquidity,
 });
 
 // Add liquidity
@@ -1063,6 +1088,81 @@ const addLiquidityTx = await cpAmm.addLiquidity({
 - The SDK handles wrapping/unwrapping of SOL automatically
 - Token accounts are created automatically if they don't exist
 - Set appropriate thresholds to protect against slippage
+
+---
+
+### createPositionAndAddLiquidity
+
+Creates a new position and adds liquidity in a single transaction. Handles both native SOL and other tokens, automatically wrapping/unwrapping SOL as needed.
+
+**Function**
+
+```typescript
+async createPositionAndAddLiquidity(params: CreatePositionAndAddLiquidity): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface CreatePositionAndAddLiquidity {
+  owner: PublicKey; // The owner of the position
+  pool: PublicKey; // The pool to create a position in
+  positionNft: PublicKey; // The mint for the position NFT
+  liquidityDelta: BN; // The amount of liquidity to add
+  maxAmountTokenA: BN; // Maximum token A amount to deposit
+  maxAmountTokenB: BN; // Maximum token B amount to deposit
+  tokenAAmountThreshold: BN; // Minimum token A threshold (slippage protection)
+  tokenBAmountThreshold: BN; // Minimum token B threshold (slippage protection)
+  tokenAMint: PublicKey; // Pool's token A mint
+  tokenBMint: PublicKey; // Pool's token B mint
+  tokenAProgram: PublicKey; // Token program for token A
+  tokenBProgram: PublicKey; // Token program for token B
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const poolState = await cpAmm.fetchPoolState(poolAddress);
+const positionNftMint = Keypair.generate();
+
+const depositQuote = cpAmm.getDepositQuote({
+  inAmount: new BN(1_000_000_000),
+  isTokenA: true,
+  minSqrtPrice: poolState.sqrtMinPrice,
+  maxSqrtPrice: poolState.sqrtMaxPrice,
+  sqrtPrice: poolState.sqrtPrice,
+  collectFeeMode: poolState.collectFeeMode,
+  tokenAAmount: poolState.tokenAAmount,
+  tokenBAmount: poolState.tokenBAmount,
+  liquidity: poolState.liquidity,
+});
+
+const tx = await cpAmm.createPositionAndAddLiquidity({
+  owner: wallet.publicKey,
+  pool: poolAddress,
+  positionNft: positionNftMint.publicKey,
+  liquidityDelta: depositQuote.liquidityDelta,
+  maxAmountTokenA: new BN(1_000_000_000),
+  maxAmountTokenB: depositQuote.outputAmount,
+  tokenAAmountThreshold: new BN(1_000_000_000),
+  tokenBAmountThreshold: depositQuote.outputAmount,
+  tokenAMint: poolState.tokenAMint,
+  tokenBMint: poolState.tokenBMint,
+  tokenAProgram: TOKEN_PROGRAM_ID,
+  tokenBProgram: TOKEN_PROGRAM_ID,
+});
+```
+
+**Notes**
+
+- Combines `createPosition` and `addLiquidity` into a single transaction for convenience
+- The SDK handles wrapping/unwrapping of SOL automatically
+- Token accounts are created automatically if they don't exist
 
 ---
 
@@ -1114,6 +1214,10 @@ const withdrawQuote = await cpAmm.getWithdrawQuote({
   sqrtPrice: poolState.sqrtPrice,
   minSqrtPrice: poolState.sqrtMinPrice,
   maxSqrtPrice: poolState.sqrtMaxPrice,
+  collectFeeMode: poolState.collectFeeMode,
+  tokenAAmount: poolState.tokenAAmount,
+  tokenBAmount: poolState.tokenBAmount,
+  liquidity: poolState.liquidity,
 });
 
 const removeLiquidityTx = await cpAmm.removeLiquidity({
@@ -1657,54 +1761,6 @@ const claimFeeTx = await cpAmm.claimPositionFee2({
 - Fees will claim to receiver address
 - Fees are earned on both token A and token B based on the amount of liquidity provided
 - The SDK handles wrapping/unwrapping of SOL automatically
-
----
-
-### claimPartnerFee
-
-Claims partner fee rewards. (Deprecating soon)
-
-**Function**
-
-```typescript
-async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder
-```
-
-**Parameters**
-
-```typescript
-interface ClaimPartnerFeeParams {
-  partner: PublicKey; // Partner address to receive fees
-  pool: PublicKey; // The pool address
-  maxAmountA: BN; // Maximum amount of token A to claim
-  maxAmountB: BN; // Maximum amount of token B to claim
-}
-```
-
-**Returns**
-
-A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
-
-**Example**
-
-```typescript
-const poolState = await cpAmm.fetchPoolState(poolAddress);
-
-const claimPartnerFeeTx = await cpAmm.claimPartnerFee({
-  partner: partnerWallet.publicKey,
-  pool: poolAddress,
-  maxAmountA: new BN(1_000_000_000), // 1,000 USDC
-  maxAmountB: new BN(5_000_000_000), // 5 SOL
-});
-```
-
-**Notes**
-
-- Partner fees are a portion of trading fees directed to a specific account
-- Only the configured partner address can claim these fees
-- Partner fees must be enabled in the pool configuration
-- The SDK handles wrapping/unwrapping of SOL automatically
-- Token accounts are created automatically if they don't exist
 
 ---
 
@@ -2397,6 +2453,38 @@ poolStates.forEach((pool, i) => {
 
 ---
 
+### fetchPoolFees
+
+Fetches and decodes the pool fee configuration for a given pool. Automatically determines the base fee mode and returns the decoded fee parameters.
+
+**Function**
+
+```typescript
+async fetchPoolFees(pool: PublicKey): Promise<DecodedPoolFees | null>
+```
+
+**Parameters**
+
+- `pool`: Public key of the pool.
+
+**Returns**
+
+Decoded pool fees (`PodAlignedFeeTimeScheduler`, `PodAlignedFeeRateLimiter`, or `PodAlignedFeeMarketCapScheduler`) depending on the base fee mode, or throws if the pool is not found.
+
+**Example**
+
+```typescript
+const decodedFees = await cpAmm.fetchPoolFees(poolAddress);
+console.log(`Decoded fees: ${JSON.stringify(decodedFees)}`);
+```
+
+**Notes**
+
+- Throws an error if the pool account does not exist
+- Automatically determines the correct decoder based on `baseFeeMode`
+
+---
+
 ### fetchPositionState
 
 Fetches the Position state.
@@ -2432,6 +2520,108 @@ console.log(
 
 - Throws an error if the position account does not exist
 - Contains information about liquidity amounts, fee collection, and rewards
+
+---
+
+### getMultipleConfigs
+
+Fetches multiple Config states in a single RPC call.
+
+**Function**
+
+```typescript
+async getMultipleConfigs(configs: PublicKey[]): Promise<ConfigState[]>
+```
+
+**Parameters**
+
+- `configs`: Array of public keys of config accounts.
+
+**Returns**
+
+Array of parsed ConfigState.
+
+**Example**
+
+```typescript
+const configStates = await cpAmm.getMultipleConfigs([configAddress1, configAddress2]);
+configStates.forEach((config, i) => {
+  console.log(`Config ${i}: activation type = ${config.activationType}`);
+});
+```
+
+**Notes**
+
+- Throws an error if any config account does not exist
+- More efficient than calling `fetchConfigState` multiple times
+
+---
+
+### getMultiplePools
+
+Fetches multiple Pool states in a single RPC call.
+
+**Function**
+
+```typescript
+async getMultiplePools(pools: PublicKey[]): Promise<PoolState[]>
+```
+
+**Parameters**
+
+- `pools`: Array of public keys of pool accounts.
+
+**Returns**
+
+Array of parsed PoolState.
+
+**Example**
+
+```typescript
+const poolStates = await cpAmm.getMultiplePools([poolAddress1, poolAddress2]);
+poolStates.forEach((pool, i) => {
+  console.log(`Pool ${i}: liquidity = ${pool.liquidity.toString()}`);
+});
+```
+
+**Notes**
+
+- Throws an error if any pool account does not exist
+- More efficient than calling `fetchPoolState` multiple times
+
+---
+
+### getMultiplePositions
+
+Fetches multiple Position states in a single RPC call.
+
+**Function**
+
+```typescript
+async getMultiplePositions(positions: PublicKey[]): Promise<PositionState[]>
+```
+
+**Parameters**
+
+- `positions`: Array of public keys of position accounts.
+
+**Returns**
+
+Array of parsed PositionState.
+
+**Example**
+
+```typescript
+const positionStates = await cpAmm.getMultiplePositions([positionAddress1, positionAddress2]);
+positionStates.forEach((pos, i) => {
+  console.log(`Position ${i}: unlocked liquidity = ${pos.unlockedLiquidity.toString()}`);
+});
+```
+
+**Notes**
+
+- Throws an error if any position account does not exist
+- More efficient than calling `fetchPositionState` multiple times
 
 ---
 
@@ -2660,6 +2850,92 @@ if (cpAmm.isLockedPosition(positionState)) {
 
 ---
 
+### isPermanentLockedPosition
+
+Checks if a position is permanently locked.
+
+**Function**
+
+```typescript
+isPermanentLockedPosition(positionState: PositionState): boolean
+```
+
+**Parameters**
+
+- `positionState`: The position state.
+
+**Returns**
+
+Boolean indicating whether the position has permanent locked liquidity.
+
+**Example**
+
+```typescript
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+if (cpAmm.isPermanentLockedPosition(positionState)) {
+  console.log("Position is permanently locked");
+} else {
+  console.log("Position is not permanently locked");
+}
+```
+
+---
+
+### canUnlockPosition
+
+Checks if a position can be unlocked based on its locking state and vesting schedules. Useful to determine eligibility before calling `removeAllLiquidity` or `closePosition`.
+
+**Function**
+
+```typescript
+canUnlockPosition(
+  positionState: PositionState,
+  vestings: Array<{ account: PublicKey; vestingState: VestingState }>,
+  currentPoint: BN,
+): { canUnlock: boolean; reason?: string }
+```
+
+**Parameters**
+
+- `positionState`: The current state of the position.
+- `vestings`: Array of vesting accounts and their states (from `getAllVestingsByPosition`).
+- `currentPoint`: Current timestamp or slot number (depending on pool activation type).
+
+**Returns**
+
+An object containing:
+
+- `canUnlock`: Whether the position can be unlocked.
+- `reason` (optional): Reason why the position cannot be unlocked.
+
+**Example**
+
+```typescript
+const positionState = await cpAmm.fetchPositionState(positionAddress);
+const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
+const currentSlot = await connection.getSlot();
+
+const { canUnlock, reason } = cpAmm.canUnlockPosition(
+  positionState,
+  vestings.map((v) => ({ account: v.publicKey, vestingState: v.account })),
+  new BN(currentSlot),
+);
+
+if (canUnlock) {
+  console.log("Position can be unlocked");
+} else {
+  console.log(`Cannot unlock: ${reason}`);
+}
+```
+
+**Notes**
+
+- Returns `{ canUnlock: false, reason: "Position is permanently locked" }` if the position has permanent locked liquidity
+- Returns `{ canUnlock: false, reason: "Position has incomplete vesting schedule" }` if any vesting schedule is still active
+- Returns `{ canUnlock: true }` if no locks or all vesting schedules are complete
+
+---
+
 ### isPoolExist
 
 Checks if a pool exists.
@@ -2713,6 +2989,7 @@ interface PreparePoolCreationParams {
   maxSqrtPrice: BN; // Maximum sqrt price
   tokenAInfo?: any; // Token info for Token2022 transfer fee calculations
   tokenBInfo?: any; // Token info for Token2022 transfer fee calculations
+  collectFeeMode: CollectFeeMode; // How fees are collected (BothToken, OnlyB, or Compounding)
 }
 ```
 
@@ -2731,6 +3008,7 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
   tokenBAmount: new BN(5_000_000_000), // 5 SOL with 9 decimals
   minSqrtPrice: MIN_SQRT_PRICE,
   maxSqrtPrice: MAX_SQRT_PRICE,
+  collectFeeMode: CollectFeeMode.BothToken,
 });
 
 console.log(`Initial sqrt price: ${initSqrtPrice.toString()}`);
@@ -2742,6 +3020,61 @@ console.log(`Initial liquidity: ${liquidityDelta.toString()}`);
 - This function calculates the correct initial price and liquidity based on the token amounts
 - Both token amounts must be greater than zero
 - The function handles Token2022 transfer fees if token info is provided
+
+---
+
+### preparePoolCreationSingleSide
+
+Calculates liquidity delta for single-sided pool creation where only token A is provided. Only supports initialization where the initial price equals the minimum sqrt price.
+
+**Function**
+
+```typescript
+preparePoolCreationSingleSide(params: PreparePoolCreationSingleSide): BN
+```
+
+**Parameters**
+
+```typescript
+interface PreparePoolCreationSingleSide {
+  tokenAAmount: BN; // Amount of token A to deposit
+  minSqrtPrice: BN; // Minimum sqrt price
+  maxSqrtPrice: BN; // Maximum sqrt price
+  initSqrtPrice: BN; // Initial sqrt price (must equal minSqrtPrice)
+  tokenAInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  }; // Token info for Token2022 transfer fee calculations
+  collectFeeMode: CollectFeeMode; // How fees are collected (BothToken, OnlyB, or Compounding)
+}
+```
+
+**Returns**
+
+A BN representing the liquidity delta.
+
+**Example**
+
+```typescript
+const initSqrtPrice = getSqrtPriceFromPrice("100", tokenADecimal, tokenBDecimal);
+const liquidityDelta = cpAmm.preparePoolCreationSingleSide({
+  tokenAAmount: new BN(10_000_000_000),
+  minSqrtPrice: initSqrtPrice,
+  maxSqrtPrice: MAX_SQRT_PRICE,
+  initSqrtPrice,
+  collectFeeMode: CollectFeeMode.BothToken,
+});
+
+console.log(`Liquidity delta: ${liquidityDelta.toString()}`);
+```
+
+**Notes**
+
+- Only supports single-sided deposits where `initSqrtPrice` equals `minSqrtPrice`
+- Throws an error if `initSqrtPrice` does not equal `minSqrtPrice`
+- Handles Token2022 transfer fees if token info is provided
+
+---
 
 ### isVestingComplete
 

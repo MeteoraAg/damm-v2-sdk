@@ -32,15 +32,6 @@ import {
 } from "./feeCodec";
 
 /**
- * Checks if the partner is valid
- * @param partner - The partner address
- * @returns True if the partner is valid, false otherwise
- */
-export function hasPartner(poolState: PoolState): boolean {
-  return !poolState.partner.equals(PublicKey.default);
-}
-
-/**
  * Gets the current point
  * @param connection - The connection to the Solana cluster
  * @param activationType - The activation type

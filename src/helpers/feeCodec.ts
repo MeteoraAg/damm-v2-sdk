@@ -10,7 +10,6 @@ import {
 } from "../types";
 import { BorshCoder, Idl } from "@coral-xyz/anchor";
 import CpAmmIDL from "../idl/cp_amm.json";
-import { FEE_PADDING } from "../constants";
 
 export const cpAmmCoder = new BorshCoder(CpAmmIDL as Idl);
 
@@ -27,7 +26,6 @@ export function encodeFeeTimeSchedulerParams(
     period_frequency: new BN(periodFrequency.toString()),
     reduction_factor: new BN(reductionFactor.toString()),
     base_fee_mode: baseFeeMode,
-    padding: FEE_PADDING,
   };
 
   return cpAmmCoder.types.encode("BorshFeeTimeScheduler", feeTimeScheduler);
@@ -43,7 +41,6 @@ export function decodeFeeTimeSchedulerParams(
     periodFrequency: decoded.period_frequency,
     reductionFactor: decoded.reduction_factor,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
   };
 }
 
@@ -76,7 +73,6 @@ export function encodeFeeMarketCapSchedulerParams(
     scheduler_expiration_duration: schedulerExpirationDuration,
     reduction_factor: new BN(reductionFactor.toString()),
     base_fee_mode: baseFeeMode,
-    padding: FEE_PADDING,
   };
 
   return cpAmmCoder.types.encode(
@@ -96,7 +92,6 @@ export function decodeFeeMarketCapSchedulerParams(
     schedulerExpirationDuration: decoded.scheduler_expiration_duration,
     reductionFactor: decoded.reduction_factor,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
   };
 }
 
@@ -132,7 +127,6 @@ export function encodeFeeRateLimiterParams(
     max_fee_bps: maxFeeBps,
     reference_amount: new BN(referenceAmount.toString()),
     base_fee_mode: BaseFeeMode.RateLimiter,
-    padding: FEE_PADDING,
   };
 
   return cpAmmCoder.types.encode("BorshFeeRateLimiter", feeRateLimiter);
@@ -147,7 +141,6 @@ export function decodeFeeRateLimiterParams(data: Buffer): BorshFeeRateLimiter {
     maxFeeBps: decoded.max_fee_bps,
     referenceAmount: decoded.reference_amount,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
   };
 }
 

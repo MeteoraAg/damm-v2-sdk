@@ -50,6 +50,4 @@ export const SPLIT_POSITION_DENOMINATOR = 1_000_000_000;
 
 export const CURRENT_POOL_VERSION = LayoutVersion.V1;
 
-export const FEE_PADDING = Array.from(Buffer.alloc(3));
-
 export const DEAD_LIQUIDITY = new BN(100);

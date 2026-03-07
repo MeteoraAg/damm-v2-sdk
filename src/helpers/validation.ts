@@ -3,7 +3,7 @@ import {
   ActivationType,
   BaseFeeMode,
   CollectFeeMode,
-  PoolVersion,
+  LayoutVersion,
 } from "../types";
 import {
   getFeeNumeratorFromIncludedFeeAmount,
@@ -39,7 +39,7 @@ export function validateFeeTimeScheduler(
   reductionFactor: BN,
   cliffFeeNumerator: BN,
   baseFeeMode: BaseFeeMode,
-  poolVersion: PoolVersion,
+  layoutVersion: LayoutVersion,
 ): boolean {
   if (
     !periodFrequency.eq(new BN(0)) ||
@@ -67,7 +67,7 @@ export function validateFeeTimeScheduler(
 
   if (
     minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
-    maxFeeNumerator.gt(getMaxFeeNumerator(poolVersion))
+    maxFeeNumerator.gt(getMaxFeeNumerator(layoutVersion))
   ) {
     throw new Error("PoolError::ExceedMaxFeeBps");
   }
@@ -117,7 +117,7 @@ export function validateFeeMarketCapScheduler(
   reductionFactor: BN,
   schedulerExpirationDuration: BN,
   feeMarketCapSchedulerMode: BaseFeeMode,
-  poolVersion: PoolVersion,
+  layoutVersion: LayoutVersion,
 ): boolean {
   // doesn't allow zero fee marketcap scheduler
   if (reductionFactor.lte(new BN(0))) {
@@ -147,7 +147,7 @@ export function validateFeeMarketCapScheduler(
   validateFeeFraction(minFeeNumerator, new BN(FEE_DENOMINATOR));
   validateFeeFraction(maxFeeNumerator, new BN(FEE_DENOMINATOR));
 
-  const maxAllowedFeeNumerator = getMaxFeeNumerator(poolVersion);
+  const maxAllowedFeeNumerator = getMaxFeeNumerator(layoutVersion);
 
   if (
     minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
@@ -197,7 +197,7 @@ export function validateFeeRateLimiter(
   referenceAmount: BN,
   collectFeeMode: CollectFeeMode,
   activationType: ActivationType,
-  poolVersion: PoolVersion,
+  layoutVersion: LayoutVersion,
 ): boolean {
   // can only be applied in OnlyB collect fee mode
   if (collectFeeMode !== CollectFeeMode.OnlyB) {
@@ -260,7 +260,7 @@ export function validateFeeRateLimiter(
     return false;
   }
 
-  if (maxFeeBps > getMaxFeeBps(poolVersion)) {
+  if (maxFeeBps > getMaxFeeBps(layoutVersion)) {
     return false;
   }
 
@@ -282,7 +282,7 @@ export function validateFeeRateLimiter(
 
   if (
     minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
-    maxFeeNumeratorFromAmount.gt(getMaxFeeNumerator(poolVersion))
+    maxFeeNumeratorFromAmount.gt(getMaxFeeNumerator(layoutVersion))
   ) {
     return false;
   }

@@ -205,8 +205,9 @@ describe("Compounding liquidity", () => {
       vestings: [],
       currentPoint: new BN(0),
     };
-    const removeAllLiquidityTx =
-      await ammInstance.removeAllLiquidity(removeAllLiquidityParams);
+    const removeAllLiquidityTx = await ammInstance.removeAllLiquidity(
+      removeAllLiquidityParams,
+    );
     await executeTransaction(context.banksClient, removeAllLiquidityTx, [
       creator,
     ]);

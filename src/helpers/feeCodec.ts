@@ -43,8 +43,7 @@ export function decodeFeeTimeSchedulerParams(
     periodFrequency: decoded.period_frequency,
     reductionFactor: decoded.reduction_factor,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
-  };
+  } as any;
 }
 
 export function decodePodAlignedFeeTimeScheduler(
@@ -57,8 +56,7 @@ export function decodePodAlignedFeeTimeScheduler(
     periodFrequency: decoded.period_frequency,
     reductionFactor: decoded.reduction_factor,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
-  };
+  } as any;
 }
 
 export function encodeFeeMarketCapSchedulerParams(
@@ -96,8 +94,7 @@ export function decodeFeeMarketCapSchedulerParams(
     schedulerExpirationDuration: decoded.scheduler_expiration_duration,
     reductionFactor: decoded.reduction_factor,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
-  };
+  } as any;
 }
 
 export function decodePodAlignedFeeMarketCapScheduler(
@@ -114,8 +111,7 @@ export function decodePodAlignedFeeMarketCapScheduler(
     schedulerExpirationDuration: decoded.scheduler_expiration_duration,
     reductionFactor: decoded.reduction_factor,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
-  };
+  } as any;
 }
 
 export function encodeFeeRateLimiterParams(
@@ -147,8 +143,7 @@ export function decodeFeeRateLimiterParams(data: Buffer): BorshFeeRateLimiter {
     maxFeeBps: decoded.max_fee_bps,
     referenceAmount: decoded.reference_amount,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
-  };
+  } as any;
 }
 
 export function decodePodAlignedFeeRateLimiter(
@@ -162,6 +157,5 @@ export function decodePodAlignedFeeRateLimiter(
     maxFeeBps: decoded.max_fee_bps,
     referenceAmount: decoded.reference_amount,
     baseFeeMode: decoded.base_fee_mode,
-    padding: decoded.padding,
-  };
+  } as any;
 }

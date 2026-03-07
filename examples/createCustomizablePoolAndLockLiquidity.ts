@@ -105,7 +105,8 @@ import {
 
   const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
-    padding: [],
+    compoundingFeeBps: 0,
+    padding: 0,
     dynamicFee: dynamicFeeParams,
   };
   const positionNft = Keypair.generate();

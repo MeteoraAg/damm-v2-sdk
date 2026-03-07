@@ -74,7 +74,8 @@ describe("Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
       const positionNft = Keypair.generate();
@@ -244,7 +245,8 @@ describe("Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 

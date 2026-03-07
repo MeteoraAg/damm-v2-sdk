@@ -68,7 +68,8 @@ describe("Create position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -177,7 +178,8 @@ describe("Create position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
       const tokenAAmount = new BN(1000 * 10 ** DECIMALS);

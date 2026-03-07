@@ -92,7 +92,8 @@ describe("Initialize customizable pool with dynamic config", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -164,7 +165,8 @@ describe("Initialize customizable pool with dynamic config", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -236,7 +238,8 @@ describe("Initialize customizable pool with dynamic config", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -350,7 +353,8 @@ describe("Initialize customizable pool with dynamic config", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 

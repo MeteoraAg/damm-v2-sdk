@@ -31,14 +31,8 @@ import {
   encodeFeeTimeSchedulerParams,
 } from "./feeCodec";
 
-/**
- * Checks if the partner is valid
- * @param partner - The partner address
- * @returns True if the partner is valid, false otherwise
- */
-export function hasPartner(poolState: PoolState): boolean {
-  return !poolState.partner.equals(PublicKey.default);
-}
+// hasPartner() removed in SDK v2.0.0 — partnerFeeAccount no longer exists on PoolState.
+// Use isCompoundingPool() from helpers/utils.ts instead.
 
 /**
  * Gets the current point

@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { PoolVersion } from "./types";
+import { PoolLayoutVersion, PoolVersion } from "./types";
 
 export const CP_AMM_PROGRAM_ID = new PublicKey(
   "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
@@ -51,3 +51,14 @@ export const SPLIT_POSITION_DENOMINATOR = 1_000_000_000;
 export const CURRENT_POOL_VERSION = PoolVersion.V1;
 
 export const FEE_PADDING = Array.from(Buffer.alloc(3));
+
+export const PROGRAM_VERSION = "0.2.0";
+
+/**
+ * Minimum pool layout version that supports on-chain reserve tracking.
+ * Pools created before DAMM v2 program v0.2.0 have layoutVersion === 0.
+ */
+export const MIN_RESERVE_TRACKING_LAYOUT_VERSION = PoolLayoutVersion.V1;
+
+/** Dead (locked) liquidity burned on Compounding pool creation. = 100 * 2^64 */
+export const DEAD_LIQUIDITY = new BN("1844674407370955161600");

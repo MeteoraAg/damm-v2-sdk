@@ -92,7 +92,8 @@ describe("Claim Fee", () => {
 
     const poolFees: PoolFeesParams = {
       baseFee,
-      padding: [],
+      compoundingFeeBps: 0,
+      padding: 0,
       dynamicFee: null,
     };
 

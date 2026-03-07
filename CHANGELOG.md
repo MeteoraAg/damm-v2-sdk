@@ -1,197 +1,114 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to `@meteora-ag/cp-amm-sdk` are documented here.
 
-## damm_v2_sdk [1.3.6] [PR #100](https://github.com/MeteoraAg/damm-v2-sdk/pull/100)
+## [2.0.0] — 2025-Q2 (Unreleased)
 
-### Fixed
+Supports **DAMM v2 on-chain program v0.2.0**.
 
-- Added error message for `DepositTokenNotAcceptedError`
+### ⚠️ Breaking Changes
 
-## damm_v2_sdk [1.3.5] [PR #99](https://github.com/MeteoraAg/damm-v2-sdk/pull/99)
+#### Fee model: `partnerFee` → `claimingFee` + `compoundingFee`
 
-### Fixed
+The concept of a "partner fee" has been removed from the on-chain program. Fee
+splits are now:
 
-- Added validation for `sqrtPrice` in `getDepositQuote` and `getWithdrawQuote` functions
+| Field            | Description |
+|------------------|-------------|
+| `tradingFee`     | LP fee (unchanged) |
+| `protocolFee`    | Protocol cut (unchanged) |
+| `referralFee`    | Referral cut (unchanged) |
+| **`claimingFee`**    | Portion distributed to LP position claimers (replaces `partnerFee`) |
+| **`compoundingFee`** | Portion auto-compounded back into pool reserves (new; always 0 for BothToken/OnlyB modes) |
 
-## damm_v2_sdk [1.3.4] [PR #98](https://github.com/MeteoraAg/damm-v2-sdk/pull/98)
+**Affected types and functions:**
 
-### Fixed
+- `SwapResult2` — `partnerFee` → `claimingFee` + `compoundingFee`
+- `FeeOnAmountResult` — same rename
+- `SplitFees` — same rename
+- `splitFees(poolFees, feeAmount, hasReferral, collectFeeMode)` —
+  4th parameter changed from `hasPartner: boolean` to `collectFeeMode: CollectFeeMode`
+- `getFeeOnAmount(…, collectFeeMode)` — same
 
-- Always `createAssociatedTokenAccountIdempotentInstruction` when creating transactions that require ATAs since the user may close their ATA after the transaction is crafted and before the transaction is executed.
+#### `CollectFeeMode.Compounding` added
 
-## damm_v2_sdk [1.3.3] [PR #97](https://github.com/MeteoraAg/damm-v2-sdk/pull/97)
+```typescript
+export enum CollectFeeMode {
+  BothToken = 0,
+  OnlyB     = 1,
+  Compounding = 2, // NEW — fee auto-compounded back into pool reserves
+}
+```
 
-### Added
+When a pool uses `Compounding` mode, part of the LP fee is reinvested into
+pool reserves rather than being claimable by positions. The split is configured
+at pool creation via `compoundingFeeBps`.
 
-- Added `innerPosition` parameter to `lockPosition` function and made `vestingAccount` optional to allow locking inner position without vesting account
-- Added `innerVestingLiquidityPercentage` parameter to `splitPosition` function to allow splitting inner position with vesting schedule
+#### `claimPartnerFee()` removed
 
-### Fixed
+The `claimPartnerFee` method and `ClaimPartnerFeeParams` type are removed.
+The corresponding on-chain instruction no longer exists.
 
-- Fixed vesting helper functions to fetch from `innerVesting` states
+#### `hasPartner()` removed
 
-## damm_v2_sdk [1.3.2]
+The `hasPartner(poolState)` helper function is removed. Check
+`isCompoundingPool(poolState)` instead.
 
-### Fixed
+#### `PoolLayoutVersion` enum added
 
-- Fixed `fundReward` function to include pre instructions
+```typescript
+export enum PoolLayoutVersion {
+  V0 = 0, // Legacy — no on-chain reserve tracking
+  V1 = 1, // New — tracks tokenAAmount + tokenBAmount on-chain
+}
+```
 
-## damm_v2_sdk [1.3.1] [PR #96](https://github.com/MeteoraAg/damm-v2-sdk/pull/96)
+Older pools have `layoutVersion === 0` and do NOT expose reserve amounts.
+Call `fixPoolLayoutVersion(pool, ownerOrOperator)` to migrate them to V1.
 
-### Changed
+---
 
-- Bumped IDL version to `0.1.7`
-- Updated operator tests
+### New Features
 
-## damm_v2_sdk [1.3.0] [PR #94](https://github.com/MeteoraAg/damm-v2-sdk/pull/94)
+#### `CollectFeeMode.Compounding` pool creation
 
-### Changed
+Pass `compoundingFeeBps` in `InitializeCustomizeablePoolParams` (or
+`CreateConfigParams`) to create a pool where a fraction of LP fees is
+automatically reinvested.
 
-- Fixed `initializeReward` function to parse in `remainingAccounts`
+#### `fixPoolLayoutVersion(poolAddress, ownerOrOperator)`
 
-## damm_v2_sdk [1.2.10]
+New CpAmm method. Migrates a V0 pool to V1 layout, enabling on-chain reserve
+tracking. One-way migration; requires pool owner or operator to sign.
 
-### Changed
+```typescript
+const tx = await cpAmm.fixPoolLayoutVersion(poolKey, ownerKey);
+await sendAndConfirmTransaction(connection, tx, [ownerKeypair]);
+```
 
-- Fixed `fundReward` function to use params instead of `tokenProgram`
+#### `getPoolReserves(pool)` helper
 
-## damm_v2_sdk [1.2.8] [PR #93](https://github.com/MeteoraAg/damm-v2-sdk/pull/93)
+Returns `{ tokenAAmount, tokenBAmount }` for V1 layout pools, or `null` for
+legacy V0 pools.
 
-### Added
+#### `isCompoundingPool(pool)` helper
 
-- Optional `receiver` parameter to `swap` and `swap2` endpoints to allow specifying the receiver of the input and output tokens
+Returns `true` when `pool.collectFeeMode === CollectFeeMode.Compounding`.
 
-## damm_v2_sdk [1.2.8]
+#### `parseEvtSwap2(event)` / `subscribeToSwapEvents()` (new `src/helpers/events.ts`)
 
-### Changed
+Utilities for consuming the updated `EvtSwap2` on-chain event, which now
+includes `claimingFee`, `compoundingFee`, and reserve snapshot fields.
 
-- Cleaned up unused parameters in `getBaseFeeHandler`, `getTotalTradingFeeFromIncludedFeeAmount` and `getTotalTradingFeeFromExcludedFeeAmount` functions
-- Cleaned up unused parameters in `getQuote2` function
-- Cleaned up unused parameters in `swapQuoteExactInput`, `swapQuoteExactOutput`, `swapQuotePartialInput` functions
-- Created a type `DecodedPoolFees` to store the decoded pool fees from Pod Aligned format
+---
 
-## damm_v2_sdk [1.2.7] [PR #85](https://github.com/MeteoraAg/damm-v2-sdk/pull/85)
+### Constants
 
-### Added
+- `PROGRAM_VERSION = "0.2.0"` — on-chain program version this SDK targets
+- `MIN_RESERVE_TRACKING_LAYOUT_VERSION = PoolLayoutVersion.V1`
 
-- Added `fetchPoolFees` state function to fetch and decode the pool fees from Pod Aligned format
-- Added 2 new base fee modes: `FeeMarketCapSchedulerLinear` and `FeeMarketCapSchedulerExponential`
-- Added encode and decode functions for Fee Time Scheduler, Fee Market Cap Scheduler and Fee Rate Limiter to encode and decode the base fee parameters between Borsh format and Pod Aligned formats
+---
 
-### Changed
+## [1.3.6] — (Previous stable)
 
-- Added `feeMarketCapSchedulerParam` parameters to `getBaseFeeParams` function
-- Changed `feeSchedulerParam` to `feeTimeSchedulerParam` in `getBaseFeeParams` function
-- Improved validation for pool fee parameters
-- Changed `getBaseFeeHandler` interface
-- Bumped Pool Version from V0 (Max fee 50%) to V1 (Max fee 99%)
-
-## damm_v2_sdk [1.2.6]
-
-### Changed
-
-- Moved `getCurrentPoint` in `if` statement to reduce unnecessary RPC calls
-
-## damm_v2_sdk [1.2.5] [PR #84](https://github.com/MeteoraAg/damm-v2-sdk/pull/84)
-
-### Added
-
-- Added an `if` statement to check if the `baseFeeMode` is `RateLimiter` in `swap` and `swap2` endpoints
-
-## damm_v2_sdk [1.2.4] [PR #81](https://github.com/MeteoraAg/damm-v2-sdk/pull/81)
-
-### Added
-
-- Added `fetchPoolStatesByTokenAMint` endpoint to fetch all Pool states by tokenAMint
-
-## damm_v2_sdk [1.2.3] [PR #80](https://github.com/MeteoraAg/damm-v2-sdk/pull/80)
-
-### Added
-
-- Added `initializeReward` endpoint to initialize a reward for a pool
-- Added `initializeAndFundReward` endpoint to initialize and fund a reward for a pool
-
-### Changed
-
-- Changed `getUnclaimReward` helper function name to `getUnClaimLpFee`
-- Included `funder`, `creator` and `rewardMintProgram` parameters to `InitializeRewardParams`
-- Changed from `admin` to `signer` in `updateRewardDuration` and `updateRewardFunder` endpoints
-- Included `rewardMint`, `rewardVault` and `rewardMintProgram` parameters to `fundReward` endpoint
-- Changed from `skipReward` to `isSkipReward` in `withdrawIneligbleReward` endpoint
-
-## damm_v2_sdk [1.2.2]
-
-### Fixed
-
-- Added `tokenProgram` parameter to `getTokenDecimals`
-
-## damm_v2_sdk [1.2.1]
-
-### Fixed
-
-- Fixed rate limiter parameters in `getBaseFeeParams`
-
-## damm_v2_sdk [1.2.0] [PR #79](https://github.com/MeteoraAg/damm-v2-sdk/pull/79)
-
-### Changed
-
-- Changed the IDL export type
-
-## damm_v2_sdk [1.1.9] [PR #78](https://github.com/MeteoraAg/damm-v2-sdk/pull/78)
-
-### Fixed
-
-- Fixed fee scheduler validation for `getMinBaseFeeNumerator`
-- Added checks for Alpha Vault fee in `getBaseFeeNumerator`
-
-## damm_v2_sdk [1.1.8] [PR #77](https://github.com/MeteoraAg/damm-v2-sdk/pull/77)
-
-### Added
-
-- Added `poolState` to `SwapParams` and `Swap2Params` to allow passing in the pool state to atomically fetch the pool state
-
-## damm_v2_sdk [1.1.7] [PR #76](https://github.com/MeteoraAg/damm-v2-sdk/pull/76)
-
-### Changed
-
-- Updated the order of liqudiity delta and sqrt prices in `getAmountAFromLiquidityDelta` and `getAmountBFromLiquidityDelta`
-
-## damm_v2_sdk [1.1.6] [PR #74](https://github.com/MeteoraAg/damm-v2-sdk/pull/74)
-
-### Added
-
-- Add new `swap2` endpoint to allow swap with 3 different swap modes: ExactIn, ExactOut, PartialFill
-- Add new `getQuote2` endpoint to allow getting swap quotes for different swap modes: ExactIn, ExactOut, PartialFill
-- Add `rateLimiter` fee calculation in swap and get quote endpoints
-- Added `SYSVAR_INSTRUCTIONS_PUBKEY` to remaining accounts if rate limiter is applied for `swap` and `swap2` endpoints
-
-### Changed
-
-- Updated `getBaseFeeParams` to include rate limiter parameters
-- Refactored `getFeeSchedulerParams` to be compatible with different pool versions
-- Added `getRateLimiterParams` to prepare rate limiter parameters
-- Changed `getQuote` quote calculation with `getSwapResultFromExactInput`
-
-## damm_v2_sdk [1.1.5] [PR #68](https://github.com/MeteoraAg/damm-v2-sdk/pull/68)
-
-### Added
-
-- Add new function `splitPosition2` to allow split position via numerator
-
-## damm_v2_sdk [1.1.0] [PR #59](https://github.com/MeteoraAg/damm-v2-sdk/pull/59)
-
-### Added
-
-- Add new function `splitPosition` to allow split position which splits the position's unlocked liquidity, locked liquidity, fee and reward
-
-### Changed
-
-- `ClaimRewardParams` now has new field `skipReward` to allow skip reward transfer.
-- Removed `protocolFeePercent`, `partnerFeePercent` and `referralFeePercent` from `PoolFeesParams` and replaced with `padding[]` field.
-
-## damm_v2_sdk [1.0.9] [PR #54](https://github.com/MeteoraAg/damm-v2-sdk/pull/54)
-
-### Added
-
-- Add new function `claimPositionFee2` to allow claim position fee
+Legacy release. Supports DAMM v2 on-chain program v0.1.x.

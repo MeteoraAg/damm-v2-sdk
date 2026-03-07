@@ -73,7 +73,8 @@ describe("Permanant Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -222,7 +223,8 @@ describe("Permanant Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 

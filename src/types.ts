@@ -160,7 +160,7 @@ export type PoolFeesParams = {
   baseFee: BaseFee;
   compoundingFeeBps: number;
   padding: number;
-  dynamicFee: DynamicFee;
+  dynamicFee: DynamicFee | null;
 };
 
 export type PrepareTokenAccountParams = {

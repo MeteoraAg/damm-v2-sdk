@@ -6,6 +6,7 @@ import {
   isSwapEnabled,
 } from "../helpers";
 import {
+  CollectFeeMode,
   FeeMode,
   PoolState,
   Quote2Result,
@@ -24,7 +25,56 @@ import {
   splitFees,
 } from "./feeMath";
 import { Mint } from "@solana/spl-token";
-import { getLiquidityHandler } from "./liquidity";
+import {
+  getLiquidityHandler,
+  getNextSqrtPriceForCompoundingLiquidity,
+} from "./liquidity";
+
+/**
+ * Applies the swap result to the pool state
+ * @param poolState - The pool state
+ * @param result - The swap result
+ * @param feeMode - The fee mode
+ * @param tradeDirection - The trade direction
+ * @returns The post-swap sqrt price
+ */
+export function applySwapResult(
+  poolState: PoolState,
+  result: SwapResult2,
+  feeMode: FeeMode,
+  tradeDirection: TradeDirection,
+): BN {
+  if (poolState.collectFeeMode !== CollectFeeMode.Compounding) {
+    return result.nextSqrtPrice;
+  }
+
+  const tradingFee = result.claimingFee.add(result.compoundingFee);
+
+  const includedFeeOutputAmount = feeMode.feesOnInput
+    ? result.outputAmount
+    : result.outputAmount
+        .add(tradingFee)
+        .add(result.protocolFee)
+        .add(result.referralFee);
+
+  let newTokenAAmount: BN;
+  let newTokenBAmount: BN;
+
+  if (tradeDirection === TradeDirection.AtoB) {
+    newTokenAAmount = poolState.tokenAAmount.add(result.excludedFeeInputAmount);
+    newTokenBAmount = poolState.tokenBAmount.sub(includedFeeOutputAmount);
+  } else {
+    newTokenBAmount = poolState.tokenBAmount.add(result.excludedFeeInputAmount);
+    newTokenAAmount = poolState.tokenAAmount.sub(includedFeeOutputAmount);
+  }
+
+  newTokenBAmount = newTokenBAmount.add(result.compoundingFee);
+
+  return getNextSqrtPriceForCompoundingLiquidity(
+    newTokenAAmount,
+    newTokenBAmount,
+  );
+}
 
 /**
  * Gets the swap result from exact input
@@ -115,7 +165,7 @@ export function getSwapResultFromExactInput(
     actualAmountOut = amount;
   }
 
-  return {
+  const result: SwapResult2 = {
     amountLeft,
     includedFeeInputAmount: amountIn,
     excludedFeeInputAmount: actualAmountIn,
@@ -126,6 +176,15 @@ export function getSwapResultFromExactInput(
     protocolFee: actualProtocolFee,
     referralFee: actualReferralFee,
   };
+
+  result.nextSqrtPrice = applySwapResult(
+    poolState,
+    result,
+    feeMode,
+    tradeDirection,
+  );
+
+  return result;
 }
 
 /**
@@ -249,7 +308,7 @@ export function getSwapResultFromPartialInput(
     actualAmountOut = amount;
   }
 
-  return {
+  const result: SwapResult2 = {
     includedFeeInputAmount,
     excludedFeeInputAmount: actualAmountIn,
     amountLeft,
@@ -260,6 +319,15 @@ export function getSwapResultFromPartialInput(
     protocolFee: actualProtocolFee,
     referralFee: actualReferralFee,
   };
+
+  result.nextSqrtPrice = applySwapResult(
+    poolState,
+    result,
+    feeMode,
+    tradeDirection,
+  );
+
+  return result;
 }
 
 /**
@@ -366,7 +434,7 @@ export function getSwapResultFromExactOutput(
     includedFeeInputAmount = inputAmount;
   }
 
-  return {
+  const result: SwapResult2 = {
     amountLeft: new BN(0),
     includedFeeInputAmount: includedFeeInputAmount,
     excludedFeeInputAmount: inputAmount,
@@ -377,6 +445,15 @@ export function getSwapResultFromExactOutput(
     protocolFee: actualProtocolFee,
     referralFee: actualReferralFee,
   };
+
+  result.nextSqrtPrice = applySwapResult(
+    poolState,
+    result,
+    feeMode,
+    tradeDirection,
+  );
+
+  return result;
 }
 
 /**

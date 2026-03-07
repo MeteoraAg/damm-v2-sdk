@@ -1,5 +1,10 @@
 import BN from "bn.js";
-import { InitialPoolInformation, Rounding, SwapAmountFromInput, SwapAmountFromOutput } from "../../types";
+import {
+  InitialPoolInformation,
+  Rounding,
+  SwapAmountFromInput,
+  SwapAmountFromOutput,
+} from "../../types";
 import { SCALE_OFFSET } from "../../constants";
 import { mulDiv } from "../utilsMath";
 import {
@@ -21,10 +26,16 @@ export function getInitialConcentratedLiquidityPoolInformation(
   liquidity: BN,
 ): InitialPoolInformation {
   const tokenAAmount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtPrice, sqrtMaxPrice, liquidity, Rounding.Up,
+    sqrtPrice,
+    sqrtMaxPrice,
+    liquidity,
+    Rounding.Up,
   );
   const tokenBAmount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtMinPrice, sqrtPrice, liquidity, Rounding.Up,
+    sqrtMinPrice,
+    sqrtPrice,
+    liquidity,
+    Rounding.Up,
   );
   return {
     tokenAAmount,
@@ -47,10 +58,16 @@ export function getAmountsForModifyForConcentratedLiquidity(
   round: Rounding,
 ): [BN, BN] {
   const tokenAAmount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtPrice, sqrtMaxPrice, liquidityDelta, round,
+    sqrtPrice,
+    sqrtMaxPrice,
+    liquidityDelta,
+    round,
   );
   const tokenBAmount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtMinPrice, sqrtPrice, liquidityDelta, round,
+    sqrtMinPrice,
+    sqrtPrice,
+    liquidityDelta,
+    round,
   );
   return [tokenAAmount, tokenBAmount];
 }
@@ -64,12 +81,20 @@ export function calculateAtoBFromAmountInForConcentratedLiquidity(
   liquidity: BN,
   amountIn: BN,
 ): SwapAmountFromInput {
-  const nextSqrtPrice = getNextSqrtPriceFromInput(sqrtPrice, liquidity, amountIn, true);
+  const nextSqrtPrice = getNextSqrtPriceFromInput(
+    sqrtPrice,
+    liquidity,
+    amountIn,
+    true,
+  );
   if (nextSqrtPrice.lt(sqrtMinPrice)) {
     throw new Error("Price range is violated");
   }
   const outputAmount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-    nextSqrtPrice, sqrtPrice, liquidity, Rounding.Down,
+    nextSqrtPrice,
+    sqrtPrice,
+    liquidity,
+    Rounding.Down,
   );
   return { outputAmount, nextSqrtPrice, amountLeft: new BN(0) };
 }
@@ -83,12 +108,20 @@ export function calculateBtoAFromAmountInForConcentratedLiquidity(
   liquidity: BN,
   amountIn: BN,
 ): SwapAmountFromInput {
-  const nextSqrtPrice = getNextSqrtPriceFromInput(sqrtPrice, liquidity, amountIn, false);
+  const nextSqrtPrice = getNextSqrtPriceFromInput(
+    sqrtPrice,
+    liquidity,
+    amountIn,
+    false,
+  );
   if (nextSqrtPrice.gt(sqrtMaxPrice)) {
     throw new Error("Price range is violated");
   }
   const outputAmount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtPrice, nextSqrtPrice, liquidity, Rounding.Down,
+    sqrtPrice,
+    nextSqrtPrice,
+    liquidity,
+    Rounding.Down,
   );
   return { outputAmount, nextSqrtPrice, amountLeft: new BN(0) };
 }
@@ -103,7 +136,10 @@ export function calculateAtoBFromPartialAmountInForConcentratedLiquidity(
   amountIn: BN,
 ): SwapAmountFromInput {
   const maxAmountIn = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtMinPrice, sqrtPrice, liquidity, Rounding.Up,
+    sqrtMinPrice,
+    sqrtPrice,
+    liquidity,
+    Rounding.Up,
   );
 
   let consumedInAmount: BN;
@@ -113,14 +149,26 @@ export function calculateAtoBFromPartialAmountInForConcentratedLiquidity(
     consumedInAmount = maxAmountIn;
     nextSqrtPrice = sqrtMinPrice;
   } else {
-    nextSqrtPrice = getNextSqrtPriceFromInput(sqrtPrice, liquidity, amountIn, true);
+    nextSqrtPrice = getNextSqrtPriceFromInput(
+      sqrtPrice,
+      liquidity,
+      amountIn,
+      true,
+    );
     consumedInAmount = amountIn;
   }
 
   const outputAmount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-    nextSqrtPrice, sqrtPrice, liquidity, Rounding.Down,
+    nextSqrtPrice,
+    sqrtPrice,
+    liquidity,
+    Rounding.Down,
   );
-  return { outputAmount, nextSqrtPrice, amountLeft: amountIn.sub(consumedInAmount) };
+  return {
+    outputAmount,
+    nextSqrtPrice,
+    amountLeft: amountIn.sub(consumedInAmount),
+  };
 }
 
 /**
@@ -133,7 +181,10 @@ export function calculateBtoAFromPartialAmountInForConcentratedLiquidity(
   amountIn: BN,
 ): SwapAmountFromInput {
   const maxAmountIn = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtPrice, sqrtMaxPrice, liquidity, Rounding.Up,
+    sqrtPrice,
+    sqrtMaxPrice,
+    liquidity,
+    Rounding.Up,
   );
 
   let consumedInAmount: BN;
@@ -143,14 +194,26 @@ export function calculateBtoAFromPartialAmountInForConcentratedLiquidity(
     consumedInAmount = maxAmountIn;
     nextSqrtPrice = sqrtMaxPrice;
   } else {
-    nextSqrtPrice = getNextSqrtPriceFromInput(sqrtPrice, liquidity, amountIn, false);
+    nextSqrtPrice = getNextSqrtPriceFromInput(
+      sqrtPrice,
+      liquidity,
+      amountIn,
+      false,
+    );
     consumedInAmount = amountIn;
   }
 
   const outputAmount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtPrice, nextSqrtPrice, liquidity, Rounding.Down,
+    sqrtPrice,
+    nextSqrtPrice,
+    liquidity,
+    Rounding.Down,
   );
-  return { outputAmount, nextSqrtPrice, amountLeft: amountIn.sub(consumedInAmount) };
+  return {
+    outputAmount,
+    nextSqrtPrice,
+    amountLeft: amountIn.sub(consumedInAmount),
+  };
 }
 
 /**
@@ -162,12 +225,20 @@ export function calculateAtoBFromAmountOutForConcentratedLiquidity(
   liquidity: BN,
   amountOut: BN,
 ): SwapAmountFromOutput {
-  const nextSqrtPrice = getNextSqrtPriceFromOutput(sqrtPrice, liquidity, amountOut, true);
+  const nextSqrtPrice = getNextSqrtPriceFromOutput(
+    sqrtPrice,
+    liquidity,
+    amountOut,
+    true,
+  );
   if (nextSqrtPrice.lt(sqrtMinPrice)) {
     throw new Error("Price range violated");
   }
   const inputAmount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-    nextSqrtPrice, sqrtPrice, liquidity, Rounding.Up,
+    nextSqrtPrice,
+    sqrtPrice,
+    liquidity,
+    Rounding.Up,
   );
   return { inputAmount, nextSqrtPrice };
 }
@@ -181,12 +252,20 @@ export function calculateBtoAFromAmountOutForConcentratedLiquidity(
   liquidity: BN,
   amountOut: BN,
 ): SwapAmountFromOutput {
-  const nextSqrtPrice = getNextSqrtPriceFromOutput(sqrtPrice, liquidity, amountOut, false);
+  const nextSqrtPrice = getNextSqrtPriceFromOutput(
+    sqrtPrice,
+    liquidity,
+    amountOut,
+    false,
+  );
   if (nextSqrtPrice.gt(sqrtMaxPrice)) {
     throw new Error("Price range violated");
   }
   const inputAmount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtPrice, nextSqrtPrice, liquidity, Rounding.Up,
+    sqrtPrice,
+    nextSqrtPrice,
+    liquidity,
+    Rounding.Up,
   );
   return { inputAmount, nextSqrtPrice };
 }
@@ -201,10 +280,16 @@ export function getReservesAmountForConcentratedLiquidity(
   liquidity: BN,
 ): [BN, BN] {
   const tokenAAmount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtPrice, sqrtMaxPrice, liquidity, Rounding.Down,
+    sqrtPrice,
+    sqrtMaxPrice,
+    liquidity,
+    Rounding.Down,
   );
   const tokenBAmount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-    sqrtMinPrice, sqrtPrice, liquidity, Rounding.Down,
+    sqrtMinPrice,
+    sqrtPrice,
+    liquidity,
+    Rounding.Down,
   );
   return [tokenAAmount, tokenBAmount];
 }

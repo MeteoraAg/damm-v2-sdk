@@ -167,7 +167,9 @@ export type DecodedPoolFees =
 
 export type PoolFeesParams = {
   baseFee: BaseFee;
+  /** Compounding fee in basis points. Only has effect when collectFeeMode === CollectFeeMode.Compounding. */
   compoundingFeeBps: number;
+  /** Reserved byte for future use. Pass 0. */
   padding: number;
   dynamicFee: DynamicFee | null;
 };
@@ -246,7 +248,7 @@ export type PreparePoolCreationParams = {
   tokenBAmount: BN;
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
-  collectFeeMode: CollectFeeMode;
+  collectFeeMode?: CollectFeeMode;
   tokenAInfo?: {
     mint: Mint;
     currentEpoch: number;
@@ -267,7 +269,7 @@ export type PreparePoolCreationSingleSide = {
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
   initSqrtPrice: BN;
-  collectFeeMode: CollectFeeMode;
+  collectFeeMode?: CollectFeeMode;
   tokenAInfo?: {
     mint: Mint;
     currentEpoch: number;
@@ -337,7 +339,7 @@ export type LiquidityDeltaParams = {
   sqrtPrice: BN;
   sqrtMinPrice: BN;
   sqrtMaxPrice: BN;
-  collectFeeMode: CollectFeeMode;
+  collectFeeMode?: CollectFeeMode;
   tokenAInfo?: {
     mint: Mint;
     currentEpoch: number;
@@ -777,10 +779,10 @@ export type GetDepositQuoteParams = {
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
   sqrtPrice: BN;
-  collectFeeMode: CollectFeeMode;
-  tokenAAmount: BN;
-  tokenBAmount: BN;
-  liquidity: BN;
+  collectFeeMode?: CollectFeeMode;
+  tokenAAmount?: BN;
+  tokenBAmount?: BN;
+  liquidity?: BN;
   inputTokenInfo?: {
     mint: Mint;
     currentEpoch: number;
@@ -796,10 +798,10 @@ export type GetWithdrawQuoteParams = {
   minSqrtPrice: BN;
   maxSqrtPrice: BN;
   sqrtPrice: BN;
-  collectFeeMode: CollectFeeMode;
-  tokenAAmount: BN;
-  tokenBAmount: BN;
-  liquidity: BN;
+  collectFeeMode?: CollectFeeMode;
+  tokenAAmount?: BN;
+  tokenBAmount?: BN;
+  liquidity?: BN;
   tokenATokenInfo?: {
     mint: Mint;
     currentEpoch: number;

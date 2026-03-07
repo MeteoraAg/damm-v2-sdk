@@ -16,7 +16,8 @@ function makePoolFees(
     protocolFeePercent,
     referralFeePercent,
     partnerFeePercent: 0, // v0.2.0: always 0 / not used
-    compoundingFeeBps: compoundingFeeBps !== undefined ? new BN(compoundingFeeBps) : undefined,
+    compoundingFeeBps:
+      compoundingFeeBps !== undefined ? new BN(compoundingFeeBps) : undefined,
     dynamicFee: {
       initialized: 0,
       binStep: 0,
@@ -32,7 +33,12 @@ describe("splitFees — BothToken / OnlyB modes (no compounding)", () => {
   const poolFees = makePoolFees(20, 25); // 20% protocol, 25% referral
 
   it("splits protocol and trading fee correctly without referral", () => {
-    const result = splitFees(poolFees, feeAmount, false, CollectFeeMode.BothToken);
+    const result = splitFees(
+      poolFees,
+      feeAmount,
+      false,
+      CollectFeeMode.BothToken,
+    );
 
     // protocolFee = 10000 * 20 / 100 = 2000
     expect(result.protocolFee.toString()).toBe("2000");
@@ -62,12 +68,19 @@ describe("splitFees — BothToken / OnlyB modes (no compounding)", () => {
   });
 
   it("total fees sum to feeAmount (no referral)", () => {
-    const result = splitFees(poolFees, feeAmount, false, CollectFeeMode.BothToken);
+    const result = splitFees(
+      poolFees,
+      feeAmount,
+      false,
+      CollectFeeMode.BothToken,
+    );
     const total = result.protocolFee
       .add(result.tradingFee)
       .sub(result.claimingFee); // tradingFee already includes claimingFee + compoundingFee
     // protocolFee + claimingFee + compoundingFee = feeAmount
-    const sanity = result.protocolFee.add(result.claimingFee).add(result.compoundingFee);
+    const sanity = result.protocolFee
+      .add(result.claimingFee)
+      .add(result.compoundingFee);
     expect(sanity.toString()).toBe(feeAmount.toString());
   });
 });
@@ -78,7 +91,12 @@ describe("splitFees — Compounding mode", () => {
   it("splits a portion into compoundingFee and the rest into claimingFee", () => {
     // protocolFeePercent=20, compoundingFeeBps=3000 (30%)
     const poolFees = makePoolFees(20, 0, 3000);
-    const result = splitFees(poolFees, feeAmount, false, CollectFeeMode.Compounding);
+    const result = splitFees(
+      poolFees,
+      feeAmount,
+      false,
+      CollectFeeMode.Compounding,
+    );
 
     // tradingFee = 10000 - 2000 = 8000
     // compoundingFee = 8000 * 3000 / 10000 = 2400
@@ -91,14 +109,24 @@ describe("splitFees — Compounding mode", () => {
 
   it("has no compoundingFee when compoundingFeeBps is 0", () => {
     const poolFees = makePoolFees(20, 0, 0);
-    const result = splitFees(poolFees, feeAmount, false, CollectFeeMode.Compounding);
+    const result = splitFees(
+      poolFees,
+      feeAmount,
+      false,
+      CollectFeeMode.Compounding,
+    );
     expect(result.compoundingFee.toString()).toBe("0");
     expect(result.claimingFee.toString()).toBe("8000");
   });
 
   it("total = protocolFee + claimingFee + compoundingFee + referralFee", () => {
     const poolFees = makePoolFees(20, 25, 3000);
-    const result = splitFees(poolFees, feeAmount, true, CollectFeeMode.Compounding);
+    const result = splitFees(
+      poolFees,
+      feeAmount,
+      true,
+      CollectFeeMode.Compounding,
+    );
     const total = result.protocolFee
       .add(result.claimingFee)
       .add(result.compoundingFee)

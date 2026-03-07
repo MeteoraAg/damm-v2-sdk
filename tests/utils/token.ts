@@ -71,7 +71,10 @@ export async function createToken(
     ),
   );
 
-  await sendAndConfirmTransaction(connection, transaction, [payer, mintKeypair]);
+  await sendAndConfirmTransaction(connection, transaction, [
+    payer,
+    mintKeypair,
+  ]);
   return mintKeypair.publicKey;
 }
 
@@ -83,9 +86,19 @@ export async function mintTo(
   destination: PublicKey,
   amount: BN,
 ) {
-  const ata = await getOrCreateAssociatedTokenAccount(connection, payer, mint, destination);
+  const ata = await getOrCreateAssociatedTokenAccount(
+    connection,
+    payer,
+    mint,
+    destination,
+  );
   const transaction = new Transaction().add(
-    createMintToInstruction(mint, ata, authority.publicKey, BigInt(amount.toString())),
+    createMintToInstruction(
+      mint,
+      ata,
+      authority.publicKey,
+      BigInt(amount.toString()),
+    ),
   );
   await sendAndConfirmTransaction(connection, transaction, [payer, authority]);
 }
@@ -97,7 +110,9 @@ export async function createNativeAccount(
   amount: BN,
 ) {
   const nativeAccount = getAssociatedTokenAddressSync(NATIVE_MINT, owner, true);
-  const lamports = await connection.getMinimumBalanceForRentExemption(AccountLayout.span);
+  const lamports = await connection.getMinimumBalanceForRentExemption(
+    AccountLayout.span,
+  );
 
   const transaction = new Transaction().add(
     SystemProgram.createAccount({

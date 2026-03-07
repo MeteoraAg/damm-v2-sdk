@@ -152,7 +152,12 @@ export async function setupTestContext(
 
   // Fund all participants sequentially to avoid nonce conflicts
   for (const recipient of recipients) {
-    await transferSol(conn, rootKeypair, recipient, new BN(100 * LAMPORTS_PER_SOL));
+    await transferSol(
+      conn,
+      rootKeypair,
+      recipient,
+      new BN(100 * LAMPORTS_PER_SOL),
+    );
   }
 
   const rawAmount = 100_000_000 * 10 ** DECIMALS;

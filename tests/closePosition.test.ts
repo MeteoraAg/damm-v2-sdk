@@ -72,7 +72,8 @@ describe("Remove liquidity & Close position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -226,7 +227,8 @@ describe("Remove liquidity & Close position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 

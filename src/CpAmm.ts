@@ -1061,7 +1061,7 @@ export class CpAmm {
       sqrtMaxPrice,
       sqrtMinPrice,
       sqrtPrice,
-      collectFeeMode,
+      collectFeeMode = CollectFeeMode.BothToken,
     } = params;
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
@@ -1241,7 +1241,7 @@ export class CpAmm {
       minSqrtPrice,
       maxSqrtPrice,
       sqrtPrice,
-      collectFeeMode,
+      collectFeeMode = CollectFeeMode.BothToken,
       tokenAAmount,
       tokenBAmount,
       liquidity,
@@ -1257,8 +1257,18 @@ export class CpAmm {
 
     // Compute liquidityDelta using mode-dispatched function
     const liquidityDelta = isTokenA
-      ? getLiquidityDeltaFromAmountA(actualAmountIn, sqrtPrice, maxSqrtPrice, collectFeeMode)
-      : getLiquidityDeltaFromAmountB(actualAmountIn, minSqrtPrice, sqrtPrice, collectFeeMode);
+      ? getLiquidityDeltaFromAmountA(
+          actualAmountIn,
+          sqrtPrice,
+          maxSqrtPrice,
+          collectFeeMode,
+        )
+      : getLiquidityDeltaFromAmountB(
+          actualAmountIn,
+          minSqrtPrice,
+          sqrtPrice,
+          collectFeeMode,
+        );
 
     // Get the required amount of the other token using the liquidity handler
     const mockPoolState = {
@@ -1271,7 +1281,10 @@ export class CpAmm {
       sqrtMaxPrice: maxSqrtPrice,
     } as any;
     const handler = getLiquidityHandler(mockPoolState);
-    const [amountA, amountB] = handler.getAmountsForModifyLiquidity(liquidityDelta, Rounding.Up);
+    const [amountA, amountB] = handler.getAmountsForModifyLiquidity(
+      liquidityDelta,
+      Rounding.Up,
+    );
 
     const rawOutputAmount = isTokenA ? amountB : amountA;
     const outputAmount = outputTokenInfo
@@ -1311,14 +1324,16 @@ export class CpAmm {
       minSqrtPrice,
       tokenATokenInfo,
       tokenBTokenInfo,
-      collectFeeMode,
+      collectFeeMode = CollectFeeMode.BothToken,
       tokenAAmount,
       tokenBAmount,
       liquidity,
     } = params;
 
     if (liquidityDelta.isZero()) {
-      throw new Error("Cannot withdraw: liquidityDelta must be greater than zero.");
+      throw new Error(
+        "Cannot withdraw: liquidityDelta must be greater than zero.",
+      );
     }
 
     const mockPoolState = {
@@ -1331,15 +1346,26 @@ export class CpAmm {
       sqrtMaxPrice: maxSqrtPrice,
     } as any;
     const handler = getLiquidityHandler(mockPoolState);
-    const [amountA, amountB] = handler.getAmountsForModifyLiquidity(liquidityDelta, Rounding.Down);
+    const [amountA, amountB] = handler.getAmountsForModifyLiquidity(
+      liquidityDelta,
+      Rounding.Down,
+    );
 
     return {
       liquidityDelta,
       outAmountA: tokenATokenInfo
-        ? calculateTransferFeeExcludedAmount(amountA, tokenATokenInfo.mint, tokenATokenInfo.currentEpoch).amount
+        ? calculateTransferFeeExcludedAmount(
+            amountA,
+            tokenATokenInfo.mint,
+            tokenATokenInfo.currentEpoch,
+          ).amount
         : amountA,
       outAmountB: tokenBTokenInfo
-        ? calculateTransferFeeExcludedAmount(amountB, tokenBTokenInfo.mint, tokenBTokenInfo.currentEpoch).amount
+        ? calculateTransferFeeExcludedAmount(
+            amountB,
+            tokenBTokenInfo.mint,
+            tokenBTokenInfo.currentEpoch,
+          ).amount
         : amountB,
     };
   }
@@ -1356,7 +1382,7 @@ export class CpAmm {
       initSqrtPrice,
       minSqrtPrice,
       maxSqrtPrice,
-      collectFeeMode,
+      collectFeeMode = CollectFeeMode.BothToken,
       tokenAInfo,
     } = params;
 
@@ -1398,7 +1424,7 @@ export class CpAmm {
       tokenBAmount,
       minSqrtPrice,
       maxSqrtPrice,
-      collectFeeMode,
+      collectFeeMode = CollectFeeMode.BothToken,
       tokenAInfo,
       tokenBInfo,
     } = params;

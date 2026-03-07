@@ -57,7 +57,10 @@ export async function createToken2022(
     ),
   );
 
-  await sendAndConfirmTransaction(connection, transaction, [payer, mintKeypair]);
+  await sendAndConfirmTransaction(connection, transaction, [
+    payer,
+    mintKeypair,
+  ]);
 }
 
 export async function mintToToken2022(
@@ -85,5 +88,8 @@ export async function mintToToken2022(
   );
 
   const transaction = new Transaction().add(mintIx);
-  await sendAndConfirmTransaction(connection, transaction, [payer, mintAuthority]);
+  await sendAndConfirmTransaction(connection, transaction, [
+    payer,
+    mintAuthority,
+  ]);
 }

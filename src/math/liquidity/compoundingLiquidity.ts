@@ -1,5 +1,10 @@
 import BN from "bn.js";
-import { InitialPoolInformation, Rounding, SwapAmountFromInput, SwapAmountFromOutput } from "../../types";
+import {
+  InitialPoolInformation,
+  Rounding,
+  SwapAmountFromInput,
+  SwapAmountFromOutput,
+} from "../../types";
 import { mulDiv, sqrt } from "../utilsMath";
 import { DEAD_LIQUIDITY, U128_MAX } from "../../constants";
 
@@ -16,13 +21,22 @@ export function getInitialCompoundingPoolInformation(
     throw new Error("InvalidMinimumLiquidity");
   }
 
-  const tokenAAmount = getInitialTokenAForCompoundingLiquidity(sqrtPrice, liquidity);
-  const tokenBAmount = getInitialTokenBForCompoundingLiquidity(sqrtPrice, liquidity);
+  const tokenAAmount = getInitialTokenAForCompoundingLiquidity(
+    sqrtPrice,
+    liquidity,
+  );
+  const tokenBAmount = getInitialTokenBForCompoundingLiquidity(
+    sqrtPrice,
+    liquidity,
+  );
 
   return {
     tokenAAmount,
     tokenBAmount,
-    sqrtPrice: getSqrtPriceFromAmountsForCompoundingLiquidity(tokenAAmount, tokenBAmount),
+    sqrtPrice: getSqrtPriceFromAmountsForCompoundingLiquidity(
+      tokenAAmount,
+      tokenBAmount,
+    ),
     initialLiquidity: liquidity.sub(DEAD_LIQUIDITY),
     sqrtMinPrice: new BN(0),
     sqrtMaxPrice: U128_MAX,
@@ -40,10 +54,16 @@ export function getAmountsForModifyForCompoundingLiquidity(
   round: Rounding,
 ): [BN, BN] {
   const amountA = getAmountAFromLiquidityDeltaForCompoundingLiquidity(
-    tokenAAmount, liquidity, liquidityDelta, round,
+    tokenAAmount,
+    liquidity,
+    liquidityDelta,
+    round,
   );
   const amountB = getAmountBFromLiquidityDeltaForCompoundingLiquidity(
-    tokenBAmount, liquidity, liquidityDelta, round,
+    tokenBAmount,
+    liquidity,
+    liquidityDelta,
+    round,
   );
   return [amountA, amountB];
 }
@@ -57,7 +77,12 @@ export function calculateAtoBFromAmountInForCompoundingLiquidity(
   tokenBAmount: BN,
   amountIn: BN,
 ): SwapAmountFromInput {
-  const outputAmount = mulDiv(tokenBAmount, amountIn, tokenAAmount.add(amountIn), Rounding.Down);
+  const outputAmount = mulDiv(
+    tokenBAmount,
+    amountIn,
+    tokenAAmount.add(amountIn),
+    Rounding.Down,
+  );
   return { outputAmount, nextSqrtPrice: new BN(0), amountLeft: new BN(0) };
 }
 
@@ -70,7 +95,12 @@ export function calculateBtoAFromAmountInForCompoundingLiquidity(
   tokenBAmount: BN,
   amountIn: BN,
 ): SwapAmountFromInput {
-  const outputAmount = mulDiv(tokenAAmount, amountIn, tokenBAmount.add(amountIn), Rounding.Down);
+  const outputAmount = mulDiv(
+    tokenAAmount,
+    amountIn,
+    tokenBAmount.add(amountIn),
+    Rounding.Down,
+  );
   return { outputAmount, nextSqrtPrice: new BN(0), amountLeft: new BN(0) };
 }
 
@@ -82,7 +112,11 @@ export function calculateAtoBFromPartialAmountInForCompoundingLiquidity(
   tokenBAmount: BN,
   amountIn: BN,
 ): SwapAmountFromInput {
-  return calculateAtoBFromAmountInForCompoundingLiquidity(tokenAAmount, tokenBAmount, amountIn);
+  return calculateAtoBFromAmountInForCompoundingLiquidity(
+    tokenAAmount,
+    tokenBAmount,
+    amountIn,
+  );
 }
 
 /**
@@ -93,7 +127,11 @@ export function calculateBtoAFromPartialAmountInForCompoundingLiquidity(
   tokenBAmount: BN,
   amountIn: BN,
 ): SwapAmountFromInput {
-  return calculateBtoAFromAmountInForCompoundingLiquidity(tokenAAmount, tokenBAmount, amountIn);
+  return calculateBtoAFromAmountInForCompoundingLiquidity(
+    tokenAAmount,
+    tokenBAmount,
+    amountIn,
+  );
 }
 
 /**
@@ -105,7 +143,12 @@ export function calculateAtoBFromAmountOutForCompoundingLiquidity(
   tokenBAmount: BN,
   amountOut: BN,
 ): SwapAmountFromOutput {
-  const inputAmount = mulDiv(tokenAAmount, amountOut, tokenBAmount.sub(amountOut), Rounding.Up);
+  const inputAmount = mulDiv(
+    tokenAAmount,
+    amountOut,
+    tokenBAmount.sub(amountOut),
+    Rounding.Up,
+  );
   return { inputAmount, nextSqrtPrice: new BN(0) };
 }
 
@@ -118,7 +161,12 @@ export function calculateBtoAFromAmountOutForCompoundingLiquidity(
   tokenBAmount: BN,
   amountOut: BN,
 ): SwapAmountFromOutput {
-  const inputAmount = mulDiv(tokenBAmount, amountOut, tokenAAmount.sub(amountOut), Rounding.Up);
+  const inputAmount = mulDiv(
+    tokenBAmount,
+    amountOut,
+    tokenAAmount.sub(amountOut),
+    Rounding.Up,
+  );
   return { inputAmount, nextSqrtPrice: new BN(0) };
 }
 
@@ -156,20 +204,29 @@ export function getNextSqrtPriceForCompoundingLiquidity(
   tokenAAmount: BN,
   tokenBAmount: BN,
 ): BN {
-  return getSqrtPriceFromAmountsForCompoundingLiquidity(tokenAAmount, tokenBAmount);
+  return getSqrtPriceFromAmountsForCompoundingLiquidity(
+    tokenAAmount,
+    tokenBAmount,
+  );
 }
 
 /**
  * Initial token A required: ceil(liquidity / sqrtPrice)
  */
-export function getInitialTokenAForCompoundingLiquidity(sqrtPrice: BN, liquidity: BN): BN {
+export function getInitialTokenAForCompoundingLiquidity(
+  sqrtPrice: BN,
+  liquidity: BN,
+): BN {
   return liquidity.add(sqrtPrice.subn(1)).div(sqrtPrice);
 }
 
 /**
  * Initial token B required: ceil(liquidity * sqrtPrice / 2^128)
  */
-export function getInitialTokenBForCompoundingLiquidity(sqrtPrice: BN, liquidity: BN): BN {
+export function getInitialTokenBForCompoundingLiquidity(
+  sqrtPrice: BN,
+  liquidity: BN,
+): BN {
   const numerator = liquidity.mul(sqrtPrice);
   const denominator = new BN(1).ushln(128);
   return numerator.add(denominator.subn(1)).div(denominator);

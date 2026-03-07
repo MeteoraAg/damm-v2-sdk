@@ -212,7 +212,8 @@ const DRY_RUN = true;
 
   const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
-    padding: [],
+    compoundingFeeBps: 0,
+    padding: 0,
     dynamicFee: dynamicFeeParams,
   };
 

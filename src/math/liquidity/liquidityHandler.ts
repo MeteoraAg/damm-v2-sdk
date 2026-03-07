@@ -55,52 +55,74 @@ export class CompoundingLiquidityHandler implements LiquidityHandler {
 
   getAmountsForModifyLiquidity(liquidityDelta: BN, round: Rounding): [BN, BN] {
     return getAmountsForModifyForCompoundingLiquidity(
-      this.tokenAAmount, this.tokenBAmount, this.liquidity, liquidityDelta, round,
+      this.tokenAAmount,
+      this.tokenBAmount,
+      this.liquidity,
+      liquidityDelta,
+      round,
     );
   }
 
   calculateAtoBFromAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateAtoBFromAmountInForCompoundingLiquidity(
-      this.tokenAAmount, this.tokenBAmount, amountIn,
+      this.tokenAAmount,
+      this.tokenBAmount,
+      amountIn,
     );
   }
 
   calculateBtoAFromAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateBtoAFromAmountInForCompoundingLiquidity(
-      this.tokenAAmount, this.tokenBAmount, amountIn,
+      this.tokenAAmount,
+      this.tokenBAmount,
+      amountIn,
     );
   }
 
   calculateAtoBFromPartialAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateAtoBFromPartialAmountInForCompoundingLiquidity(
-      this.tokenAAmount, this.tokenBAmount, amountIn,
+      this.tokenAAmount,
+      this.tokenBAmount,
+      amountIn,
     );
   }
 
   calculateBtoAFromPartialAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateBtoAFromPartialAmountInForCompoundingLiquidity(
-      this.tokenAAmount, this.tokenBAmount, amountIn,
+      this.tokenAAmount,
+      this.tokenBAmount,
+      amountIn,
     );
   }
 
   calculateAtoBFromAmountOut(amountOut: BN): SwapAmountFromOutput {
     return calculateAtoBFromAmountOutForCompoundingLiquidity(
-      this.tokenAAmount, this.tokenBAmount, amountOut,
+      this.tokenAAmount,
+      this.tokenBAmount,
+      amountOut,
     );
   }
 
   calculateBtoAFromAmountOut(amountOut: BN): SwapAmountFromOutput {
     return calculateBtoAFromAmountOutForCompoundingLiquidity(
-      this.tokenAAmount, this.tokenBAmount, amountOut,
+      this.tokenAAmount,
+      this.tokenBAmount,
+      amountOut,
     );
   }
 
   getReservesAmount(): [BN, BN] {
-    return getReservesAmountForCompoundingLiquidity(this.tokenAAmount, this.tokenBAmount);
+    return getReservesAmountForCompoundingLiquidity(
+      this.tokenAAmount,
+      this.tokenBAmount,
+    );
   }
 
   getNextSqrtPrice(_nextSqrtPrice: BN): BN {
-    return getNextSqrtPriceForCompoundingLiquidity(this.tokenAAmount, this.tokenBAmount);
+    return getNextSqrtPriceForCompoundingLiquidity(
+      this.tokenAAmount,
+      this.tokenBAmount,
+    );
   }
 
   getMaxAmountIn(_tradeDirection: TradeDirection): BN {
@@ -120,49 +142,74 @@ export class ConcentratedLiquidityHandler implements LiquidityHandler {
 
   getAmountsForModifyLiquidity(liquidityDelta: BN, round: Rounding): [BN, BN] {
     return getAmountsForModifyForConcentratedLiquidity(
-      this.sqrtPrice, this.sqrtMinPrice, this.sqrtMaxPrice, liquidityDelta, round,
+      this.sqrtPrice,
+      this.sqrtMinPrice,
+      this.sqrtMaxPrice,
+      liquidityDelta,
+      round,
     );
   }
 
   calculateAtoBFromAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateAtoBFromAmountInForConcentratedLiquidity(
-      this.sqrtMinPrice, this.sqrtPrice, this.liquidity, amountIn,
+      this.sqrtMinPrice,
+      this.sqrtPrice,
+      this.liquidity,
+      amountIn,
     );
   }
 
   calculateBtoAFromAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateBtoAFromAmountInForConcentratedLiquidity(
-      this.sqrtMaxPrice, this.sqrtPrice, this.liquidity, amountIn,
+      this.sqrtMaxPrice,
+      this.sqrtPrice,
+      this.liquidity,
+      amountIn,
     );
   }
 
   calculateAtoBFromPartialAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateAtoBFromPartialAmountInForConcentratedLiquidity(
-      this.sqrtMinPrice, this.sqrtPrice, this.liquidity, amountIn,
+      this.sqrtMinPrice,
+      this.sqrtPrice,
+      this.liquidity,
+      amountIn,
     );
   }
 
   calculateBtoAFromPartialAmountIn(amountIn: BN): SwapAmountFromInput {
     return calculateBtoAFromPartialAmountInForConcentratedLiquidity(
-      this.sqrtMaxPrice, this.sqrtPrice, this.liquidity, amountIn,
+      this.sqrtMaxPrice,
+      this.sqrtPrice,
+      this.liquidity,
+      amountIn,
     );
   }
 
   calculateAtoBFromAmountOut(amountOut: BN): SwapAmountFromOutput {
     return calculateAtoBFromAmountOutForConcentratedLiquidity(
-      this.sqrtMinPrice, this.sqrtPrice, this.liquidity, amountOut,
+      this.sqrtMinPrice,
+      this.sqrtPrice,
+      this.liquidity,
+      amountOut,
     );
   }
 
   calculateBtoAFromAmountOut(amountOut: BN): SwapAmountFromOutput {
     return calculateBtoAFromAmountOutForConcentratedLiquidity(
-      this.sqrtMaxPrice, this.sqrtPrice, this.liquidity, amountOut,
+      this.sqrtMaxPrice,
+      this.sqrtPrice,
+      this.liquidity,
+      amountOut,
     );
   }
 
   getReservesAmount(): [BN, BN] {
     return getReservesAmountForConcentratedLiquidity(
-      this.sqrtPrice, this.sqrtMinPrice, this.sqrtMaxPrice, this.liquidity,
+      this.sqrtPrice,
+      this.sqrtMinPrice,
+      this.sqrtMaxPrice,
+      this.liquidity,
     );
   }
 
@@ -174,11 +221,17 @@ export class ConcentratedLiquidityHandler implements LiquidityHandler {
     let amount: BN;
     if (tradeDirection === TradeDirection.AtoB) {
       amount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-        this.sqrtMinPrice, this.sqrtPrice, this.liquidity, Rounding.Up,
+        this.sqrtMinPrice,
+        this.sqrtPrice,
+        this.liquidity,
+        Rounding.Up,
       );
     } else {
       amount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-        this.sqrtPrice, this.sqrtMaxPrice, this.liquidity, Rounding.Up,
+        this.sqrtPrice,
+        this.sqrtMaxPrice,
+        this.liquidity,
+        Rounding.Up,
       );
     }
     return amount.gt(U64_MAX) ? U64_MAX : amount;
@@ -191,7 +244,9 @@ export class ConcentratedLiquidityHandler implements LiquidityHandler {
  * Factory: returns the appropriate LiquidityHandler based on pool's collectFeeMode.
  */
 export function getLiquidityHandler(poolState: PoolState): LiquidityHandler {
-  if ((poolState.collectFeeMode as CollectFeeMode) === CollectFeeMode.Compounding) {
+  if (
+    (poolState.collectFeeMode as CollectFeeMode) === CollectFeeMode.Compounding
+  ) {
     return new CompoundingLiquidityHandler(
       new BN(poolState.tokenAAmount.toString()),
       new BN(poolState.tokenBAmount.toString()),
@@ -219,7 +274,12 @@ export function getInitialPoolInformation(
   if (collectFeeMode === CollectFeeMode.Compounding) {
     return getInitialCompoundingPoolInformation(sqrtPrice, liquidity);
   }
-  return getInitialConcentratedLiquidityPoolInformation(sqrtMinPrice, sqrtMaxPrice, sqrtPrice, liquidity);
+  return getInitialConcentratedLiquidityPoolInformation(
+    sqrtMinPrice,
+    sqrtMaxPrice,
+    sqrtPrice,
+    liquidity,
+  );
 }
 
 /**
@@ -232,9 +292,16 @@ export function getLiquidityDeltaFromAmountA(
   collectFeeMode: CollectFeeMode,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getLiquidityDeltaFromAmountAForCompoundingLiquidity(amountA, sqrtPrice);
+    return getLiquidityDeltaFromAmountAForCompoundingLiquidity(
+      amountA,
+      sqrtPrice,
+    );
   }
-  return getLiquidityDeltaFromAmountAForConcentratedLiquidity(amountA, sqrtPrice, sqrtMaxPrice);
+  return getLiquidityDeltaFromAmountAForConcentratedLiquidity(
+    amountA,
+    sqrtPrice,
+    sqrtMaxPrice,
+  );
 }
 
 /**
@@ -247,9 +314,16 @@ export function getLiquidityDeltaFromAmountB(
   collectFeeMode: CollectFeeMode,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getLiquidityDeltaFromAmountBForCompoundingLiquidity(amountB, sqrtPrice);
+    return getLiquidityDeltaFromAmountBForCompoundingLiquidity(
+      amountB,
+      sqrtPrice,
+    );
   }
-  return getLiquidityDeltaFromAmountBForConcentratedLiquidity(amountB, sqrtMinPrice, sqrtPrice);
+  return getLiquidityDeltaFromAmountBForConcentratedLiquidity(
+    amountB,
+    sqrtMinPrice,
+    sqrtPrice,
+  );
 }
 
 /**
@@ -265,9 +339,19 @@ export function getAmountAFromLiquidityDelta(
   liquidity: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getAmountAFromLiquidityDeltaForCompoundingLiquidity(tokenAAmount, liquidity, liquidityDelta, rounding);
+    return getAmountAFromLiquidityDeltaForCompoundingLiquidity(
+      tokenAAmount,
+      liquidity,
+      liquidityDelta,
+      rounding,
+    );
   }
-  return getAmountAFromLiquidityDeltaForConcentratedLiquidity(sqrtPrice, sqrtMaxPrice, liquidityDelta, rounding);
+  return getAmountAFromLiquidityDeltaForConcentratedLiquidity(
+    sqrtPrice,
+    sqrtMaxPrice,
+    liquidityDelta,
+    rounding,
+  );
 }
 
 /**
@@ -283,7 +367,17 @@ export function getAmountBFromLiquidityDelta(
   liquidity: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getAmountBFromLiquidityDeltaForCompoundingLiquidity(tokenBAmount, liquidity, liquidityDelta, rounding);
+    return getAmountBFromLiquidityDeltaForCompoundingLiquidity(
+      tokenBAmount,
+      liquidity,
+      liquidityDelta,
+      rounding,
+    );
   }
-  return getAmountBFromLiquidityDeltaForConcentratedLiquidity(sqrtMinPrice, sqrtPrice, liquidityDelta, rounding);
+  return getAmountBFromLiquidityDeltaForConcentratedLiquidity(
+    sqrtMinPrice,
+    sqrtPrice,
+    liquidityDelta,
+    rounding,
+  );
 }

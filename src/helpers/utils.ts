@@ -1,7 +1,14 @@
 import { BN } from "@coral-xyz/anchor";
 import { BASIS_POINT_MAX, LIQUIDITY_SCALE } from "../constants";
 import Decimal from "decimal.js";
-import { CollectFeeMode, PoolLayoutVersion, PoolState, PositionState, RewardInfo, SwapMode } from "../types";
+import {
+  CollectFeeMode,
+  PoolLayoutVersion,
+  PoolState,
+  PositionState,
+  RewardInfo,
+  SwapMode,
+} from "../types";
 
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with

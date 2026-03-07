@@ -59,3 +59,6 @@ export const PROGRAM_VERSION = "0.2.0";
  * Pools created before DAMM v2 program v0.2.0 have layoutVersion === 0.
  */
 export const MIN_RESERVE_TRACKING_LAYOUT_VERSION = PoolLayoutVersion.V1;
+
+/** Dead (locked) liquidity burned on Compounding pool creation. = 100 * 2^64 */
+export const DEAD_LIQUIDITY = new BN("1844674407370955161600");

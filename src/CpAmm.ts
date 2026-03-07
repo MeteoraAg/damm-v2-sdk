@@ -71,6 +71,7 @@ import {
   InitializeRewardParams,
   InitializeAndFundReward,
   BaseFeeMode,
+  CollectFeeMode,
   DecodedPoolFees,
 } from "./types";
 import {
@@ -107,14 +108,15 @@ import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
 import {
   calculateInitSqrtPrice,
-  getAmountAFromLiquidityDelta,
-  getAmountBFromLiquidityDelta,
-  getLiquidityDeltaFromAmountA,
-  getLiquidityDeltaFromAmountB,
   isRateLimiterApplied,
   swapQuoteExactInput,
   swapQuoteExactOutput,
   swapQuotePartialInput,
+  getLiquidityDeltaFromAmountA,
+  getLiquidityDeltaFromAmountB,
+  getAmountAFromLiquidityDelta,
+  getAmountBFromLiquidityDelta,
+  getLiquidityHandler,
 } from "./math";
 import { CP_AMM_PROGRAM_ID } from "./constants";
 
@@ -1059,18 +1061,21 @@ export class CpAmm {
       sqrtMaxPrice,
       sqrtMinPrice,
       sqrtPrice,
+      collectFeeMode,
     } = params;
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       maxAmountTokenA,
       sqrtPrice,
       sqrtMaxPrice,
+      collectFeeMode,
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       maxAmountTokenB,
       sqrtMinPrice,
       sqrtPrice,
+      collectFeeMode,
     );
 
     return min(liquidityDeltaFromAmountA, liquidityDeltaFromAmountB);
@@ -1131,10 +1136,9 @@ export class CpAmm {
       consumedInAmount: swapResult.includedFeeInputAmount,
       swapOutAmount: swapResult.outputAmount,
       minSwapOutAmount: swapResult.minimumAmountOut,
-      totalFee: swapResult.tradingFee
-        .add(swapResult.protocolFee)
-        .add(swapResult.claimingFee)
+      totalFee: swapResult.claimingFee
         .add(swapResult.compoundingFee)
+        .add(swapResult.protocolFee)
         .add(swapResult.referralFee),
       priceImpact: swapResult.priceImpact,
     };
@@ -1237,15 +1241,11 @@ export class CpAmm {
       minSqrtPrice,
       maxSqrtPrice,
       sqrtPrice,
+      collectFeeMode,
+      tokenAAmount,
+      tokenBAmount,
+      liquidity,
     } = params;
-
-    if (isTokenA && sqrtPrice.gte(maxSqrtPrice)) {
-      throw new DepositTokenNotAcceptedError("B");
-    }
-
-    if (!isTokenA && sqrtPrice.lte(minSqrtPrice)) {
-      throw new DepositTokenNotAcceptedError("A");
-    }
 
     const actualAmountIn = inputTokenInfo
       ? calculateTransferFeeExcludedAmount(
@@ -1255,37 +1255,25 @@ export class CpAmm {
         ).amount
       : inAmount;
 
-    const { liquidityDelta, rawAmount } = isTokenA
-      ? {
-          liquidityDelta: getLiquidityDeltaFromAmountA(
-            actualAmountIn,
-            sqrtPrice,
-            maxSqrtPrice,
-          ),
-          rawAmount: (delta: BN) =>
-            getAmountBFromLiquidityDelta(
-              minSqrtPrice,
-              sqrtPrice,
-              delta,
-              Rounding.Up,
-            ),
-        }
-      : {
-          liquidityDelta: getLiquidityDeltaFromAmountB(
-            actualAmountIn,
-            minSqrtPrice,
-            sqrtPrice,
-          ),
-          rawAmount: (delta: BN) =>
-            getAmountAFromLiquidityDelta(
-              sqrtPrice,
-              maxSqrtPrice,
-              delta,
-              Rounding.Up,
-            ),
-        };
+    // Compute liquidityDelta using mode-dispatched function
+    const liquidityDelta = isTokenA
+      ? getLiquidityDeltaFromAmountA(actualAmountIn, sqrtPrice, maxSqrtPrice, collectFeeMode)
+      : getLiquidityDeltaFromAmountB(actualAmountIn, minSqrtPrice, sqrtPrice, collectFeeMode);
 
-    const rawOutputAmount = new BN(rawAmount(liquidityDelta));
+    // Get the required amount of the other token using the liquidity handler
+    const mockPoolState = {
+      collectFeeMode,
+      tokenAAmount: tokenAAmount ?? new BN(0),
+      tokenBAmount: tokenBAmount ?? new BN(0),
+      liquidity: liquidity ?? new BN(0),
+      sqrtPrice,
+      sqrtMinPrice: minSqrtPrice,
+      sqrtMaxPrice: maxSqrtPrice,
+    } as any;
+    const handler = getLiquidityHandler(mockPoolState);
+    const [amountA, amountB] = handler.getAmountsForModifyLiquidity(liquidityDelta, Rounding.Up);
+
+    const rawOutputAmount = isTokenA ? amountB : amountA;
     const outputAmount = outputTokenInfo
       ? calculateTransferFeeIncludedAmount(
           rawOutputAmount,
@@ -1323,46 +1311,35 @@ export class CpAmm {
       minSqrtPrice,
       tokenATokenInfo,
       tokenBTokenInfo,
+      collectFeeMode,
+      tokenAAmount,
+      tokenBAmount,
+      liquidity,
     } = params;
 
     if (liquidityDelta.isZero()) {
-      throw new Error(
-        "Cannot withdraw: liquidityDelta must be greater than zero.",
-      );
+      throw new Error("Cannot withdraw: liquidityDelta must be greater than zero.");
     }
 
-    if (sqrtPrice.isZero()) {
-      throw new Error("Cannot withdraw: sqrtPrice must be greater than zero.");
-    }
-
-    const amountA = getAmountAFromLiquidityDelta(
+    const mockPoolState = {
+      collectFeeMode,
+      tokenAAmount: tokenAAmount ?? new BN(0),
+      tokenBAmount: tokenBAmount ?? new BN(0),
+      liquidity: liquidity ?? new BN(0),
       sqrtPrice,
-      maxSqrtPrice,
-      liquidityDelta,
-      Rounding.Down,
-    );
-    const amountB = getAmountBFromLiquidityDelta(
-      minSqrtPrice,
-      sqrtPrice,
-      liquidityDelta,
-      Rounding.Down,
-    );
+      sqrtMinPrice: minSqrtPrice,
+      sqrtMaxPrice: maxSqrtPrice,
+    } as any;
+    const handler = getLiquidityHandler(mockPoolState);
+    const [amountA, amountB] = handler.getAmountsForModifyLiquidity(liquidityDelta, Rounding.Down);
 
     return {
       liquidityDelta,
       outAmountA: tokenATokenInfo
-        ? calculateTransferFeeExcludedAmount(
-            amountA,
-            tokenATokenInfo.mint,
-            tokenATokenInfo.currentEpoch,
-          ).amount
+        ? calculateTransferFeeExcludedAmount(amountA, tokenATokenInfo.mint, tokenATokenInfo.currentEpoch).amount
         : amountA,
       outAmountB: tokenBTokenInfo
-        ? calculateTransferFeeExcludedAmount(
-            amountB,
-            tokenBTokenInfo.mint,
-            tokenBTokenInfo.currentEpoch,
-          ).amount
+        ? calculateTransferFeeExcludedAmount(amountB, tokenBTokenInfo.mint, tokenBTokenInfo.currentEpoch).amount
         : amountB,
     };
   }
@@ -1379,6 +1356,7 @@ export class CpAmm {
       initSqrtPrice,
       minSqrtPrice,
       maxSqrtPrice,
+      collectFeeMode,
       tokenAInfo,
     } = params;
 
@@ -1400,6 +1378,7 @@ export class CpAmm {
       actualAmountIn,
       initSqrtPrice,
       maxSqrtPrice,
+      collectFeeMode,
     );
 
     return liquidityDelta;
@@ -1419,6 +1398,7 @@ export class CpAmm {
       tokenBAmount,
       minSqrtPrice,
       maxSqrtPrice,
+      collectFeeMode,
       tokenAInfo,
       tokenBInfo,
     } = params;
@@ -1458,12 +1438,14 @@ export class CpAmm {
       actualAmountAIn,
       initSqrtPrice,
       maxSqrtPrice,
+      collectFeeMode,
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       actualAmountBIn,
       minSqrtPrice,
       initSqrtPrice,
+      collectFeeMode,
     );
 
     const liquidityDelta = min(
@@ -2778,11 +2760,15 @@ export class CpAmm {
     }
 
     // recalculate liquidity delta
+    const collectFeeMode = poolState.collectFeeMode as CollectFeeMode;
     const tokenAWithdrawAmount = getAmountAFromLiquidityDelta(
       poolState.sqrtPrice,
       poolState.sqrtMaxPrice,
       positionBLiquidityDelta,
       Rounding.Down,
+      collectFeeMode,
+      new BN(poolState.tokenAAmount.toString()),
+      new BN(poolState.liquidity.toString()),
     );
 
     const tokenBWithdrawAmount = getAmountBFromLiquidityDelta(
@@ -2790,6 +2776,9 @@ export class CpAmm {
       poolState.sqrtPrice,
       positionBLiquidityDelta,
       Rounding.Down,
+      collectFeeMode,
+      new BN(poolState.tokenBAmount.toString()),
+      new BN(poolState.liquidity.toString()),
     );
 
     const newLiquidityDelta = this.getLiquidityDelta({
@@ -2798,6 +2787,7 @@ export class CpAmm {
       sqrtMaxPrice: poolState.sqrtMaxPrice,
       sqrtMinPrice: poolState.sqrtMinPrice,
       sqrtPrice: poolState.sqrtPrice,
+      collectFeeMode,
     });
 
     const transaction = new Transaction();
@@ -3093,50 +3083,6 @@ export class CpAmm {
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)
       .transaction();
-  }
-
-  // claimPartnerFee() removed in SDK v2.0.0
-  // The claim_partner_fee instruction was removed in DAMM v2 program v0.2.0.
-  // See MIGRATION_GUIDE.md for details.
-
-  /**
-   * Migrates a legacy V0 pool to V1 layout, enabling on-chain reserve tracking
-   * (tokenAAmount / tokenBAmount fields on PoolState).
-   *
-   * This instruction is permissioned — the pool's `owner` or configured `operator`
-   * must sign. It is a one-time, forward-only migration; V1 → V0 is not possible.
-   *
-   * @param poolAddress        - Public key of the pool to migrate
-   * @param ownerOrOperator    - Public key of pool owner or operator (must sign)
-   * @returns Transaction that calls fix_pool_layout_version on-chain
-   *
-   * @example
-   * const tx = await cpAmm.fixPoolLayoutVersion(poolPubkey, operatorKeypair.publicKey);
-   * await sendAndConfirmTransaction(connection, tx, [operatorKeypair]);
-   */
-  async fixPoolLayoutVersion(
-    poolAddress: PublicKey,
-    ownerOrOperator: PublicKey,
-  ): TxBuilder {
-    const poolState = await this.fetchPoolState(poolAddress);
-
-    if ((poolState as any).layoutVersion === 1) {
-      throw new Error(
-        `Pool ${poolAddress.toBase58()} is already at layout version V1. No migration needed.`,
-      );
-    }
-
-    // NOTE: fixPoolLayoutVersion is a new instruction in DAMM v2 program v0.2.0.
-    // The IDL will be updated when the on-chain program upgrades. Cast to any for now.
-    const ix = await (this._program.methods as any)
-      .fixPoolLayoutVersion()
-      .accountsPartial({
-        pool: poolAddress,
-        owner: ownerOrOperator,
-      })
-      .instruction();
-
-    return new Transaction().add(ix);
   }
 
   /**

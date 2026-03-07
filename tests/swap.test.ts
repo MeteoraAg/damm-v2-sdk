@@ -18,6 +18,7 @@ import {
   ActivationType,
   AddLiquidityParams,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   derivePositionNftAccount,
   getBaseFeeParams,
@@ -73,7 +74,8 @@ describe("Swap", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -87,6 +89,7 @@ describe("Swap", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -138,6 +141,10 @@ describe("Swap", () => {
         sqrtPrice: poolState.sqrtPrice,
         minSqrtPrice: poolState.sqrtMinPrice,
         maxSqrtPrice: poolState.sqrtMaxPrice,
+        collectFeeMode: poolState.collectFeeMode,
+        tokenAAmount: poolState.tokenAAmount,
+        tokenBAmount: poolState.tokenBAmount,
+        liquidity: poolState.liquidity,
       });
 
       const addLiquidityParams: AddLiquidityParams = {
@@ -226,7 +233,8 @@ describe("Swap", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -240,6 +248,7 @@ describe("Swap", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -291,6 +300,10 @@ describe("Swap", () => {
         sqrtPrice: poolState.sqrtPrice,
         minSqrtPrice: poolState.sqrtMinPrice,
         maxSqrtPrice: poolState.sqrtMaxPrice,
+        collectFeeMode: poolState.collectFeeMode,
+        tokenAAmount: poolState.tokenAAmount,
+        tokenBAmount: poolState.tokenBAmount,
+        liquidity: poolState.liquidity,
       });
 
       const addLiquidityParams: AddLiquidityParams = {

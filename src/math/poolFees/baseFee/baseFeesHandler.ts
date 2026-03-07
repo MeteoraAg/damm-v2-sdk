@@ -5,8 +5,8 @@ import {
   CollectFeeMode,
   ActivationType,
   BaseFeeHandler,
-  PoolVersion,
-} from "../../types";
+  LayoutVersion,
+} from "../../../types";
 import {
   getFeeNumeratorFromIncludedFeeAmount,
   getFeeNumeratorFromExcludedFeeAmount,
@@ -32,8 +32,8 @@ import {
   decodePodAlignedFeeRateLimiter,
   decodePodAlignedFeeTimeScheduler,
   decodePodAlignedFeeMarketCapScheduler,
-} from "../../helpers";
-import { U64_MAX } from "../../constants";
+} from "../../../helpers";
+import { U64_MAX } from "../../../constants";
 
 /**
  * Fee Rate Limiter class
@@ -50,7 +50,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion,
+    layoutVersion: LayoutVersion,
   ): boolean {
     return validateFeeRateLimiter(
       this.cliffFeeNumerator,
@@ -60,7 +60,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
       this.referenceAmount,
       collectFeeMode,
       activationType,
-      poolVersion,
+      layoutVersion,
     );
   }
 
@@ -167,7 +167,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion,
+    layoutVersion: LayoutVersion,
   ): boolean {
     return validateFeeTimeScheduler(
       this.numberOfPeriod,
@@ -175,7 +175,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
       this.reductionFactor,
       this.cliffFeeNumerator,
       this.feeTimeSchedulerMode,
-      poolVersion,
+      layoutVersion,
     );
   }
 
@@ -256,7 +256,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
   validate(
     _collectFeeMode: CollectFeeMode,
     _activationType: ActivationType,
-    poolVersion: PoolVersion,
+    layoutVersion: LayoutVersion,
   ): boolean {
     return validateFeeMarketCapScheduler(
       this.cliffFeeNumerator,
@@ -265,7 +265,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
       this.reductionFactor,
       new BN(this.schedulerExpirationDuration),
       this.feeMarketCapSchedulerMode,
-      poolVersion,
+      layoutVersion,
     );
   }
 

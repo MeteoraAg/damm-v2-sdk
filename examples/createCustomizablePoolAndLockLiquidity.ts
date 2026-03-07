@@ -3,6 +3,7 @@ import { BN } from "@coral-xyz/anchor";
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   getBaseFeeParams,
   getDynamicFeeParams,
@@ -83,6 +84,7 @@ import {
     sqrtPrice: initSqrtPrice,
     sqrtMinPrice: MIN_SQRT_PRICE,
     sqrtMaxPrice: MAX_SQRT_PRICE,
+    collectFeeMode: CollectFeeMode.BothToken,
     tokenAInfo,
   });
 
@@ -105,7 +107,8 @@ import {
 
   const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
-    padding: [],
+    compoundingFeeBps: 0,
+    padding: 0,
     dynamicFee: dynamicFeeParams,
   };
   const positionNft = Keypair.generate();

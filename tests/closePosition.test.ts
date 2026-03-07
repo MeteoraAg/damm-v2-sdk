@@ -17,6 +17,7 @@ import {
   ActivationType,
   AddLiquidityParams,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   derivePositionNftAccount,
   getBaseFeeParams,
@@ -72,7 +73,8 @@ describe("Remove liquidity & Close position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -85,6 +87,7 @@ describe("Remove liquidity & Close position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -131,6 +134,10 @@ describe("Remove liquidity & Close position", () => {
         sqrtPrice: poolState.sqrtPrice,
         minSqrtPrice: poolState.sqrtMinPrice,
         maxSqrtPrice: poolState.sqrtMaxPrice,
+        collectFeeMode: poolState.collectFeeMode,
+        tokenAAmount: poolState.tokenAAmount,
+        tokenBAmount: poolState.tokenBAmount,
+        liquidity: poolState.liquidity,
       });
 
       const addLiquidityParams: AddLiquidityParams = {
@@ -226,7 +233,8 @@ describe("Remove liquidity & Close position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -240,6 +248,7 @@ describe("Remove liquidity & Close position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
@@ -285,6 +294,10 @@ describe("Remove liquidity & Close position", () => {
         sqrtPrice: poolState.sqrtPrice,
         minSqrtPrice: poolState.sqrtMinPrice,
         maxSqrtPrice: poolState.sqrtMaxPrice,
+        collectFeeMode: poolState.collectFeeMode,
+        tokenAAmount: poolState.tokenAAmount,
+        tokenBAmount: poolState.tokenBAmount,
+        liquidity: poolState.liquidity,
       });
 
       const addLiquidityParams: AddLiquidityParams = {

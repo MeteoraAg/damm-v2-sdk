@@ -18,6 +18,7 @@ import {
   ActivationType,
   AddLiquidityParams,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   derivePositionNftAccount,
   getBaseFeeParams,
@@ -74,7 +75,8 @@ describe("Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
       const positionNft = Keypair.generate();
@@ -87,6 +89,7 @@ describe("Lock Postion", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -138,6 +141,10 @@ describe("Lock Postion", () => {
         sqrtPrice: poolState.sqrtPrice,
         minSqrtPrice: poolState.sqrtMinPrice,
         maxSqrtPrice: poolState.sqrtMaxPrice,
+        collectFeeMode: poolState.collectFeeMode,
+        tokenAAmount: poolState.tokenAAmount,
+        tokenBAmount: poolState.tokenBAmount,
+        liquidity: poolState.liquidity,
       });
 
       const addLiquidityParams: AddLiquidityParams = {
@@ -244,7 +251,8 @@ describe("Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -258,6 +266,7 @@ describe("Lock Postion", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -309,6 +318,10 @@ describe("Lock Postion", () => {
         sqrtPrice: poolState.sqrtPrice,
         minSqrtPrice: poolState.sqrtMinPrice,
         maxSqrtPrice: poolState.sqrtMaxPrice,
+        collectFeeMode: poolState.collectFeeMode,
+        tokenAAmount: poolState.tokenAAmount,
+        tokenBAmount: poolState.tokenBAmount,
+        liquidity: poolState.liquidity,
       });
 
       const addLiquidityParams: AddLiquidityParams = {

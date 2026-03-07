@@ -9,6 +9,7 @@ import { BN } from "@coral-xyz/anchor";
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   derivePoolAddress,
   derivePositionAddress,
@@ -169,6 +170,7 @@ const DRY_RUN = true;
     sqrtPrice: initSqrtPrice,
     sqrtMinPrice: MIN_SQRT_PRICE,
     sqrtMaxPrice: MAX_SQRT_PRICE,
+    collectFeeMode: CollectFeeMode.BothToken,
     tokenAInfo,
   });
   console.log("Liquidity delta:", liquidityDelta.toString());
@@ -212,7 +214,8 @@ const DRY_RUN = true;
 
   const poolFees: PoolFeesParams = {
     baseFee: baseFeeParams,
-    padding: [],
+    compoundingFeeBps: 0,
+    padding: 0,
     dynamicFee: dynamicFeeParams,
   };
 

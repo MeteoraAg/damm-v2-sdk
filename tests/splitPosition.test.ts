@@ -16,6 +16,7 @@ import {
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   CreatePositionParams,
   derivePositionAddress,
@@ -76,7 +77,8 @@ describe("Split Position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -90,6 +92,7 @@ describe("Split Position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const createPoolParams: InitializeCustomizeablePoolParams = {
@@ -245,7 +248,8 @@ describe("Split Position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -259,6 +263,7 @@ describe("Split Position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const createPoolParams: InitializeCustomizeablePoolParams = {

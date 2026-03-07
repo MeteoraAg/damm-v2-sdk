@@ -21,6 +21,7 @@ import {
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   getBaseFeeParams,
   InitializeCustomizeablePoolParams,
@@ -73,7 +74,8 @@ describe("Initialize customizable pool", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -87,6 +89,7 @@ describe("Initialize customizable pool", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -169,7 +172,8 @@ describe("Initialize customizable pool", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -183,6 +187,7 @@ describe("Initialize customizable pool", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const params: InitializeCustomizeablePoolParams = {

@@ -18,9 +18,8 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
   ActivationType,
-  BaseFee,
   BaseFeeMode,
-  convertToFeeSchedulerSecondFactor,
+  CollectFeeMode,
   CpAmm,
   derivePositionNftAccount,
   getBaseFeeParams,
@@ -92,7 +91,8 @@ describe("Claim Fee 2", () => {
 
     const poolFees: PoolFeesParams = {
       baseFee,
-      padding: [],
+      compoundingFeeBps: 0,
+      padding: 0,
       dynamicFee: null,
     };
 
@@ -106,6 +106,7 @@ describe("Claim Fee 2", () => {
         tokenBAmount,
         minSqrtPrice: MIN_SQRT_PRICE,
         maxSqrtPrice: MAX_SQRT_PRICE,
+        collectFeeMode: CollectFeeMode.BothToken,
       });
 
     const params: InitializeCustomizeablePoolParams = {

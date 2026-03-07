@@ -46,8 +46,13 @@ export enum BaseFeeMode {
 }
 
 export enum CollectFeeMode {
+  /// Both token, in this mode only out token is collected
   BothToken,
+  /// Only token B, we just need token B, because if user want to collect fee in token A, they just need to flip order of tokens
   OnlyB,
+  /// In the compounding, a percentage fees will be accumulated in liquidity, while remainings are used for clamining, fees are always be in token B
+  /// Pool with compounding won't have price range, instead of using constant-product formula: x * y = constant
+  Compounding,
 }
 
 export enum TradeDirection {
@@ -60,9 +65,9 @@ export enum ActivationType {
   Timestamp,
 }
 
-export enum PoolVersion {
-  V0,
-  V1,
+export enum LayoutVersion {
+  V0, // 0
+  V1, // 1
 }
 
 export enum PoolStatus {
@@ -153,8 +158,9 @@ export type DecodedPoolFees =
 
 export type PoolFeesParams = {
   baseFee: BaseFee;
-  padding: number[];
-  dynamicFee: DynamicFee | null;
+  compoundingFeeBps: number;
+  padding: number;
+  dynamicFee: DynamicFee;
 };
 
 export type PrepareTokenAccountParams = {
@@ -220,6 +226,7 @@ export type PreparePoolCreationParams = {
     mint: Mint;
     currentEpoch: number;
   };
+  collectFeeMode: CollectFeeMode;
 };
 
 export type PreparedPoolCreation = {
@@ -236,6 +243,7 @@ export type PreparePoolCreationSingleSide = {
     mint: Mint;
     currentEpoch: number;
   };
+  collectFeeMode: CollectFeeMode;
 };
 
 export type CreatePoolParams = {
@@ -309,6 +317,7 @@ export type LiquidityDeltaParams = {
     mint: Mint;
     currentEpoch: number;
   };
+  collectFeeMode: CollectFeeMode;
 };
 
 export type RemoveLiquidityParams = {
@@ -736,6 +745,10 @@ export type GetDepositQuoteParams = {
     mint: Mint;
     currentEpoch: number;
   };
+  collectFeeMode: CollectFeeMode;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  liquidity: BN;
 };
 
 export type GetWithdrawQuoteParams = {
@@ -751,6 +764,10 @@ export type GetWithdrawQuoteParams = {
     mint: Mint;
     currentEpoch: number;
   };
+  collectFeeMode: CollectFeeMode;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  liquidity: BN;
 };
 
 export type DepositQuote = {
@@ -804,7 +821,7 @@ export interface BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion,
+    layoutVersion: LayoutVersion,
   ): boolean;
   getBaseFeeNumeratorFromIncludedFeeAmount(
     currentPoint: BN,
@@ -829,15 +846,57 @@ export interface BaseFeeHandler {
 
 export interface FeeOnAmountResult {
   amount: BN;
-  tradingFee: BN;
+  claimingFee: BN;
+  compoundingFee: BN;
   protocolFee: BN;
-  partnerFee: BN;
   referralFee: BN;
 }
 
 export interface SplitFees {
-  tradingFee: BN;
+  claimingFee: BN;
+  compoundingFee: BN;
   protocolFee: BN;
   referralFee: BN;
-  partnerFee: BN;
+}
+
+export type InitialPoolInformation = {
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  sqrtPrice: BN;
+  initialLiquidity: BN;
+  sqrtMinPrice: BN;
+  sqrtMaxPrice: BN;
+};
+
+export interface SwapAmountFromInput {
+  outputAmount: BN;
+  nextSqrtPrice: BN;
+  amountLeft: BN;
+}
+
+export interface SwapAmountFromOutput {
+  inputAmount: BN;
+  nextSqrtPrice: BN;
+}
+
+export interface LiquidityHandler {
+  getAmountsForModifyLiquidity(liquidityDelta: BN, round: Rounding): [BN, BN];
+
+  calculateAtoBFromAmountIn(amountIn: BN): SwapAmountFromInput;
+
+  calculateBtoAFromAmountIn(amountIn: BN): SwapAmountFromInput;
+
+  calculateAtoBFromPartialAmountIn(amountIn: BN): SwapAmountFromInput;
+
+  calculateBtoAFromPartialAmountIn(amountIn: BN): SwapAmountFromInput;
+
+  calculateAtoBFromAmountOut(amountOut: BN): SwapAmountFromOutput;
+
+  calculateBtoAFromAmountOut(amountOut: BN): SwapAmountFromOutput;
+
+  getReservesAmount(): [BN, BN];
+
+  getNextSqrtPrice(nextSqrtPrice: BN): BN;
+
+  getMaxAmountIn(tradeDirection: TradeDirection): BN;
 }

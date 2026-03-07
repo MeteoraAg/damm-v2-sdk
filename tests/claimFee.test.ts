@@ -20,6 +20,7 @@ import {
   ActivationType,
   BaseFee,
   BaseFeeMode,
+  CollectFeeMode,
   convertToFeeSchedulerSecondFactor,
   CpAmm,
   derivePositionNftAccount,
@@ -92,7 +93,8 @@ describe("Claim Fee", () => {
 
     const poolFees: PoolFeesParams = {
       baseFee,
-      padding: [],
+      compoundingFeeBps: 0,
+      padding: 0,
       dynamicFee: null,
     };
 
@@ -106,6 +108,7 @@ describe("Claim Fee", () => {
         tokenBAmount,
         minSqrtPrice: MIN_SQRT_PRICE,
         maxSqrtPrice: MAX_SQRT_PRICE,
+        collectFeeMode: CollectFeeMode.BothToken,
       });
 
     const params: InitializeCustomizeablePoolParams = {

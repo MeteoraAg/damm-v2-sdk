@@ -7,7 +7,12 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
-import { CpAmm, derivePositionAddress, derivePositionNftAccount } from "../src";
+import {
+  CollectFeeMode,
+  CpAmm,
+  derivePositionAddress,
+  derivePositionNftAccount,
+} from "../src";
 import {
   getMint,
   TOKEN_2022_PROGRAM_ID,
@@ -73,6 +78,7 @@ import {
     sqrtPrice: poolState.sqrtPrice,
     sqrtMinPrice: poolState.sqrtMinPrice,
     sqrtMaxPrice: poolState.sqrtMaxPrice,
+    collectFeeMode: CollectFeeMode.BothToken,
     tokenAInfo,
   });
 

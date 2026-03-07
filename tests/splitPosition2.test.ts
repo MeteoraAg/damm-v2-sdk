@@ -17,6 +17,7 @@ import { expect, beforeEach, describe, it } from "vitest";
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   CreatePositionParams,
   derivePositionAddress,
@@ -75,7 +76,8 @@ describe("Split Position 2", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -89,6 +91,7 @@ describe("Split Position 2", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const createPoolParams: InitializeCustomizeablePoolParams = {
@@ -236,7 +239,8 @@ describe("Split Position 2", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        padding: [],
+        compoundingFeeBps: 0,
+        padding: 0,
         dynamicFee: null,
       };
 
@@ -250,6 +254,7 @@ describe("Split Position 2", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
+          collectFeeMode: CollectFeeMode.BothToken,
         });
 
       const createPoolParams: InitializeCustomizeablePoolParams = {

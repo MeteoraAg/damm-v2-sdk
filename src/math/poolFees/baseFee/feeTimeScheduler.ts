@@ -1,8 +1,11 @@
 import BN from "bn.js";
-import { BaseFeeMode } from "../../types";
-import { U16_MAX } from "../../constants";
+import { BaseFeeMode } from "../../../types";
+import { U16_MAX } from "../../../constants";
 
-import { BorshFeeTimeScheduler, PodAlignedFeeTimeScheduler } from "../../types";
+import {
+  BorshFeeTimeScheduler,
+  PodAlignedFeeTimeScheduler,
+} from "../../../types";
 import {
   getFeeNumeratorOnExponentialFeeScheduler,
   getFeeNumeratorOnLinearFeeScheduler,

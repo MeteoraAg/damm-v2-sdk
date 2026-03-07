@@ -1,6 +1,6 @@
 import BN from "bn.js";
-import { BaseFeeMode } from "../../types";
-import { BASIS_POINT_MAX } from "../../constants";
+import { BaseFeeMode } from "../../../types";
+import { BASIS_POINT_MAX } from "../../../constants";
 import {
   getFeeNumeratorOnExponentialFeeScheduler,
   getFeeNumeratorOnLinearFeeScheduler,

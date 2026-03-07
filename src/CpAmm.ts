@@ -20,7 +20,6 @@ import {
   BuildAddLiquidityParams,
   BuildLiquidatePositionInstructionParams,
   BuildRemoveAllLiquidityInstructionParams,
-  ClaimPartnerFeeParams,
   ClaimPositionFeeInstructionParams,
   ClaimPositionFeeParams,
   ClaimPositionFeeParams2,
@@ -72,6 +71,7 @@ import {
   InitializeRewardParams,
   InitializeAndFundReward,
   BaseFeeMode,
+  CollectFeeMode,
   DecodedPoolFees,
 } from "./types";
 import {
@@ -1060,18 +1060,21 @@ export class CpAmm {
       sqrtMaxPrice,
       sqrtMinPrice,
       sqrtPrice,
+      collectFeeMode,
     } = params;
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
       maxAmountTokenA,
       sqrtPrice,
       sqrtMaxPrice,
+      collectFeeMode,
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       maxAmountTokenB,
       sqrtMinPrice,
       sqrtPrice,
+      collectFeeMode,
     );
 
     return min(liquidityDeltaFromAmountA, liquidityDeltaFromAmountB);
@@ -1132,9 +1135,9 @@ export class CpAmm {
       consumedInAmount: swapResult.includedFeeInputAmount,
       swapOutAmount: swapResult.outputAmount,
       minSwapOutAmount: swapResult.minimumAmountOut,
-      totalFee: swapResult.tradingFee
+      totalFee: swapResult.claimingFee
+        .add(swapResult.compoundingFee)
         .add(swapResult.protocolFee)
-        .add(swapResult.partnerFee)
         .add(swapResult.referralFee),
       priceImpact: swapResult.priceImpact,
     };
@@ -1237,6 +1240,10 @@ export class CpAmm {
       minSqrtPrice,
       maxSqrtPrice,
       sqrtPrice,
+      collectFeeMode,
+      tokenAAmount,
+      tokenBAmount,
+      liquidity,
     } = params;
 
     if (isTokenA && sqrtPrice.gte(maxSqrtPrice)) {
@@ -1261,6 +1268,7 @@ export class CpAmm {
             actualAmountIn,
             sqrtPrice,
             maxSqrtPrice,
+            collectFeeMode,
           ),
           rawAmount: (delta: BN) =>
             getAmountBFromLiquidityDelta(
@@ -1268,6 +1276,9 @@ export class CpAmm {
               sqrtPrice,
               delta,
               Rounding.Up,
+              collectFeeMode,
+              tokenBAmount,
+              liquidity,
             ),
         }
       : {
@@ -1275,6 +1286,7 @@ export class CpAmm {
             actualAmountIn,
             minSqrtPrice,
             sqrtPrice,
+            collectFeeMode,
           ),
           rawAmount: (delta: BN) =>
             getAmountAFromLiquidityDelta(
@@ -1282,6 +1294,9 @@ export class CpAmm {
               maxSqrtPrice,
               delta,
               Rounding.Up,
+              collectFeeMode,
+              tokenAAmount,
+              liquidity,
             ),
         };
 
@@ -1323,6 +1338,10 @@ export class CpAmm {
       minSqrtPrice,
       tokenATokenInfo,
       tokenBTokenInfo,
+      collectFeeMode,
+      tokenAAmount,
+      tokenBAmount,
+      liquidity,
     } = params;
 
     if (liquidityDelta.isZero()) {
@@ -1340,12 +1359,18 @@ export class CpAmm {
       maxSqrtPrice,
       liquidityDelta,
       Rounding.Down,
+      collectFeeMode,
+      tokenAAmount,
+      liquidity,
     );
     const amountB = getAmountBFromLiquidityDelta(
       minSqrtPrice,
       sqrtPrice,
       liquidityDelta,
       Rounding.Down,
+      collectFeeMode,
+      tokenBAmount,
+      liquidity,
     );
 
     return {
@@ -1380,6 +1405,7 @@ export class CpAmm {
       minSqrtPrice,
       maxSqrtPrice,
       tokenAInfo,
+      collectFeeMode,
     } = params;
 
     if (!initSqrtPrice.eq(minSqrtPrice)) {
@@ -1400,6 +1426,7 @@ export class CpAmm {
       actualAmountIn,
       initSqrtPrice,
       maxSqrtPrice,
+      collectFeeMode,
     );
 
     return liquidityDelta;
@@ -1421,6 +1448,7 @@ export class CpAmm {
       maxSqrtPrice,
       tokenAInfo,
       tokenBInfo,
+      collectFeeMode,
     } = params;
 
     if (tokenAAmount.eq(new BN(0)) && tokenBAmount.eq(new BN(0))) {
@@ -1458,12 +1486,14 @@ export class CpAmm {
       actualAmountAIn,
       initSqrtPrice,
       maxSqrtPrice,
+      collectFeeMode,
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
       actualAmountBIn,
       minSqrtPrice,
       initSqrtPrice,
+      collectFeeMode,
     );
 
     const liquidityDelta = min(
@@ -2778,11 +2808,16 @@ export class CpAmm {
     }
 
     // recalculate liquidity delta
+    const collectFeeMode = poolState.collectFeeMode as CollectFeeMode;
+
     const tokenAWithdrawAmount = getAmountAFromLiquidityDelta(
       poolState.sqrtPrice,
       poolState.sqrtMaxPrice,
       positionBLiquidityDelta,
       Rounding.Down,
+      collectFeeMode,
+      poolState.tokenAAmount,
+      poolState.liquidity,
     );
 
     const tokenBWithdrawAmount = getAmountBFromLiquidityDelta(
@@ -2790,6 +2825,9 @@ export class CpAmm {
       poolState.sqrtPrice,
       positionBLiquidityDelta,
       Rounding.Down,
+      collectFeeMode,
+      poolState.tokenBAmount,
+      poolState.liquidity,
     );
 
     const newLiquidityDelta = this.getLiquidityDelta({
@@ -2798,6 +2836,7 @@ export class CpAmm {
       sqrtMaxPrice: poolState.sqrtMaxPrice,
       sqrtMinPrice: poolState.sqrtMinPrice,
       sqrtPrice: poolState.sqrtPrice,
+      collectFeeMode,
     });
 
     const transaction = new Transaction();
@@ -3089,67 +3128,6 @@ export class CpAmm {
         funderTokenAccount,
         funder: funder,
         tokenProgram,
-      })
-      .preInstructions(preInstructions)
-      .postInstructions(postInstructions)
-      .transaction();
-  }
-
-  /**
-   * Builds a transaction to claim partner fee rewards.
-   * @param {ClaimPartnerFeeParams} params - Claim parameters including amounts and partner address.
-   * @returns Transaction builder.
-   */
-  async claimPartnerFee(params: ClaimPartnerFeeParams): TxBuilder {
-    const {
-      feePayer,
-      receiver,
-      tempWSolAccount,
-      partner,
-      pool,
-      maxAmountA,
-      maxAmountB,
-    } = params;
-    const poolState = await this.fetchPoolState(pool);
-    const {
-      tokenAVault,
-      tokenBVault,
-      tokenAMint,
-      tokenBMint,
-      tokenAFlag,
-      tokenBFlag,
-    } = poolState;
-
-    const tokenAProgram = getTokenProgram(tokenAFlag);
-    const tokenBProgram = getTokenProgram(tokenBFlag);
-
-    const payer = feePayer ?? partner;
-    const { tokenAAccount, tokenBAccount, preInstructions, postInstructions } =
-      await this.setupFeeClaimAccounts({
-        payer,
-        owner: partner,
-        tokenAMint,
-        tokenBMint,
-        tokenAProgram,
-        tokenBProgram,
-        receiver,
-        tempWSolAccount,
-      });
-
-    return await this._program.methods
-      .claimPartnerFee(maxAmountA, maxAmountB)
-      .accountsPartial({
-        poolAuthority: this.poolAuthority,
-        pool,
-        tokenAAccount,
-        tokenBAccount,
-        tokenAVault,
-        tokenBVault,
-        tokenAMint,
-        tokenBMint,
-        partner,
-        tokenAProgram,
-        tokenBProgram,
       })
       .preInstructions(preInstructions)
       .postInstructions(postInstructions)

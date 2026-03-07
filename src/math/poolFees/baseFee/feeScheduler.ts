@@ -1,6 +1,6 @@
 import BN from "bn.js";
-import { BASIS_POINT_MAX, ONE_Q64 } from "../../constants";
-import { pow } from "../utilsMath";
+import { BASIS_POINT_MAX, ONE_Q64 } from "../../../constants";
+import { pow } from "../../utilsMath";
 
 /**
  * Gets the fee numerator on linear fee scheduler.

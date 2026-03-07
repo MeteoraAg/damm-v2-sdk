@@ -8,6 +8,7 @@ import {
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import {
+  CollectFeeMode,
   CpAmm,
   derivePoolAddress,
   derivePositionAddress,
@@ -63,6 +64,7 @@ import {
     sqrtPrice: initSqrtPrice,
     sqrtMinPrice: configState.sqrtMinPrice,
     sqrtMaxPrice: configState.sqrtMaxPrice,
+    collectFeeMode: CollectFeeMode.BothToken,
   });
 
   // create pool with payer is creator

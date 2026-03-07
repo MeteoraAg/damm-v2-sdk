@@ -8,6 +8,7 @@ import {
 import { BN } from "@coral-xyz/anchor";
 import {
   CpAmm,
+  CollectFeeMode,
   derivePoolAddress,
   derivePositionAddress,
   getSqrtPriceFromPrice,
@@ -78,6 +79,7 @@ import {
     sqrtMinPrice: configState.sqrtMinPrice,
     sqrtMaxPrice: configState.sqrtMaxPrice,
     tokenAInfo,
+    collectFeeMode: CollectFeeMode.BothToken,
   });
 
   // create pool (included create first position)

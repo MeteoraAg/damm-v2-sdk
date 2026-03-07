@@ -17,6 +17,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   getBaseFeeParams,
   InitializeCustomizeablePoolParams,
@@ -102,7 +103,8 @@ async function createPool(
 
   const poolFees: PoolFeesParams = {
     baseFee,
-    padding: [],
+    compoundingFeeBps: 0,
+    padding: 0,
     dynamicFee: null,
   };
 
@@ -116,6 +118,7 @@ async function createPool(
       tokenBAmount,
       minSqrtPrice: MIN_SQRT_PRICE,
       maxSqrtPrice: MAX_SQRT_PRICE,
+      collectFeeMode: CollectFeeMode.BothToken,
     });
 
   const params: InitializeCustomizeablePoolParams = {

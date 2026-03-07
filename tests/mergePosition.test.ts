@@ -14,6 +14,7 @@ import {
   ActivationType,
   AddLiquidityParams,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   CreatePositionParams,
   derivePositionAddress,
@@ -69,7 +70,8 @@ describe("Merge position", () => {
 
     const poolFees: PoolFeesParams = {
       baseFee,
-      padding: [],
+      compoundingFeeBps: 0,
+      padding: 0,
       dynamicFee: null,
     };
 
@@ -83,6 +85,7 @@ describe("Merge position", () => {
         tokenBAmount,
         minSqrtPrice: MIN_SQRT_PRICE,
         maxSqrtPrice: MAX_SQRT_PRICE,
+        collectFeeMode: CollectFeeMode.BothToken,
       });
 
     const params: InitializeCustomizeablePoolParams = {
@@ -129,6 +132,10 @@ describe("Merge position", () => {
       sqrtPrice: poolState.sqrtPrice,
       minSqrtPrice: poolState.sqrtMinPrice,
       maxSqrtPrice: poolState.sqrtMaxPrice,
+      collectFeeMode: poolState.collectFeeMode,
+      tokenAAmount: poolState.tokenAAmount,
+      tokenBAmount: poolState.tokenBAmount,
+      liquidity: poolState.liquidity,
     });
 
     const addLiquidityParams: AddLiquidityParams = {

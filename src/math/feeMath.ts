@@ -16,7 +16,7 @@ import {
   FeeMode,
   FeeOnAmountResult,
   PoolFeesStruct,
-  PoolVersion,
+  LayoutVersion,
   Rounding,
   SplitFees,
   TradeDirection,
@@ -81,33 +81,48 @@ export function getFeeMode(
   tradeDirection: TradeDirection,
   hasReferral: boolean,
 ): FeeMode {
-  // (CollectFeeMode::BothToken, TradeDirection::AToB) => (false, false)
-  // (CollectFeeMode::BothToken, TradeDirection::BtoA) => (false, true)
-  // (CollectFeeMode::OnlyB, TradeDirection::AtoB) => (false, false)
-  // (CollectFeeMode::OnlyB, TradeDirection::BtoA) => (true, false)
-
   let feesOnInput: boolean;
   let feesOnTokenA: boolean;
 
-  if (collectFeeMode === CollectFeeMode.BothToken) {
-    if (tradeDirection === TradeDirection.AtoB) {
-      feesOnInput = false;
-      feesOnTokenA = false;
-    } else {
-      // TradeDirection::BtoA
-      feesOnInput = false;
-      feesOnTokenA = true;
-    }
-  } else {
-    // CollectFeeMode::OnlyB
-    if (tradeDirection === TradeDirection.AtoB) {
-      feesOnInput = false;
-      feesOnTokenA = false;
-    } else {
-      // TradeDirection::BtoA
-      feesOnInput = true;
-      feesOnTokenA = false;
-    }
+  switch (collectFeeMode) {
+    case CollectFeeMode.BothToken:
+      switch (tradeDirection) {
+        case TradeDirection.AtoB:
+          feesOnInput = false;
+          feesOnTokenA = false;
+          break;
+        case TradeDirection.BtoA:
+          feesOnInput = false;
+          feesOnTokenA = true;
+          break;
+      }
+      break;
+    case CollectFeeMode.OnlyB:
+      switch (tradeDirection) {
+        case TradeDirection.AtoB:
+          feesOnInput = false;
+          feesOnTokenA = false;
+          break;
+        case TradeDirection.BtoA:
+          feesOnInput = true;
+          feesOnTokenA = false;
+          break;
+      }
+      break;
+    case CollectFeeMode.Compounding:
+      switch (tradeDirection) {
+        case TradeDirection.AtoB:
+          feesOnInput = false;
+          feesOnTokenA = false;
+          break;
+        case TradeDirection.BtoA:
+          feesOnInput = true;
+          feesOnTokenA = false;
+          break;
+      }
+      break;
+    default:
+      throw new Error("Invalid collectFeeMode");
   }
 
   return {
@@ -219,50 +234,71 @@ export function getTotalTradingFeeFromExcludedFeeAmount(
 }
 
 /**
- * Splits the fees
+ * Splits the fees into protocol, claiming, compounding, and referral portions.
+ *
+ *
  * @param poolFees - The pool fees
  * @param feeAmount - The fee amount
- * @param hasReferral - The has referral
- * @param hasPartner - The has partner
+ * @param hasReferral - Whether a referral account is present
  * @returns The split fees
  */
 export function splitFees(
   poolFees: PoolFeesStruct,
   feeAmount: BN,
   hasReferral: boolean,
-  hasPartner: boolean,
 ): SplitFees {
-  // protocol_fee = feeAmount * protocol_fee_percent / 100 (rounded down)
-  const protocolFee = feeAmount.muln(poolFees.protocolFeePercent).divn(100);
+  // protocol_fee = fee_amount * protocol_fee_percent / 100 (rounded down)
+  let protocolFee = mulDiv(
+    feeAmount,
+    new BN(poolFees.protocolFeePercent),
+    new BN(100),
+    Rounding.Down,
+  );
 
-  // trading_fee = feeAmount - protocol_fee
-  const tradingFee = feeAmount.sub(protocolFee);
+  // trading_fee = fee_amount - protocol_fee
+  let tradingFee = feeAmount.sub(protocolFee);
 
-  // referral_fee = protocol_fee * referral_fee_percent / 100 (rounded down) if hasReferral else 0
-  let referralFee = new BN(0);
+  // compounding/claiming split from claiming_fee
+  const compoundingFeeBps = new BN(poolFees.compoundingFeeBps);
+
+  let compoundingFee: BN;
+  let claimingFee: BN;
+  if (compoundingFeeBps.gt(new BN(0))) {
+    // compounding_fee = trading_fee * compounding_fee_bps / MAX_BASIS_POINT (rounded down)
+    compoundingFee = mulDiv(
+      tradingFee,
+      compoundingFeeBps,
+      new BN(BASIS_POINT_MAX),
+      Rounding.Down,
+    );
+    // claiming_fee = trading_fee - compounding_fee
+    claimingFee = tradingFee.sub(compoundingFee);
+  } else {
+    compoundingFee = new BN(0);
+    claimingFee = tradingFee;
+  }
+
+  // referral_fee = protocol_fee * referral_fee_percent / 100 (rounded down)
+  let referralFee: BN;
   if (hasReferral) {
-    referralFee = protocolFee.muln(poolFees.referralFeePercent).divn(100);
+    referralFee = mulDiv(
+      protocolFee,
+      new BN(poolFees.referralFeePercent),
+      new BN(100),
+      Rounding.Down,
+    );
+  } else {
+    referralFee = new BN(0);
   }
 
-  // protocol_fee_after_referral_fee = protocol_fee - referral_fee
-  const protocolFeeAfterReferral = protocolFee.sub(referralFee);
-
-  // partner_fee = protocol_fee_after_referral_fee * partner_fee_percent / 100 (rounded down) if hasPartner && partner_fee_percent > 0 else 0
-  let partnerFee = new BN(0);
-  if (hasPartner && poolFees.partnerFeePercent > 0) {
-    partnerFee = protocolFeeAfterReferral
-      .muln(poolFees.partnerFeePercent)
-      .divn(100);
-  }
-
-  // protocol_fee = protocol_fee_after_referral_fee - partner_fee
-  const finalProtocolFee = protocolFeeAfterReferral.sub(partnerFee);
+  // protocol_fee = protocol_fee - referral_fee
+  protocolFee = protocolFee.sub(referralFee);
 
   return {
-    tradingFee,
-    protocolFee: finalProtocolFee,
+    claimingFee,
+    compoundingFee,
+    protocolFee,
     referralFee,
-    partnerFee,
   };
 }
 
@@ -271,8 +307,7 @@ export function splitFees(
  * @param poolFees - The pool fees
  * @param amount - The amount
  * @param tradeFeeNumerator - The trade fee numerator
- * @param hasReferral - The has referral
- * @param hasPartner - The has partner
+ * @param hasReferral - Whether a referral account is present
  * @returns The fee on amount result
  */
 export function getFeeOnAmount(
@@ -280,27 +315,19 @@ export function getFeeOnAmount(
   amount: BN,
   tradeFeeNumerator: BN,
   hasReferral: boolean,
-  hasPartner: boolean,
 ): FeeOnAmountResult {
-  // get the amount and trading fee after excluding the fee from the amount
   const { excludedFeeAmount, tradingFee } = getExcludedFeeAmount(
     tradeFeeNumerator,
     amount,
   );
 
-  // split the trading fee into protocol, referral, and partner fees
-  const splitFeesResult = splitFees(
-    poolFees,
-    tradingFee,
-    hasReferral,
-    hasPartner,
-  );
+  const splitFeesResult = splitFees(poolFees, tradingFee, hasReferral);
 
   return {
     amount: excludedFeeAmount,
-    tradingFee: splitFeesResult.tradingFee,
+    claimingFee: splitFeesResult.claimingFee,
+    compoundingFee: splitFeesResult.compoundingFee,
     protocolFee: splitFeesResult.protocolFee,
-    partnerFee: splitFeesResult.partnerFee,
     referralFee: splitFeesResult.referralFee,
   };
 }
@@ -355,14 +382,14 @@ export function getIncludedFeeAmount(
 
 /**
  * Gets the max fee numerator
- * @param poolVersion - The pool version
+ * @param layoutVersion - The pool version
  * @returns The max fee numerator
  */
-export function getMaxFeeNumerator(poolVersion: PoolVersion): BN {
-  switch (poolVersion) {
-    case PoolVersion.V0:
+export function getMaxFeeNumerator(layoutVersion: LayoutVersion): BN {
+  switch (layoutVersion) {
+    case LayoutVersion.V0:
       return new BN(MAX_FEE_NUMERATOR_V0);
-    case PoolVersion.V1:
+    case LayoutVersion.V1:
       return new BN(MAX_FEE_NUMERATOR_V1);
     default:
       throw new Error("Invalid pool version");
@@ -374,11 +401,11 @@ export function getMaxFeeNumerator(poolVersion: PoolVersion): BN {
  * @param poolVersion - The pool version
  * @returns The max fee bps
  */
-export function getMaxFeeBps(poolVersion: PoolVersion): number {
-  switch (poolVersion) {
-    case PoolVersion.V0:
+export function getMaxFeeBps(layoutVersion: LayoutVersion): number {
+  switch (layoutVersion) {
+    case LayoutVersion.V0:
       return MAX_FEE_BPS_V0;
-    case PoolVersion.V1:
+    case LayoutVersion.V1:
       return MAX_FEE_BPS_V1;
     default:
       throw new Error("Invalid pool version");

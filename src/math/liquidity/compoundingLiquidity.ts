@@ -205,6 +205,10 @@ export function calculateAtoBFromAmountOutForCompoundingLiquidity(
   tokenBAmount: BN,
   amountOut: BN,
 ): { inputAmount: BN; nextSqrtPrice: BN } {
+  if (amountOut.gte(tokenBAmount)) {
+    throw new Error("InsufficientLiquidity");
+  }
+
   const inputAmount = mulDiv(
     tokenAAmount,
     amountOut,
@@ -232,6 +236,10 @@ export function calculateBtoAFromAmountOutForCompoundingLiquidity(
   tokenBAmount: BN,
   amountOut: BN,
 ): { inputAmount: BN; nextSqrtPrice: BN } {
+  if (amountOut.gte(tokenAAmount)) {
+    throw new Error("InsufficientLiquidity");
+  }
+
   const inputAmount = mulDiv(
     tokenBAmount,
     amountOut,

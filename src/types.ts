@@ -318,6 +318,9 @@ export type LiquidityDeltaParams = {
     currentEpoch: number;
   };
   collectFeeMode: CollectFeeMode;
+  tokenAAmount?: BN; // tokenA reserves for when the pool has already been created
+  tokenBAmount?: BN; // tokenB reserves for when the pool has already been created
+  liquidity?: BN; // used for when the pool has already been created
 };
 
 export type RemoveLiquidityParams = {

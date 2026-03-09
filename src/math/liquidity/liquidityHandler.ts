@@ -12,7 +12,7 @@ import {
 import { U64_MAX } from "../../constants";
 
 import {
-  getInitialCompoundingPoolComInformation,
+  getInitialCompoundingPoolInformation,
   getAmountsForModifyForCompoundingLiquidity,
   calculateAtoBFromAmountInForCompoundingLiquidity,
   calculateBtoAFromAmountInForCompoundingLiquidity,
@@ -26,6 +26,10 @@ import {
   getLiquidityDeltaFromAmountBForCompoundingLiquidity,
   getAmountAFromLiquidityDeltaForCompoundingLiquidity,
   getAmountBFromLiquidityDeltaForCompoundingLiquidity,
+  getPoolCreationLiquidityDeltaFromAmountBForCompoundingLiquidity,
+  getPoolCreationLiquidityDeltaFromAmountAForCompoundingLiquidity,
+  getPoolCreationAmountAFromLiquidityDeltaForCompoundingLiquidity,
+  getPoolCreationAmountBFromLiquidityDeltaForCompoundingLiquidity,
 } from "./compoundingLiquidity";
 
 import {
@@ -287,7 +291,7 @@ export function getInitialPoolInformation(
   liquidity: BN,
 ): InitialPoolInformation {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getInitialCompoundingPoolComInformation(sqrtPrice, liquidity);
+    return getInitialCompoundingPoolInformation(sqrtPrice, liquidity);
   } else {
     return getInitialConcentratedLiquidityPoolInformation(
       sqrtMinPrice,
@@ -298,86 +302,166 @@ export function getInitialPoolInformation(
   }
 }
 
+/**
+ * Computes liquidityDelta from a user's token A amount.
+ * - Compounding (existing pool): proportional formula using pool reserves
+ * - Compounding (pool creation): sqrtPrice-based formula when tokenAAmount is not provided
+ * - Concentrated: sqrtPrice-based formula
+ * @param amountA - User's token A amount (BN)
+ * @param sqrtPrice - The current sqrt price (BN)
+ * @param sqrtMaxPrice - The maximum sqrt price (BN)
+ * @param collectFeeMode - The collect fee mode
+ * @param tokenAAmount - Pool's token A reserve (BN)
+ * @param liquidity - Pool's total liquidity (BN)
+ * @returns The liquidity delta (BN)
+ */
 export function getLiquidityDeltaFromAmountA(
   amountA: BN,
   sqrtPrice: BN,
   sqrtMaxPrice: BN,
   collectFeeMode: CollectFeeMode,
+  tokenAAmount?: BN,
+  liquidity?: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getLiquidityDeltaFromAmountAForCompoundingLiquidity(
+    if (tokenAAmount && liquidity) {
+      return getLiquidityDeltaFromAmountAForCompoundingLiquidity(
+        amountA,
+        tokenAAmount,
+        liquidity,
+      );
+    }
+    return getPoolCreationLiquidityDeltaFromAmountAForCompoundingLiquidity(
       amountA,
       sqrtPrice,
-    );
-  } else {
-    return getLiquidityDeltaFromAmountAForConcentratedLiquidity(
-      amountA,
-      sqrtPrice,
-      sqrtMaxPrice,
     );
   }
+  return getLiquidityDeltaFromAmountAForConcentratedLiquidity(
+    amountA,
+    sqrtPrice,
+    sqrtMaxPrice,
+  );
 }
 
+/**
+ * Computes liquidityDelta from a user's token B amount.
+ * - Compounding (existing pool): proportional formula using pool reserves
+ * - Compounding (pool creation): sqrtPrice-based formula when tokenBAmount is not provided
+ * - Concentrated: sqrtPrice-based formula
+ * @param amountB - User's token B amount (BN)
+ * @param sqrtMinPrice - The minimum sqrt price (BN)
+ * @param sqrtPrice - The current sqrt price (BN)
+ * @param collectFeeMode - The collect fee mode
+ * @param tokenBAmount - Pool's token B reserve (BN)
+ * @param liquidity - Pool's total liquidity (BN)
+ * @returns The liquidity delta (BN)
+ */
 export function getLiquidityDeltaFromAmountB(
   amountB: BN,
   sqrtMinPrice: BN,
   sqrtPrice: BN,
   collectFeeMode: CollectFeeMode,
+  tokenBAmount?: BN,
+  liquidity?: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getLiquidityDeltaFromAmountBForCompoundingLiquidity(
+    if (tokenBAmount && liquidity) {
+      return getLiquidityDeltaFromAmountBForCompoundingLiquidity(
+        amountB,
+        tokenBAmount,
+        liquidity,
+      );
+    }
+    return getPoolCreationLiquidityDeltaFromAmountBForCompoundingLiquidity(
       amountB,
-      sqrtPrice,
-    );
-  } else {
-    return getLiquidityDeltaFromAmountBForConcentratedLiquidity(
-      amountB,
-      sqrtMinPrice,
       sqrtPrice,
     );
   }
+  return getLiquidityDeltaFromAmountBForConcentratedLiquidity(
+    amountB,
+    sqrtMinPrice,
+    sqrtPrice,
+  );
 }
 
+/**
+ * Computes token A amount from a liquidityDelta.
+ * - Compounding (existing pool): proportional formula using pool reserves
+ * - Compounding (pool creation): sqrtPrice-based formula when tokenAAmount is not provided
+ * - Concentrated: sqrtPrice-based formula
+ */
 export function getAmountAFromLiquidityDelta(
   sqrtPrice: BN,
   sqrtMaxPrice: BN,
   liquidityDelta: BN,
   rounding: Rounding,
   collectFeeMode: CollectFeeMode,
+  tokenAAmount?: BN,
+  liquidity?: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getAmountAFromLiquidityDeltaForCompoundingLiquidity(
+    if (tokenAAmount && liquidity) {
+      return getAmountAFromLiquidityDeltaForCompoundingLiquidity(
+        liquidityDelta,
+        tokenAAmount,
+        liquidity,
+        rounding,
+      );
+    }
+    return getPoolCreationAmountAFromLiquidityDeltaForCompoundingLiquidity(
       sqrtPrice,
       liquidityDelta,
-    );
-  } else {
-    return getAmountAFromLiquidityDeltaForConcentratedLiquidity(
-      sqrtPrice,
-      sqrtMaxPrice,
-      liquidityDelta,
-      rounding,
     );
   }
+  return getAmountAFromLiquidityDeltaForConcentratedLiquidity(
+    sqrtPrice,
+    sqrtMaxPrice,
+    liquidityDelta,
+    rounding,
+  );
 }
 
+/**
+ * Computes token B amount from a liquidityDelta.
+ * - Compounding (existing pool): proportional formula using pool reserves
+ * - Compounding (pool creation): sqrtPrice-based formula when tokenBAmount is not provided
+ * - Concentrated: sqrtPrice-based formula
+ * @param sqrtMinPrice - The minimum sqrt price (BN)
+ * @param sqrtPrice - The current sqrt price (BN)
+ * @param liquidityDelta - The liquidity delta (BN)
+ * @param rounding - The rounding (Rounding)
+ * @param collectFeeMode - The collect fee mode
+ * @param tokenBAmount - Pool's token B reserve (BN)
+ * @param liquidity - Pool's total liquidity (BN)
+ * @returns The token B amount (BN)
+ */
 export function getAmountBFromLiquidityDelta(
   sqrtMinPrice: BN,
   sqrtPrice: BN,
   liquidityDelta: BN,
   rounding: Rounding,
   collectFeeMode: CollectFeeMode,
+  tokenBAmount?: BN,
+  liquidity?: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    return getAmountBFromLiquidityDeltaForCompoundingLiquidity(
+    if (tokenBAmount && liquidity) {
+      return getAmountBFromLiquidityDeltaForCompoundingLiquidity(
+        liquidityDelta,
+        tokenBAmount,
+        liquidity,
+        rounding,
+      );
+    }
+    return getPoolCreationAmountBFromLiquidityDeltaForCompoundingLiquidity(
       sqrtPrice,
       liquidityDelta,
-    );
-  } else {
-    return getAmountBFromLiquidityDeltaForConcentratedLiquidity(
-      sqrtMinPrice,
-      sqrtPrice,
-      liquidityDelta,
-      rounding,
     );
   }
+  return getAmountBFromLiquidityDeltaForConcentratedLiquidity(
+    sqrtMinPrice,
+    sqrtPrice,
+    liquidityDelta,
+    rounding,
+  );
 }

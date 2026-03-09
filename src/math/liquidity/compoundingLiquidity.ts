@@ -1,7 +1,7 @@
 import BN from "bn.js";
 import { InitialPoolInformation, Rounding, TradeDirection } from "../../types";
 import { mulDiv, sqrt } from "../utilsMath";
-import { DEAD_LIQUIDITY, U128_MAX, U64_MAX } from "../../constants";
+import { DEAD_LIQUIDITY, U128_MAX } from "../../constants";
 
 /**
  * Calculate initial pool information given sqrt_price and liquidity.
@@ -23,11 +23,11 @@ export function getInitialCompoundingPoolComInformation(
   // b = liquidity * sqrtPrice
   // a = liquidity / sqrtPrice
 
-  const tokenAAmount = getInitialTokenAForCompoundingLiquidity(
+  const tokenAAmount = getAmountAFromLiquidityDeltaForCompoundingLiquidity(
     sqrtPrice,
     liquidity,
   );
-  const tokenBAmount = getInitialTokenBForCompoundingLiquidity(
+  const tokenBAmount = getAmountBFromLiquidityDeltaForCompoundingLiquidity(
     sqrtPrice,
     liquidity,
   );
@@ -61,18 +61,8 @@ export function getAmountsForModifyForCompoundingLiquidity(
   liquidityDelta: BN,
   round: Rounding,
 ): [BN, BN] {
-  const amountA = getAmountAFromLiquidityDeltaForCompoundingLiquidity(
-    tokenAAmount,
-    liquidity,
-    liquidityDelta,
-    round,
-  );
-  const amountB = getAmountBFromLiquidityDeltaForCompoundingLiquidity(
-    tokenBAmount,
-    liquidity,
-    liquidityDelta,
-    round,
-  );
+  const amountA = mulDiv(liquidityDelta, tokenAAmount, liquidity, round);
+  const amountB = mulDiv(liquidityDelta, tokenBAmount, liquidity, round);
 
   return [amountA, amountB];
 }
@@ -317,7 +307,7 @@ export function getSqrtPriceFromAmountsForCompoundingLiquidity(
  * @param liquidity - The liquidity as BN
  * @returns amount as BN
  */
-export function getInitialTokenAForCompoundingLiquidity(
+export function getAmountAFromLiquidityDeltaForCompoundingLiquidity(
   sqrtPrice: BN,
   liquidity: BN,
 ): BN {
@@ -334,7 +324,7 @@ export function getInitialTokenAForCompoundingLiquidity(
  * @param liquidity - The liquidity as BN
  * @returns amount as BN
  */
-export function getInitialTokenBForCompoundingLiquidity(
+export function getAmountBFromLiquidityDeltaForCompoundingLiquidity(
   sqrtPrice: BN,
   liquidity: BN,
 ): BN {
@@ -346,40 +336,6 @@ export function getInitialTokenBForCompoundingLiquidity(
   // ceiling division: (numerator + denominator - 1) / denominator
   const amount = numerator.add(denominator.subn(1)).div(denominator);
   return amount;
-}
-
-/**
- * Calculates the amount of token A needed given the liquidity delta.
- * @param tokenAAmount - Current token A amount (BN)
- * @param liquidity - Current liquidity (BN)
- * @param liquidityDelta - Liquidity delta being added/removed (BN)
- * @param round - Rounding (Rounding)
- * @returns Amount of token A (BN)
- */
-export function getAmountAFromLiquidityDeltaForCompoundingLiquidity(
-  tokenAAmount: BN,
-  liquidity: BN,
-  liquidityDelta: BN,
-  round: Rounding,
-): BN {
-  return mulDiv(liquidityDelta, tokenAAmount, liquidity, round);
-}
-
-/**
- * Calculates the amount of token B needed given the liquidity delta.
- * @param tokenBAmount - Current token B amount (BN)
- * @param liquidity - Current liquidity (BN)
- * @param liquidityDelta - Liquidity delta being added/removed (BN)
- * @param round - Rounding (Rounding)
- * @returns Amount of token B (BN)
- */
-export function getAmountBFromLiquidityDeltaForCompoundingLiquidity(
-  tokenBAmount: BN,
-  liquidity: BN,
-  liquidityDelta: BN,
-  round: Rounding,
-): BN {
-  return mulDiv(liquidityDelta, tokenBAmount, liquidity, round);
 }
 
 /**

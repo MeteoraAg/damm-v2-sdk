@@ -1277,8 +1277,6 @@ export class CpAmm {
               delta,
               Rounding.Up,
               collectFeeMode,
-              tokenBAmount,
-              liquidity,
             ),
         }
       : {
@@ -1295,8 +1293,6 @@ export class CpAmm {
               delta,
               Rounding.Up,
               collectFeeMode,
-              tokenAAmount,
-              liquidity,
             ),
         };
 
@@ -1360,8 +1356,6 @@ export class CpAmm {
       liquidityDelta,
       Rounding.Down,
       collectFeeMode,
-      tokenAAmount,
-      liquidity,
     );
     const amountB = getAmountBFromLiquidityDelta(
       minSqrtPrice,
@@ -1369,8 +1363,6 @@ export class CpAmm {
       liquidityDelta,
       Rounding.Down,
       collectFeeMode,
-      tokenBAmount,
-      liquidity,
     );
 
     return {
@@ -2816,8 +2808,6 @@ export class CpAmm {
       positionBLiquidityDelta,
       Rounding.Down,
       collectFeeMode,
-      poolState.tokenAAmount,
-      poolState.liquidity,
     );
 
     const tokenBWithdrawAmount = getAmountBFromLiquidityDelta(
@@ -2826,8 +2816,6 @@ export class CpAmm {
       positionBLiquidityDelta,
       Rounding.Down,
       collectFeeMode,
-      poolState.tokenBAmount,
-      poolState.liquidity,
     );
 
     const newLiquidityDelta = this.getLiquidityDelta({

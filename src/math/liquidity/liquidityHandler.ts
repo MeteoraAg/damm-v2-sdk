@@ -344,15 +344,11 @@ export function getAmountAFromLiquidityDelta(
   liquidityDelta: BN,
   rounding: Rounding,
   collectFeeMode: CollectFeeMode,
-  tokenAAmount: BN,
-  liquidity: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
     return getAmountAFromLiquidityDeltaForCompoundingLiquidity(
-      tokenAAmount,
-      liquidity,
+      sqrtPrice,
       liquidityDelta,
-      rounding,
     );
   } else {
     return getAmountAFromLiquidityDeltaForConcentratedLiquidity(
@@ -370,15 +366,11 @@ export function getAmountBFromLiquidityDelta(
   liquidityDelta: BN,
   rounding: Rounding,
   collectFeeMode: CollectFeeMode,
-  tokenBAmount: BN,
-  liquidity: BN,
 ): BN {
   if (collectFeeMode === CollectFeeMode.Compounding) {
     return getAmountBFromLiquidityDeltaForCompoundingLiquidity(
-      tokenBAmount,
-      liquidity,
+      sqrtPrice,
       liquidityDelta,
-      rounding,
     );
   } else {
     return getAmountBFromLiquidityDeltaForConcentratedLiquidity(

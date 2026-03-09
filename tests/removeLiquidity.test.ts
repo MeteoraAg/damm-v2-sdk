@@ -45,315 +45,326 @@ const poolModes = [
   },
 ] as const;
 
-
 describe("Remove liquidity", () => {
-  describe.each(poolModes)("Remove liquidity with SPL-Token ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let creator: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
+  describe.each(poolModes)(
+    "Remove liquidity with SPL-Token ($label)",
+    ({ collectFeeMode, compoundingFeeBps }) => {
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let creator: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
 
-    beforeEach(async () => {
-      context = await startTest();
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        false,
-      );
+      beforeEach(async () => {
+        context = await startTest();
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          false,
+        );
 
-      creator = prepareContext.poolCreator;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
-    });
-
-    it("Remove liqudity", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
-          },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
-
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
-
-      const positionNft = Keypair.generate();
-
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode,
-        });
-
-      const params: InitializeCustomizeablePoolParams = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_PROGRAM_ID,
-        tokenBProgram: TOKEN_PROGRAM_ID,
-      };
-
-      const {
-        tx: transaction,
-        pool,
-        position,
-      } = await ammInstance.createCustomPool(params);
-
-      await executeTransaction(context.banksClient, transaction, [
-        payer,
-        positionNft,
-      ]);
-
-      // add liquidity
-      const poolState = await getPool(
-        context.banksClient,
-        ammInstance._program,
-        pool,
-      );
-      const positionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        position,
-      );
-      const { liquidityDelta } = await ammInstance.getDepositQuote({
-        inAmount: new BN(1000 * 10 ** DECIMALS),
-        isTokenA: true,
-        sqrtPrice: poolState.sqrtPrice,
-        minSqrtPrice: poolState.sqrtMinPrice,
-        maxSqrtPrice: poolState.sqrtMaxPrice,
-        collectFeeMode: poolState.collectFeeMode,
-        tokenAAmount: poolState.tokenAAmount,
-        tokenBAmount: poolState.tokenBAmount,
-        liquidity: poolState.liquidity,
+        creator = prepareContext.poolCreator;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
       });
 
-      const addLiquidityParams: AddLiquidityParams = {
-        owner: creator.publicKey,
-        pool,
-        position,
-        positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
-        liquidityDelta,
-        maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
-        maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
-        tokenAAmountThreshold: new BN(U64_MAX),
-        tokenBAmountThreshold: new BN(U64_MAX),
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAProgram: getTokenProgram(poolState.tokenAFlag),
-        tokenBProgram: getTokenProgram(poolState.tokenBFlag),
-      };
-      const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
-
-      // remove liquidity
-      let removeLiquidityParams: RemoveLiquidityParams = {
-        ...addLiquidityParams,
-        vestings: [],
-        currentPoint: new BN(0),
-      };
-      // remove all liquidity
-      removeLiquidityParams.tokenAAmountThreshold = new BN(0);
-      removeLiquidityParams.tokenBAmountThreshold = new BN(0);
-
-      const removeLiquidityTx = await ammInstance.removeLiquidity(
-        removeLiquidityParams,
-      );
-
-      await executeTransaction(context.banksClient, removeLiquidityTx, [
-        creator,
-      ]);
-    });
-  });
-
-  describe.each(poolModes)("Remove liquidity with Token 2022 ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let creator: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
-
-    beforeEach(async () => {
-      context = await startTest();
-      const extensions = [ExtensionType.TransferFeeConfig];
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        true,
-        extensions,
-      );
-
-      creator = prepareContext.poolCreator;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
-
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
-    });
-
-    it("Remove liquidity", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
+      it("Remove liqudity", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
           },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
+          6,
+          ActivationType.Timestamp,
+        );
 
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      const positionNft = Keypair.generate();
+        const positionNft = Keypair.generate();
 
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
+
+        const params: InitializeCustomizeablePoolParams = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
           collectFeeMode,
+          activationPoint: null,
+          tokenAProgram: TOKEN_PROGRAM_ID,
+          tokenBProgram: TOKEN_PROGRAM_ID,
+        };
+
+        const {
+          tx: transaction,
+          pool,
+          position,
+        } = await ammInstance.createCustomPool(params);
+
+        await executeTransaction(context.banksClient, transaction, [
+          payer,
+          positionNft,
+        ]);
+
+        // add liquidity
+        const poolState = await getPool(
+          context.banksClient,
+          ammInstance._program,
+          pool,
+        );
+        const positionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          position,
+        );
+        const { liquidityDelta } = await ammInstance.getDepositQuote({
+          inAmount: new BN(1000 * 10 ** DECIMALS),
+          isTokenA: true,
+          sqrtPrice: poolState.sqrtPrice,
+          minSqrtPrice: poolState.sqrtMinPrice,
+          maxSqrtPrice: poolState.sqrtMaxPrice,
+          collectFeeMode: poolState.collectFeeMode,
+          tokenAAmount: poolState.tokenAAmount,
+          tokenBAmount: poolState.tokenBAmount,
+          liquidity: poolState.liquidity,
         });
 
-      const params: InitializeCustomizeablePoolParams = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_2022_PROGRAM_ID,
-        tokenBProgram: TOKEN_2022_PROGRAM_ID,
-      };
+        const addLiquidityParams: AddLiquidityParams = {
+          owner: creator.publicKey,
+          pool,
+          position,
+          positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
+          liquidityDelta,
+          maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
+          maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
+          tokenAAmountThreshold: new BN(U64_MAX),
+          tokenBAmountThreshold: new BN(U64_MAX),
+          tokenAMint: poolState.tokenAMint,
+          tokenBMint: poolState.tokenBMint,
+          tokenAVault: poolState.tokenAVault,
+          tokenBVault: poolState.tokenBVault,
+          tokenAProgram: getTokenProgram(poolState.tokenAFlag),
+          tokenBProgram: getTokenProgram(poolState.tokenBFlag),
+        };
+        const addLiquidityTx =
+          await ammInstance.addLiquidity(addLiquidityParams);
+        await executeTransaction(context.banksClient, addLiquidityTx, [
+          creator,
+        ]);
 
-      const {
-        tx: transaction,
-        pool,
-        position,
-      } = await ammInstance.createCustomPool(params);
+        // remove liquidity
+        let removeLiquidityParams: RemoveLiquidityParams = {
+          ...addLiquidityParams,
+          vestings: [],
+          currentPoint: new BN(0),
+        };
+        // remove all liquidity
+        removeLiquidityParams.tokenAAmountThreshold = new BN(0);
+        removeLiquidityParams.tokenBAmountThreshold = new BN(0);
 
-      await executeTransaction(context.banksClient, transaction, [
-        payer,
-        positionNft,
-      ]);
+        const removeLiquidityTx = await ammInstance.removeLiquidity(
+          removeLiquidityParams,
+        );
 
-      // add liquidity
-      const poolState = await getPool(
-        context.banksClient,
-        ammInstance._program,
-        pool,
-      );
-      const positionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        position,
-      );
-      const { liquidityDelta } = await ammInstance.getDepositQuote({
-        inAmount: new BN(1000 * 10 ** DECIMALS),
-        isTokenA: true,
-        sqrtPrice: poolState.sqrtPrice,
-        minSqrtPrice: poolState.sqrtMinPrice,
-        maxSqrtPrice: poolState.sqrtMaxPrice,
-        collectFeeMode: poolState.collectFeeMode,
-        tokenAAmount: poolState.tokenAAmount,
-        tokenBAmount: poolState.tokenBAmount,
-        liquidity: poolState.liquidity,
+        await executeTransaction(context.banksClient, removeLiquidityTx, [
+          creator,
+        ]);
+      });
+    },
+  );
+
+  describe.each(poolModes)(
+    "Remove liquidity with Token 2022 ($label)",
+    ({ collectFeeMode, compoundingFeeBps }) => {
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let creator: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
+
+      beforeEach(async () => {
+        context = await startTest();
+        const extensions = [ExtensionType.TransferFeeConfig];
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          true,
+          extensions,
+        );
+
+        creator = prepareContext.poolCreator;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
+
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
       });
 
-      const addLiquidityParams: AddLiquidityParams = {
-        owner: creator.publicKey,
-        position,
-        pool,
-        positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
-        liquidityDelta,
-        maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
-        maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
-        tokenAAmountThreshold: new BN(U64_MAX),
-        tokenBAmountThreshold: new BN(U64_MAX),
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAProgram: getTokenProgram(poolState.tokenAFlag),
-        tokenBProgram: getTokenProgram(poolState.tokenBFlag),
-      };
-      const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      it("Remove liquidity", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
+          },
+          6,
+          ActivationType.Timestamp,
+        );
 
-      // remove liquidiy
-      let removeLiquidityParams: RemoveLiquidityParams = {
-        ...addLiquidityParams,
-        vestings: [],
-        currentPoint: new BN(0),
-      };
-      // remove all liquidity
-      removeLiquidityParams.tokenAAmountThreshold = new BN(0);
-      removeLiquidityParams.tokenBAmountThreshold = new BN(0);
-      const removeLiquidityTx = await ammInstance.removeLiquidity(
-        removeLiquidityParams,
-      );
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      await executeTransaction(context.banksClient, removeLiquidityTx, [
-        creator,
-      ]);
-    });
-  });
+        const positionNft = Keypair.generate();
+
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
+
+        const params: InitializeCustomizeablePoolParams = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
+          collectFeeMode,
+          activationPoint: null,
+          tokenAProgram: TOKEN_2022_PROGRAM_ID,
+          tokenBProgram: TOKEN_2022_PROGRAM_ID,
+        };
+
+        const {
+          tx: transaction,
+          pool,
+          position,
+        } = await ammInstance.createCustomPool(params);
+
+        await executeTransaction(context.banksClient, transaction, [
+          payer,
+          positionNft,
+        ]);
+
+        // add liquidity
+        const poolState = await getPool(
+          context.banksClient,
+          ammInstance._program,
+          pool,
+        );
+        const positionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          position,
+        );
+        const { liquidityDelta } = await ammInstance.getDepositQuote({
+          inAmount: new BN(1000 * 10 ** DECIMALS),
+          isTokenA: true,
+          sqrtPrice: poolState.sqrtPrice,
+          minSqrtPrice: poolState.sqrtMinPrice,
+          maxSqrtPrice: poolState.sqrtMaxPrice,
+          collectFeeMode: poolState.collectFeeMode,
+          tokenAAmount: poolState.tokenAAmount,
+          tokenBAmount: poolState.tokenBAmount,
+          liquidity: poolState.liquidity,
+        });
+
+        const addLiquidityParams: AddLiquidityParams = {
+          owner: creator.publicKey,
+          position,
+          pool,
+          positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
+          liquidityDelta,
+          maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
+          maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
+          tokenAAmountThreshold: new BN(U64_MAX),
+          tokenBAmountThreshold: new BN(U64_MAX),
+          tokenAMint: poolState.tokenAMint,
+          tokenBMint: poolState.tokenBMint,
+          tokenAVault: poolState.tokenAVault,
+          tokenBVault: poolState.tokenBVault,
+          tokenAProgram: getTokenProgram(poolState.tokenAFlag),
+          tokenBProgram: getTokenProgram(poolState.tokenBFlag),
+        };
+        const addLiquidityTx =
+          await ammInstance.addLiquidity(addLiquidityParams);
+        await executeTransaction(context.banksClient, addLiquidityTx, [
+          creator,
+        ]);
+
+        // remove liquidiy
+        let removeLiquidityParams: RemoveLiquidityParams = {
+          ...addLiquidityParams,
+          vestings: [],
+          currentPoint: new BN(0),
+        };
+        // remove all liquidity
+        removeLiquidityParams.tokenAAmountThreshold = new BN(0);
+        removeLiquidityParams.tokenBAmountThreshold = new BN(0);
+        const removeLiquidityTx = await ammInstance.removeLiquidity(
+          removeLiquidityParams,
+        );
+
+        await executeTransaction(context.banksClient, removeLiquidityTx, [
+          creator,
+        ]);
+      });
+    },
+  );
 });

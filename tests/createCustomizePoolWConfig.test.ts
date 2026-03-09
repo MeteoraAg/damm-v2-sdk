@@ -53,383 +53,383 @@ describe("Initialize customizable pool with dynamic config", () => {
   describe.each(poolModes)(
     "SPL-Token ($label)",
     ({ collectFeeMode, compoundingFeeBps }) => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let creator: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
-    let config: PublicKey;
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let creator: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
+      let config: PublicKey;
 
-    beforeEach(async () => {
-      context = await startTest();
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        false,
-      );
+      beforeEach(async () => {
+        context = await startTest();
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          false,
+        );
 
-      creator = prepareContext.poolCreator;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
+        creator = prepareContext.poolCreator;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
 
-      await createOperator(context.banksClient, ammInstance._program, {
-        admin: LOCAL_ADMIN_KEYPAIR,
-        whitelistAddress: LOCAL_ADMIN_KEYPAIR.publicKey,
-        permission: encodePermissions([OperatorPermission.CreateConfigKey]),
+        await createOperator(context.banksClient, ammInstance._program, {
+          admin: LOCAL_ADMIN_KEYPAIR,
+          whitelistAddress: LOCAL_ADMIN_KEYPAIR.publicKey,
+          permission: encodePermissions([OperatorPermission.CreateConfigKey]),
+        });
+
+        config = await createDynamicConfig(
+          context.banksClient,
+          ammInstance._program,
+          LOCAL_ADMIN_KEYPAIR,
+          new BN(1),
+          creator.publicKey,
+        );
       });
 
-      config = await createDynamicConfig(
-        context.banksClient,
-        ammInstance._program,
-        LOCAL_ADMIN_KEYPAIR,
-        new BN(1),
-        creator.publicKey,
-      );
-    });
-
-    it("Initialize customizeable pool with spl token", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
+      it("Initialize customizeable pool with spl token", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
           },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
+          6,
+          ActivationType.Timestamp,
+        );
 
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      const positionNft = Keypair.generate();
+        const positionNft = Keypair.generate();
 
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
+
+        const params: any = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          config,
+          poolCreatorAuthority: creator.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
           collectFeeMode,
-        });
+          activationPoint: null,
+          tokenAProgram: TOKEN_PROGRAM_ID,
+          tokenBProgram: TOKEN_PROGRAM_ID,
+        };
 
-      const params: any = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        config,
-        poolCreatorAuthority: creator.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_PROGRAM_ID,
-        tokenBProgram: TOKEN_PROGRAM_ID,
-      };
+        const { tx: transaction } =
+          await ammInstance.createCustomPoolWithDynamicConfig(params);
+        transaction.add(
+          ComputeBudgetProgram.setComputeUnitLimit({
+            units: 400_000,
+          }),
+        );
+        transaction.recentBlockhash = (
+          await context.banksClient.getLatestBlockhash()
+        )[0];
+        transaction.sign(payer, positionNft, creator);
 
-      const { tx: transaction } =
-        await ammInstance.createCustomPoolWithDynamicConfig(params);
-      transaction.add(
-        ComputeBudgetProgram.setComputeUnitLimit({
-          units: 400_000,
-        }),
-      );
-      transaction.recentBlockhash = (
-        await context.banksClient.getLatestBlockhash()
-      )[0];
-      transaction.sign(payer, positionNft, creator);
+        await processTransactionMaybeThrow(context.banksClient, transaction);
+      });
 
-      await processTransactionMaybeThrow(context.banksClient, transaction);
-    });
-
-    it("Initialize customizeable pool with FeeMarketCapSchedulerLinear", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
-          feeMarketCapSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            sqrtPriceStepBps: 200,
-            schedulerExpirationDuration: 2592000, // 30 days
+      it("Initialize customizeable pool with FeeMarketCapSchedulerLinear", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
+            feeMarketCapSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              sqrtPriceStepBps: 200,
+              schedulerExpirationDuration: 2592000, // 30 days
+            },
           },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
+          6,
+          ActivationType.Timestamp,
+        );
 
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      const positionNft = Keypair.generate();
+        const positionNft = Keypair.generate();
 
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
+
+        const params: any = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          config,
+          poolCreatorAuthority: creator.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
           collectFeeMode,
-        });
+          activationPoint: null,
+          tokenAProgram: TOKEN_PROGRAM_ID,
+          tokenBProgram: TOKEN_PROGRAM_ID,
+        };
 
-      const params: any = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        config,
-        poolCreatorAuthority: creator.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_PROGRAM_ID,
-        tokenBProgram: TOKEN_PROGRAM_ID,
-      };
+        const { tx: transaction } =
+          await ammInstance.createCustomPoolWithDynamicConfig(params);
+        transaction.add(
+          ComputeBudgetProgram.setComputeUnitLimit({
+            units: 400_000,
+          }),
+        );
+        transaction.recentBlockhash = (
+          await context.banksClient.getLatestBlockhash()
+        )[0];
+        transaction.sign(payer, positionNft, creator);
 
-      const { tx: transaction } =
-        await ammInstance.createCustomPoolWithDynamicConfig(params);
-      transaction.add(
-        ComputeBudgetProgram.setComputeUnitLimit({
-          units: 400_000,
-        }),
-      );
-      transaction.recentBlockhash = (
-        await context.banksClient.getLatestBlockhash()
-      )[0];
-      transaction.sign(payer, positionNft, creator);
+        await processTransactionMaybeThrow(context.banksClient, transaction);
+      });
 
-      await processTransactionMaybeThrow(context.banksClient, transaction);
-    });
-
-    it("Initialize customizeable pool with FeeMarketCapSchedulerExponential", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerExponential,
-          feeMarketCapSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            sqrtPriceStepBps: 200,
-            schedulerExpirationDuration: 2592000, // 30 days
+      it("Initialize customizeable pool with FeeMarketCapSchedulerExponential", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerExponential,
+            feeMarketCapSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              sqrtPriceStepBps: 200,
+              schedulerExpirationDuration: 2592000, // 30 days
+            },
           },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
+          6,
+          ActivationType.Timestamp,
+        );
 
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      const positionNft = Keypair.generate();
+        const positionNft = Keypair.generate();
 
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
+
+        const params: any = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          config,
+          poolCreatorAuthority: creator.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
           collectFeeMode,
-        });
+          activationPoint: null,
+          tokenAProgram: TOKEN_PROGRAM_ID,
+          tokenBProgram: TOKEN_PROGRAM_ID,
+        };
 
-      const params: any = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        config,
-        poolCreatorAuthority: creator.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_PROGRAM_ID,
-        tokenBProgram: TOKEN_PROGRAM_ID,
-      };
+        const { tx: transaction } =
+          await ammInstance.createCustomPoolWithDynamicConfig(params);
+        transaction.add(
+          ComputeBudgetProgram.setComputeUnitLimit({
+            units: 400_000,
+          }),
+        );
+        transaction.recentBlockhash = (
+          await context.banksClient.getLatestBlockhash()
+        )[0];
+        transaction.sign(payer, positionNft, creator);
 
-      const { tx: transaction } =
-        await ammInstance.createCustomPoolWithDynamicConfig(params);
-      transaction.add(
-        ComputeBudgetProgram.setComputeUnitLimit({
-          units: 400_000,
-        }),
-      );
-      transaction.recentBlockhash = (
-        await context.banksClient.getLatestBlockhash()
-      )[0];
-      transaction.sign(payer, positionNft, creator);
-
-      await processTransactionMaybeThrow(context.banksClient, transaction);
-    });
+        await processTransactionMaybeThrow(context.banksClient, transaction);
+      });
     },
   );
 
   describe.each(poolModes)(
     "Token 2022 ($label)",
     ({ collectFeeMode, compoundingFeeBps }) => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let creator: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
-    let config: PublicKey;
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let creator: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
+      let config: PublicKey;
 
-    beforeEach(async () => {
-      context = await startTest();
-      const extensions = [ExtensionType.TransferFeeConfig];
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        true,
-        extensions,
-      );
+      beforeEach(async () => {
+        context = await startTest();
+        const extensions = [ExtensionType.TransferFeeConfig];
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          true,
+          extensions,
+        );
 
-      creator = prepareContext.poolCreator;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
+        creator = prepareContext.poolCreator;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
 
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
 
-      await createOperator(context.banksClient, ammInstance._program, {
-        admin: LOCAL_ADMIN_KEYPAIR,
-        whitelistAddress: LOCAL_ADMIN_KEYPAIR.publicKey,
-        permission: encodePermissions([OperatorPermission.CreateConfigKey]),
-      });
-
-      config = await createDynamicConfig(
-        context.banksClient,
-        ammInstance._program,
-        LOCAL_ADMIN_KEYPAIR,
-        new BN(2),
-        creator.publicKey,
-      );
-    });
-
-    it("Initialize customizeable pool with spl token", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
-          },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
-
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
-
-      const positionNft = Keypair.generate();
-
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode,
+        await createOperator(context.banksClient, ammInstance._program, {
+          admin: LOCAL_ADMIN_KEYPAIR,
+          whitelistAddress: LOCAL_ADMIN_KEYPAIR.publicKey,
+          permission: encodePermissions([OperatorPermission.CreateConfigKey]),
         });
 
-      const params: any = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        config,
-        poolCreatorAuthority: creator.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_2022_PROGRAM_ID,
-        tokenBProgram: TOKEN_2022_PROGRAM_ID,
-      };
+        config = await createDynamicConfig(
+          context.banksClient,
+          ammInstance._program,
+          LOCAL_ADMIN_KEYPAIR,
+          new BN(2),
+          creator.publicKey,
+        );
+      });
 
-      const { tx: transaction } =
-        await ammInstance.createCustomPoolWithDynamicConfig(params);
-      transaction.add(
-        ComputeBudgetProgram.setComputeUnitLimit({
-          units: 400_000,
-        }),
-      );
-      transaction.recentBlockhash = (
-        await context.banksClient.getLatestBlockhash()
-      )[0];
-      transaction.sign(payer, positionNft, creator);
+      it("Initialize customizeable pool with spl token", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
+          },
+          6,
+          ActivationType.Timestamp,
+        );
 
-      await processTransactionMaybeThrow(context.banksClient, transaction);
-    });
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
+
+        const positionNft = Keypair.generate();
+
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
+
+        const params: any = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          config,
+          poolCreatorAuthority: creator.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
+          collectFeeMode,
+          activationPoint: null,
+          tokenAProgram: TOKEN_2022_PROGRAM_ID,
+          tokenBProgram: TOKEN_2022_PROGRAM_ID,
+        };
+
+        const { tx: transaction } =
+          await ammInstance.createCustomPoolWithDynamicConfig(params);
+        transaction.add(
+          ComputeBudgetProgram.setComputeUnitLimit({
+            units: 400_000,
+          }),
+        );
+        transaction.recentBlockhash = (
+          await context.banksClient.getLatestBlockhash()
+        )[0];
+        transaction.sign(payer, positionNft, creator);
+
+        await processTransactionMaybeThrow(context.banksClient, transaction);
+      });
     },
   );
 });

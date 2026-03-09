@@ -41,59 +41,61 @@ const poolModes = [
   },
 ] as const;
 
+describe.each(poolModes)(
+  "Permissionless reward ($label)",
+  ({ collectFeeMode, compoundingFeeBps }) => {
+    let context: ProgramTestContext;
+    let payer: Keypair;
+    let creator: Keypair;
+    let tokenAMint: PublicKey;
+    let tokenBMint: PublicKey;
+    let rewardMint: PublicKey;
+    let ammInstance: CpAmm;
 
-describe.each(poolModes)("Permissionless reward ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
-  let context: ProgramTestContext;
-  let payer: Keypair;
-  let creator: Keypair;
-  let tokenAMint: PublicKey;
-  let tokenBMint: PublicKey;
-  let rewardMint: PublicKey;
-  let ammInstance: CpAmm;
+    beforeEach(async () => {
+      context = await startTest();
+      const prepareContext = await setupTestContext(
+        context.banksClient,
+        context.payer,
+        false,
+      );
 
-  beforeEach(async () => {
-    context = await startTest();
-    const prepareContext = await setupTestContext(
-      context.banksClient,
-      context.payer,
-      false,
-    );
+      creator = prepareContext.poolCreator;
+      payer = prepareContext.payer;
+      tokenAMint = prepareContext.tokenAMint;
+      tokenBMint = prepareContext.tokenBMint;
+      rewardMint = prepareContext.rewardMint;
+      const connection = new Connection(clusterApiUrl("devnet"));
+      ammInstance = new CpAmm(connection);
+    });
 
-    creator = prepareContext.poolCreator;
-    payer = prepareContext.payer;
-    tokenAMint = prepareContext.tokenAMint;
-    tokenBMint = prepareContext.tokenBMint;
-    rewardMint = prepareContext.rewardMint;
-    const connection = new Connection(clusterApiUrl("devnet"));
-    ammInstance = new CpAmm(connection);
-  });
-
-  it("Full flow ", async () => {
-    const { pool, position } = await createPool(
-      context.banksClient,
-      ammInstance,
-      payer,
-      creator,
-      tokenAMint,
-      tokenBMint,
-      collectFeeMode,
-      compoundingFeeBps,
-    );
-    const rewardIndex = 0;
-    const rewardDuration = new BN(24 * 60 * 60);
-    await rewardFlow(
-      context,
-      ammInstance,
-      creator,
-      payer,
-      rewardMint,
-      rewardIndex,
-      payer.publicKey,
-      pool,
-      rewardDuration,
-    );
-  });
-});
+    it("Full flow ", async () => {
+      const { pool, position } = await createPool(
+        context.banksClient,
+        ammInstance,
+        payer,
+        creator,
+        tokenAMint,
+        tokenBMint,
+        collectFeeMode,
+        compoundingFeeBps,
+      );
+      const rewardIndex = 0;
+      const rewardDuration = new BN(24 * 60 * 60);
+      await rewardFlow(
+        context,
+        ammInstance,
+        creator,
+        payer,
+        rewardMint,
+        rewardIndex,
+        payer.publicKey,
+        pool,
+        rewardDuration,
+      );
+    });
+  },
+);
 
 async function createPool(
   banksClient: BanksClient,

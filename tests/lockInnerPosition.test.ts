@@ -45,356 +45,367 @@ const poolModes = [
   },
 ] as const;
 
-
 describe("Lock Inner Postion", () => {
-  describe.each(poolModes)("Lock Inner Position with SPL-Token ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let creator: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
+  describe.each(poolModes)(
+    "Lock Inner Position with SPL-Token ($label)",
+    ({ collectFeeMode, compoundingFeeBps }) => {
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let creator: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
 
-    beforeEach(async () => {
-      context = await startTest();
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        false,
-      );
+      beforeEach(async () => {
+        context = await startTest();
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          false,
+        );
 
-      creator = prepareContext.poolCreator;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
+        creator = prepareContext.poolCreator;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
 
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
-    });
-
-    it("Lock Inner Position", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
-          },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
-
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
-      const positionNft = Keypair.generate();
-
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode,
-        });
-
-      const params: InitializeCustomizeablePoolParams = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_PROGRAM_ID,
-        tokenBProgram: TOKEN_PROGRAM_ID,
-      };
-
-      const {
-        tx: transaction,
-        pool,
-        position,
-      } = await ammInstance.createCustomPool(params);
-
-      await executeTransaction(context.banksClient, transaction, [
-        payer,
-        positionNft,
-      ]);
-
-      // add liquidity
-      const poolState = await getPool(
-        context.banksClient,
-        ammInstance._program,
-        pool,
-      );
-      const positionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        position,
-      );
-      const { liquidityDelta } = await ammInstance.getDepositQuote({
-        inAmount: new BN(1000 * 10 ** DECIMALS),
-        isTokenA: true,
-        sqrtPrice: poolState.sqrtPrice,
-        minSqrtPrice: poolState.sqrtMinPrice,
-        maxSqrtPrice: poolState.sqrtMaxPrice,
-        collectFeeMode: poolState.collectFeeMode,
-        tokenAAmount: poolState.tokenAAmount,
-        tokenBAmount: poolState.tokenBAmount,
-        liquidity: poolState.liquidity,
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
       });
 
-      const addLiquidityParams: AddLiquidityParams = {
-        owner: creator.publicKey,
-        position,
-        pool,
-        positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
-        liquidityDelta,
-        maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
-        maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
-        tokenAAmountThreshold: new BN(U64_MAX),
-        tokenBAmountThreshold: new BN(U64_MAX),
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAProgram: getTokenProgram(poolState.tokenAFlag),
-        tokenBProgram: getTokenProgram(poolState.tokenBFlag),
-      };
-      const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
-
-      // lock inner position (no separate vesting account needed)
-      const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
-      const numberOfPeriod = 10;
-      const periodFrequency = new BN(1);
-      let cliffUnlockLiquidity = liquidityToLock.div(new BN(2));
-      const liquidityPerPeriod = liquidityToLock
-        .sub(cliffUnlockLiquidity)
-        .div(new BN(numberOfPeriod));
-
-      const loss = liquidityToLock.sub(
-        cliffUnlockLiquidity.add(
-          liquidityPerPeriod.mul(new BN(numberOfPeriod)),
-        ),
-      );
-      cliffUnlockLiquidity = cliffUnlockLiquidity.add(loss);
-
-      const lockInnerPositionParams: LockPositionParams = {
-        owner: creator.publicKey,
-        payer: creator.publicKey,
-        position,
-        positionNftAccount: derivePositionNftAccount(positionState.nftMint),
-        pool,
-        liquidityPerPeriod,
-        cliffPoint: null,
-        periodFrequency,
-        cliffUnlockLiquidity,
-        numberOfPeriod,
-        innerPosition: true,
-      };
-
-      const lockInnerPositionTx = await ammInstance.lockPosition(
-        lockInnerPositionParams,
-      );
-
-      await executeTransaction(context.banksClient, lockInnerPositionTx, [
-        creator,
-      ]);
-    });
-  });
-
-  describe.each(poolModes)("Lock Inner Position with Token 2022 ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let creator: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
-
-    beforeEach(async () => {
-      context = await startTest();
-      const extensions = [ExtensionType.TransferFeeConfig];
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        true,
-        extensions,
-      );
-
-      creator = prepareContext.poolCreator;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
-
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
-    });
-
-    it("Lock Inner Position", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
+      it("Lock Inner Position", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
           },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
+          6,
+          ActivationType.Timestamp,
+        );
 
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        compoundingFeeBps,
-        padding: 0,
-        dynamicFee: null,
-      };
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
+        const positionNft = Keypair.generate();
 
-      const positionNft = Keypair.generate();
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
 
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
+        const params: InitializeCustomizeablePoolParams = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
           collectFeeMode,
+          activationPoint: null,
+          tokenAProgram: TOKEN_PROGRAM_ID,
+          tokenBProgram: TOKEN_PROGRAM_ID,
+        };
+
+        const {
+          tx: transaction,
+          pool,
+          position,
+        } = await ammInstance.createCustomPool(params);
+
+        await executeTransaction(context.banksClient, transaction, [
+          payer,
+          positionNft,
+        ]);
+
+        // add liquidity
+        const poolState = await getPool(
+          context.banksClient,
+          ammInstance._program,
+          pool,
+        );
+        const positionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          position,
+        );
+        const { liquidityDelta } = await ammInstance.getDepositQuote({
+          inAmount: new BN(1000 * 10 ** DECIMALS),
+          isTokenA: true,
+          sqrtPrice: poolState.sqrtPrice,
+          minSqrtPrice: poolState.sqrtMinPrice,
+          maxSqrtPrice: poolState.sqrtMaxPrice,
+          collectFeeMode: poolState.collectFeeMode,
+          tokenAAmount: poolState.tokenAAmount,
+          tokenBAmount: poolState.tokenBAmount,
+          liquidity: poolState.liquidity,
         });
 
-      const params: InitializeCustomizeablePoolParams = {
-        payer: payer.publicKey,
-        creator: creator.publicKey,
-        positionNft: positionNft.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode,
-        activationPoint: null,
-        tokenAProgram: TOKEN_2022_PROGRAM_ID,
-        tokenBProgram: TOKEN_2022_PROGRAM_ID,
-      };
+        const addLiquidityParams: AddLiquidityParams = {
+          owner: creator.publicKey,
+          position,
+          pool,
+          positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
+          liquidityDelta,
+          maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
+          maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
+          tokenAAmountThreshold: new BN(U64_MAX),
+          tokenBAmountThreshold: new BN(U64_MAX),
+          tokenAMint: poolState.tokenAMint,
+          tokenBMint: poolState.tokenBMint,
+          tokenAVault: poolState.tokenAVault,
+          tokenBVault: poolState.tokenBVault,
+          tokenAProgram: getTokenProgram(poolState.tokenAFlag),
+          tokenBProgram: getTokenProgram(poolState.tokenBFlag),
+        };
+        const addLiquidityTx =
+          await ammInstance.addLiquidity(addLiquidityParams);
+        await executeTransaction(context.banksClient, addLiquidityTx, [
+          creator,
+        ]);
 
-      const {
-        tx: transaction,
-        pool,
-        position,
-      } = await ammInstance.createCustomPool(params);
+        // lock inner position (no separate vesting account needed)
+        const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
+        const numberOfPeriod = 10;
+        const periodFrequency = new BN(1);
+        let cliffUnlockLiquidity = liquidityToLock.div(new BN(2));
+        const liquidityPerPeriod = liquidityToLock
+          .sub(cliffUnlockLiquidity)
+          .div(new BN(numberOfPeriod));
 
-      await executeTransaction(context.banksClient, transaction, [
-        payer,
-        positionNft,
-      ]);
+        const loss = liquidityToLock.sub(
+          cliffUnlockLiquidity.add(
+            liquidityPerPeriod.mul(new BN(numberOfPeriod)),
+          ),
+        );
+        cliffUnlockLiquidity = cliffUnlockLiquidity.add(loss);
 
-      // add liquidity
-      const poolState = await getPool(
-        context.banksClient,
-        ammInstance._program,
-        pool,
-      );
-      const positionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        position,
-      );
-      const { liquidityDelta } = await ammInstance.getDepositQuote({
-        inAmount: new BN(1000 * 10 ** DECIMALS),
-        isTokenA: true,
-        sqrtPrice: poolState.sqrtPrice,
-        minSqrtPrice: poolState.sqrtMinPrice,
-        maxSqrtPrice: poolState.sqrtMaxPrice,
-        collectFeeMode: poolState.collectFeeMode,
-        tokenAAmount: poolState.tokenAAmount,
-        tokenBAmount: poolState.tokenBAmount,
-        liquidity: poolState.liquidity,
+        const lockInnerPositionParams: LockPositionParams = {
+          owner: creator.publicKey,
+          payer: creator.publicKey,
+          position,
+          positionNftAccount: derivePositionNftAccount(positionState.nftMint),
+          pool,
+          liquidityPerPeriod,
+          cliffPoint: null,
+          periodFrequency,
+          cliffUnlockLiquidity,
+          numberOfPeriod,
+          innerPosition: true,
+        };
+
+        const lockInnerPositionTx = await ammInstance.lockPosition(
+          lockInnerPositionParams,
+        );
+
+        await executeTransaction(context.banksClient, lockInnerPositionTx, [
+          creator,
+        ]);
+      });
+    },
+  );
+
+  describe.each(poolModes)(
+    "Lock Inner Position with Token 2022 ($label)",
+    ({ collectFeeMode, compoundingFeeBps }) => {
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let creator: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
+
+      beforeEach(async () => {
+        context = await startTest();
+        const extensions = [ExtensionType.TransferFeeConfig];
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          true,
+          extensions,
+        );
+
+        creator = prepareContext.poolCreator;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
+
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
       });
 
-      const addLiquidityParams: AddLiquidityParams = {
-        owner: creator.publicKey,
-        position,
-        pool,
-        positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
-        liquidityDelta,
-        maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
-        maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
-        tokenAAmountThreshold: new BN(U64_MAX),
-        tokenBAmountThreshold: new BN(U64_MAX),
-        tokenAMint: poolState.tokenAMint,
-        tokenBMint: poolState.tokenBMint,
-        tokenAVault: poolState.tokenAVault,
-        tokenBVault: poolState.tokenBVault,
-        tokenAProgram: getTokenProgram(poolState.tokenAFlag),
-        tokenBProgram: getTokenProgram(poolState.tokenBFlag),
-      };
-      const addLiquidityTx = await ammInstance.addLiquidity(addLiquidityParams);
-      await executeTransaction(context.banksClient, addLiquidityTx, [creator]);
+      it("Lock Inner Position", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
+          },
+          6,
+          ActivationType.Timestamp,
+        );
 
-      // lock inner position (no separate vesting account needed)
-      const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
-      const numberOfPeriod = 10;
-      const periodFrequency = new BN(1);
-      let cliffUnlockLiquidity = liquidityToLock.div(new BN(2));
-      const liquidityPerPeriod = liquidityToLock
-        .sub(cliffUnlockLiquidity)
-        .div(new BN(numberOfPeriod));
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      const loss = liquidityToLock.sub(
-        cliffUnlockLiquidity.add(
-          liquidityPerPeriod.mul(new BN(numberOfPeriod)),
-        ),
-      );
-      cliffUnlockLiquidity = cliffUnlockLiquidity.add(loss);
+        const positionNft = Keypair.generate();
 
-      const lockInnerPositionParams: LockPositionParams = {
-        owner: creator.publicKey,
-        payer: creator.publicKey,
-        position,
-        positionNftAccount: derivePositionNftAccount(positionState.nftMint),
-        pool,
-        liquidityPerPeriod,
-        cliffPoint: null,
-        periodFrequency,
-        cliffUnlockLiquidity,
-        numberOfPeriod,
-        innerPosition: true,
-      };
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
 
-      const lockInnerPositionTx = await ammInstance.lockPosition(
-        lockInnerPositionParams,
-      );
+        const params: InitializeCustomizeablePoolParams = {
+          payer: payer.publicKey,
+          creator: creator.publicKey,
+          positionNft: positionNft.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
+          collectFeeMode,
+          activationPoint: null,
+          tokenAProgram: TOKEN_2022_PROGRAM_ID,
+          tokenBProgram: TOKEN_2022_PROGRAM_ID,
+        };
 
-      await executeTransaction(context.banksClient, lockInnerPositionTx, [
-        creator,
-      ]);
-    });
-  });
+        const {
+          tx: transaction,
+          pool,
+          position,
+        } = await ammInstance.createCustomPool(params);
+
+        await executeTransaction(context.banksClient, transaction, [
+          payer,
+          positionNft,
+        ]);
+
+        // add liquidity
+        const poolState = await getPool(
+          context.banksClient,
+          ammInstance._program,
+          pool,
+        );
+        const positionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          position,
+        );
+        const { liquidityDelta } = await ammInstance.getDepositQuote({
+          inAmount: new BN(1000 * 10 ** DECIMALS),
+          isTokenA: true,
+          sqrtPrice: poolState.sqrtPrice,
+          minSqrtPrice: poolState.sqrtMinPrice,
+          maxSqrtPrice: poolState.sqrtMaxPrice,
+          collectFeeMode: poolState.collectFeeMode,
+          tokenAAmount: poolState.tokenAAmount,
+          tokenBAmount: poolState.tokenBAmount,
+          liquidity: poolState.liquidity,
+        });
+
+        const addLiquidityParams: AddLiquidityParams = {
+          owner: creator.publicKey,
+          position,
+          pool,
+          positionNftAccount: derivePositionNftAccount(positionNft.publicKey),
+          liquidityDelta,
+          maxAmountTokenA: new BN(1000 * 10 ** DECIMALS),
+          maxAmountTokenB: new BN(1000 * 10 ** DECIMALS),
+          tokenAAmountThreshold: new BN(U64_MAX),
+          tokenBAmountThreshold: new BN(U64_MAX),
+          tokenAMint: poolState.tokenAMint,
+          tokenBMint: poolState.tokenBMint,
+          tokenAVault: poolState.tokenAVault,
+          tokenBVault: poolState.tokenBVault,
+          tokenAProgram: getTokenProgram(poolState.tokenAFlag),
+          tokenBProgram: getTokenProgram(poolState.tokenBFlag),
+        };
+        const addLiquidityTx =
+          await ammInstance.addLiquidity(addLiquidityParams);
+        await executeTransaction(context.banksClient, addLiquidityTx, [
+          creator,
+        ]);
+
+        // lock inner position (no separate vesting account needed)
+        const liquidityToLock = positionState.unlockedLiquidity.div(new BN(2));
+        const numberOfPeriod = 10;
+        const periodFrequency = new BN(1);
+        let cliffUnlockLiquidity = liquidityToLock.div(new BN(2));
+        const liquidityPerPeriod = liquidityToLock
+          .sub(cliffUnlockLiquidity)
+          .div(new BN(numberOfPeriod));
+
+        const loss = liquidityToLock.sub(
+          cliffUnlockLiquidity.add(
+            liquidityPerPeriod.mul(new BN(numberOfPeriod)),
+          ),
+        );
+        cliffUnlockLiquidity = cliffUnlockLiquidity.add(loss);
+
+        const lockInnerPositionParams: LockPositionParams = {
+          owner: creator.publicKey,
+          payer: creator.publicKey,
+          position,
+          positionNftAccount: derivePositionNftAccount(positionState.nftMint),
+          pool,
+          liquidityPerPeriod,
+          cliffPoint: null,
+          periodFrequency,
+          cliffUnlockLiquidity,
+          numberOfPeriod,
+          innerPosition: true,
+        };
+
+        const lockInnerPositionTx = await ammInstance.lockPosition(
+          lockInnerPositionParams,
+        );
+
+        await executeTransaction(context.banksClient, lockInnerPositionTx, [
+          creator,
+        ]);
+      });
+    },
+  );
 });

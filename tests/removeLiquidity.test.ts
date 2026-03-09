@@ -32,8 +32,22 @@ import {
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
 import { beforeEach, describe, it } from "vitest";
 
+const poolModes = [
+  {
+    label: "BothToken",
+    collectFeeMode: CollectFeeMode.BothToken,
+    compoundingFeeBps: 0,
+  },
+  {
+    label: "Compounding",
+    collectFeeMode: CollectFeeMode.Compounding,
+    compoundingFeeBps: 5000,
+  },
+] as const;
+
+
 describe("Remove liquidity", () => {
-  describe("Remove liquidity with SPL-Token", () => {
+  describe.each(poolModes)("Remove liquidity with SPL-Token ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let creator: Keypair;
@@ -74,7 +88,7 @@ describe("Remove liquidity", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -89,7 +103,7 @@ describe("Remove liquidity", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -107,7 +121,7 @@ describe("Remove liquidity", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_PROGRAM_ID,
         tokenBProgram: TOKEN_PROGRAM_ID,
@@ -187,7 +201,7 @@ describe("Remove liquidity", () => {
     });
   });
 
-  describe("Remove liquidity with Token 2022", () => {
+  describe.each(poolModes)("Remove liquidity with Token 2022 ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let creator: Keypair;
@@ -231,7 +245,7 @@ describe("Remove liquidity", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -246,7 +260,7 @@ describe("Remove liquidity", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -264,7 +278,7 @@ describe("Remove liquidity", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_2022_PROGRAM_ID,
         tokenBProgram: TOKEN_2022_PROGRAM_ID,

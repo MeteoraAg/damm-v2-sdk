@@ -32,8 +32,22 @@ import {
 import { CP_AMM_PROGRAM_ID, DECIMALS, U64_MAX } from "./bankrun-utils";
 import { beforeEach, describe, it } from "vitest";
 
+const poolModes = [
+  {
+    label: "BothToken",
+    collectFeeMode: CollectFeeMode.BothToken,
+    compoundingFeeBps: 0,
+  },
+  {
+    label: "Compounding",
+    collectFeeMode: CollectFeeMode.Compounding,
+    compoundingFeeBps: 5000,
+  },
+] as const;
+
+
 describe("Permanant Lock Postion", () => {
-  describe("Permanant Lock Position with SPL-Token", () => {
+  describe.each(poolModes)("Permanant Lock Position with SPL-Token ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let creator: Keypair;
@@ -74,7 +88,7 @@ describe("Permanant Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -89,7 +103,7 @@ describe("Permanant Lock Postion", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -107,7 +121,7 @@ describe("Permanant Lock Postion", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_PROGRAM_ID,
         tokenBProgram: TOKEN_PROGRAM_ID,
@@ -185,7 +199,7 @@ describe("Permanant Lock Postion", () => {
     });
   });
 
-  describe("Permanant lock position with Token 2022", () => {
+  describe.each(poolModes)("Permanant lock position with Token 2022 ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let creator: Keypair;
@@ -229,7 +243,7 @@ describe("Permanant Lock Postion", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -244,7 +258,7 @@ describe("Permanant Lock Postion", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -262,7 +276,7 @@ describe("Permanant Lock Postion", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_2022_PROGRAM_ID,
         tokenBProgram: TOKEN_2022_PROGRAM_ID,

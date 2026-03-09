@@ -31,8 +31,22 @@ import {
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
 import { beforeEach, describe, it } from "vitest";
 
+const poolModes = [
+  {
+    label: "BothToken",
+    collectFeeMode: CollectFeeMode.BothToken,
+    compoundingFeeBps: 0,
+  },
+  {
+    label: "Compounding",
+    collectFeeMode: CollectFeeMode.Compounding,
+    compoundingFeeBps: 5000,
+  },
+] as const;
+
+
 describe("Remove liquidity & Close position", () => {
-  describe("Remove all liquidity and close position with SPL-Token", () => {
+  describe.each(poolModes)("Remove all liquidity and close position with SPL-Token ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let creator: Keypair;
@@ -73,7 +87,7 @@ describe("Remove liquidity & Close position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -87,7 +101,7 @@ describe("Remove liquidity & Close position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
 
       const params: InitializeCustomizeablePoolParams = {
@@ -105,7 +119,7 @@ describe("Remove liquidity & Close position", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_PROGRAM_ID,
         tokenBProgram: TOKEN_PROGRAM_ID,
@@ -189,7 +203,7 @@ describe("Remove liquidity & Close position", () => {
     });
   });
 
-  describe("Remove all liquidity and close position with Token 2022", () => {
+  describe.each(poolModes)("Remove all liquidity and close position with Token 2022 ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let creator: Keypair;
@@ -233,7 +247,7 @@ describe("Remove liquidity & Close position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -248,7 +262,7 @@ describe("Remove liquidity & Close position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
       const params: InitializeCustomizeablePoolParams = {
         payer: payer.publicKey,
@@ -265,7 +279,7 @@ describe("Remove liquidity & Close position", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_2022_PROGRAM_ID,
         tokenBProgram: TOKEN_2022_PROGRAM_ID,

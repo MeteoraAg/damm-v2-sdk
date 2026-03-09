@@ -31,8 +31,22 @@ import {
 import { DECIMALS } from "./bankrun-utils";
 import { beforeEach, describe, it, expect } from "vitest";
 
+const poolModes = [
+  {
+    label: "BothToken",
+    collectFeeMode: CollectFeeMode.BothToken,
+    compoundingFeeBps: 0,
+  },
+  {
+    label: "Compounding",
+    collectFeeMode: CollectFeeMode.Compounding,
+    compoundingFeeBps: 5000,
+  },
+] as const;
+
+
 describe("Split Position", () => {
-  describe("Split position with SPL-Token", () => {
+  describe.each(poolModes)("Split position with SPL-Token ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let poolCreator: Keypair;
@@ -77,7 +91,7 @@ describe("Split Position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -92,7 +106,7 @@ describe("Split Position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
 
       const createPoolParams: InitializeCustomizeablePoolParams = {
@@ -110,7 +124,7 @@ describe("Split Position", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_PROGRAM_ID,
         tokenBProgram: TOKEN_PROGRAM_ID,
@@ -200,7 +214,7 @@ describe("Split Position", () => {
     });
   });
 
-  describe("Split position with Token 2022", () => {
+  describe.each(poolModes)("Split position with Token 2022 ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
     let context: ProgramTestContext;
     let payer: Keypair;
     let poolCreator: Keypair;
@@ -248,7 +262,7 @@ describe("Split Position", () => {
 
       const poolFees: PoolFeesParams = {
         baseFee,
-        compoundingFeeBps: 0,
+        compoundingFeeBps,
         padding: 0,
         dynamicFee: null,
       };
@@ -263,7 +277,7 @@ describe("Split Position", () => {
           tokenBAmount,
           minSqrtPrice: MIN_SQRT_PRICE,
           maxSqrtPrice: MAX_SQRT_PRICE,
-          collectFeeMode: CollectFeeMode.BothToken,
+          collectFeeMode,
         });
 
       const createPoolParams: InitializeCustomizeablePoolParams = {
@@ -281,7 +295,7 @@ describe("Split Position", () => {
         poolFees,
         hasAlphaVault: false,
         activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
+        collectFeeMode,
         activationPoint: null,
         tokenAProgram: TOKEN_2022_PROGRAM_ID,
         tokenBProgram: TOKEN_2022_PROGRAM_ID,

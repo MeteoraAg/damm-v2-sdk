@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { PositionState, VestingState } from "../types";
+import { VestingState } from "../types";
 import { min } from "bn.js";
 
 /**

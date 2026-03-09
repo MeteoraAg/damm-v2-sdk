@@ -18,10 +18,8 @@ import { NATIVE_MINT, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
   ActivationType,
-  BaseFee,
   BaseFeeMode,
   CollectFeeMode,
-  convertToFeeSchedulerSecondFactor,
   CpAmm,
   derivePositionNftAccount,
   getBaseFeeParams,
@@ -35,7 +33,21 @@ import {
 import { DECIMALS } from "./bankrun-utils";
 import { beforeEach, describe, it } from "vitest";
 
-describe("Claim Fee", () => {
+const poolModes = [
+  {
+    label: "BothToken",
+    collectFeeMode: CollectFeeMode.BothToken,
+    compoundingFeeBps: 0,
+  },
+  {
+    label: "Compounding",
+    collectFeeMode: CollectFeeMode.Compounding,
+    compoundingFeeBps: 5000,
+  },
+] as const;
+
+
+describe.each(poolModes)("Claim Fee ($label)", ({ collectFeeMode, compoundingFeeBps }) => {
   let context: ProgramTestContext;
   let payer: Keypair;
   let tokenX: PublicKey;
@@ -93,7 +105,7 @@ describe("Claim Fee", () => {
 
     const poolFees: PoolFeesParams = {
       baseFee,
-      compoundingFeeBps: 0,
+      compoundingFeeBps,
       padding: 0,
       dynamicFee: null,
     };
@@ -108,7 +120,7 @@ describe("Claim Fee", () => {
         tokenBAmount,
         minSqrtPrice: MIN_SQRT_PRICE,
         maxSqrtPrice: MAX_SQRT_PRICE,
-        collectFeeMode: CollectFeeMode.BothToken,
+        collectFeeMode,
       });
 
     const params: InitializeCustomizeablePoolParams = {
@@ -126,7 +138,7 @@ describe("Claim Fee", () => {
       poolFees,
       hasAlphaVault: false,
       activationType: 1, // 0 slot, 1 timestamp
-      collectFeeMode: 1,
+      collectFeeMode,
       activationPoint: null,
       tokenAProgram: TOKEN_PROGRAM_ID,
       tokenBProgram: TOKEN_PROGRAM_ID,

@@ -3,14 +3,11 @@ import {
   AccountLayout,
   createAssociatedTokenAccountIdempotentInstruction,
   createCloseAccountInstruction,
-  getAccount,
   getAssociatedTokenAddressSync,
   getMint,
   NATIVE_MINT,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
-  TokenAccountNotFoundError,
-  TokenInvalidAccountOwnerError,
 } from "@solana/spl-token";
 import {
   Connection,

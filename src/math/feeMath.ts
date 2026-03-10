@@ -16,12 +16,20 @@ import {
   FeeMode,
   FeeOnAmountResult,
   PoolFeesStruct,
-  LayoutVersion,
   Rounding,
   SplitFees,
   TradeDirection,
 } from "../types";
-import { getBaseFeeHandler, getDynamicFeeNumerator } from "./poolFees";
+import {
+  getBaseFeeHandlerFromPodAlignedData,
+  getDynamicFeeNumerator,
+} from "./poolFees";
+import {
+  InvalidCollectFeeModeError,
+  InvalidFeeError,
+  InvalidPoolVersionError,
+  MathOverflowError,
+} from "../errors";
 
 /**
  * Converts basis points to a numerator
@@ -61,7 +69,7 @@ export function getFeeInPeriod(
   const result = pow(base, new BN(passedPeriod));
 
   if (result.gt(U128_MAX)) {
-    throw new Error("Math overflow");
+    throw new MathOverflowError();
   }
 
   const fee = result.mul(cliffFeeNumerator).shrn(SCALE_OFFSET);
@@ -122,7 +130,7 @@ export function getFeeMode(
       }
       break;
     default:
-      throw new Error("Invalid collectFeeMode");
+      throw new InvalidCollectFeeModeError();
   }
 
   return {
@@ -179,7 +187,9 @@ export function getTotalTradingFeeFromIncludedFeeAmount(
   initSqrtPrice: BN,
   currentSqrtPrice: BN,
 ): BN {
-  const baseFeeHandler = getBaseFeeHandler(poolFees.baseFee.baseFeeInfo.data);
+  const baseFeeHandler = getBaseFeeHandlerFromPodAlignedData(
+    poolFees.baseFee.baseFeeInfo.data,
+  );
 
   // get the base fee numerator from the included fee amount
   const baseFeeNumerator =
@@ -216,7 +226,9 @@ export function getTotalTradingFeeFromExcludedFeeAmount(
   initSqrtPrice: BN,
   currentSqrtPrice: BN,
 ): BN {
-  const baseFeeHandler = getBaseFeeHandler(poolFees.baseFee.baseFeeInfo.data);
+  const baseFeeHandler = getBaseFeeHandlerFromPodAlignedData(
+    poolFees.baseFee.baseFeeInfo.data,
+  );
 
   // get the base fee numerator from the excluded fee amount
   const baseFeeNumerator =
@@ -365,7 +377,7 @@ export function getIncludedFeeAmount(
 ): { includedFeeAmount: BN; feeAmount: BN } {
   const denominator = new BN(FEE_DENOMINATOR).sub(tradeFeeNumerator);
   if (denominator.isZero() || denominator.isNeg()) {
-    throw new Error("Invalid fee numerator");
+    throw new InvalidFeeError("Fee denominator must be positive and non-zero");
   }
 
   const includedFeeAmount = mulDiv(
@@ -382,17 +394,17 @@ export function getIncludedFeeAmount(
 
 /**
  * Gets the max fee numerator
- * @param layoutVersion - The pool version
+ * @param feeVersion - The fee version
  * @returns The max fee numerator
  */
-export function getMaxFeeNumerator(layoutVersion: LayoutVersion): BN {
-  switch (layoutVersion) {
-    case LayoutVersion.V0:
+export function getMaxFeeNumerator(feeVersion: number): BN {
+  switch (feeVersion) {
+    case 0:
       return new BN(MAX_FEE_NUMERATOR_V0);
-    case LayoutVersion.V1:
+    case 1:
       return new BN(MAX_FEE_NUMERATOR_V1);
     default:
-      throw new Error("Invalid pool version");
+      throw new InvalidPoolVersionError();
   }
 }
 
@@ -401,13 +413,13 @@ export function getMaxFeeNumerator(layoutVersion: LayoutVersion): BN {
  * @param poolVersion - The pool version
  * @returns The max fee bps
  */
-export function getMaxFeeBps(layoutVersion: LayoutVersion): number {
-  switch (layoutVersion) {
-    case LayoutVersion.V0:
+export function getMaxFeeBps(feeVersion: number): number {
+  switch (feeVersion) {
+    case 0:
       return MAX_FEE_BPS_V0;
-    case LayoutVersion.V1:
+    case 1:
       return MAX_FEE_BPS_V1;
     default:
-      throw new Error("Invalid pool version");
+      throw new InvalidPoolVersionError();
   }
 }

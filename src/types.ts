@@ -697,16 +697,6 @@ export type WithdrawIneligibleRewardParams = {
   funder: PublicKey;
 };
 
-export type ClaimPartnerFeeParams = {
-  partner: PublicKey;
-  pool: PublicKey;
-  maxAmountA: BN;
-  maxAmountB: BN;
-  receiver?: PublicKey;
-  feePayer?: PublicKey;
-  tempWSolAccount?: PublicKey;
-};
-
 export type ClaimRewardParams = {
   user: PublicKey;
   position: PublicKey;
@@ -824,7 +814,7 @@ export interface BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    layoutVersion: LayoutVersion,
+    feeVersion: number,
   ): boolean;
   getBaseFeeNumeratorFromIncludedFeeAmount(
     currentPoint: BN,

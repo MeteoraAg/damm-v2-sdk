@@ -169,7 +169,7 @@ export async function setupTestContext(
   token2022: boolean,
   extensions?: ExtensionType[],
 ) {
-  const [admin, payer, poolCreator, user, funder, operator, partner] = Array(7)
+  const [admin, payer, poolCreator, user, funder, operator] = Array(7)
     .fill(7)
     .map(() => Keypair.generate());
 
@@ -179,7 +179,6 @@ export async function setupTestContext(
     user.publicKey,
     funder.publicKey,
     operator.publicKey,
-    partner.publicKey,
     poolCreator.publicKey,
   ];
 
@@ -230,7 +229,6 @@ export async function setupTestContext(
     for (const publicKey of [
       payer.publicKey,
       user.publicKey,
-      partner.publicKey,
       poolCreator.publicKey,
     ]) {
       await mintToToken2022(
@@ -246,7 +244,6 @@ export async function setupTestContext(
     for (const publicKey of [
       payer.publicKey,
       user.publicKey,
-      partner.publicKey,
       poolCreator.publicKey,
     ]) {
       await mintToToken2022(
@@ -299,7 +296,6 @@ export async function setupTestContext(
     for (const publicKey of [
       payer.publicKey,
       user.publicKey,
-      partner.publicKey,
       poolCreator.publicKey,
     ]) {
       await mintTo(
@@ -315,7 +311,6 @@ export async function setupTestContext(
     for (const publicKey of [
       payer.publicKey,
       user.publicKey,
-      partner.publicKey,
       poolCreator.publicKey,
     ]) {
       await mintTo(
@@ -357,7 +352,6 @@ export async function setupTestContext(
     funder,
     user,
     operator,
-    partner,
   };
 }
 

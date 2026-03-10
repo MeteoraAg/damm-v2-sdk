@@ -25,6 +25,7 @@ import {
   splitFees,
 } from "./feeMath";
 import { Mint } from "@solana/spl-token";
+import { AmountIsZeroError, SwapDisabledError } from "../errors";
 import {
   getLiquidityHandler,
   getNextSqrtPriceForCompoundingLiquidity,
@@ -489,11 +490,11 @@ export function swapQuoteExactInput(
   },
 ): Quote2Result {
   if (amountIn.lte(new BN(0))) {
-    throw new Error("Amount in must be greater than 0");
+    throw new AmountIsZeroError("Amount in must be greater than 0");
   }
 
   if (!isSwapEnabled(pool, currentPoint)) {
-    throw new Error("Swap is disabled");
+    throw new SwapDisabledError();
   }
 
   const tradeDirection = aToB ? TradeDirection.AtoB : TradeDirection.BtoA;
@@ -581,11 +582,11 @@ export function swapQuoteExactOutput(
   },
 ): Quote2Result {
   if (amountOut.lte(new BN(0))) {
-    throw new Error("Amount out must be greater than 0");
+    throw new AmountIsZeroError("Amount out must be greater than 0");
   }
 
   if (!isSwapEnabled(pool, currentPoint)) {
-    throw new Error("Swap is disabled");
+    throw new SwapDisabledError();
   }
 
   const tradeDirection = aToB ? TradeDirection.AtoB : TradeDirection.BtoA;
@@ -673,11 +674,11 @@ export function swapQuotePartialInput(
   },
 ): Quote2Result {
   if (amountIn.lte(new BN(0))) {
-    throw new Error("Amount in must be greater than 0");
+    throw new AmountIsZeroError("Amount in must be greater than 0");
   }
 
   if (!isSwapEnabled(pool, currentPoint)) {
-    throw new Error("Swap is disabled");
+    throw new SwapDisabledError();
   }
 
   const tradeDirection = aToB ? TradeDirection.AtoB : TradeDirection.BtoA;

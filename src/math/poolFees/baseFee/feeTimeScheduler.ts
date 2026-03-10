@@ -2,10 +2,7 @@ import BN from "bn.js";
 import { BaseFeeMode } from "../../../types";
 import { U16_MAX } from "../../../constants";
 
-import {
-  BorshFeeTimeScheduler,
-  PodAlignedFeeTimeScheduler,
-} from "../../../types";
+import { InvalidBaseFeeModeError, MathOverflowError } from "../../../errors";
 import {
   getFeeNumeratorOnExponentialFeeScheduler,
   getFeeNumeratorOnLinearFeeScheduler,
@@ -30,7 +27,7 @@ export function getFeeTimeBaseFeeNumeratorByPeriod(
   const periodValue = BN.min(period, new BN(numberOfPeriod));
   const periodNumber = periodValue.toNumber();
   if (periodNumber > U16_MAX) {
-    throw new Error("Math overflow");
+    throw new MathOverflowError();
   }
 
   switch (feeTimeSchedulerMode) {
@@ -51,7 +48,7 @@ export function getFeeTimeBaseFeeNumeratorByPeriod(
       return feeNumerator;
     }
     default:
-      throw new Error("Invalid fee time scheduler mode");
+      throw new InvalidBaseFeeModeError("Invalid fee time scheduler mode");
   }
 }
 

@@ -4,6 +4,7 @@ import { FEE_DENOMINATOR, U64_MAX } from "../../../constants";
 import { getExcludedFeeAmount, getIncludedFeeAmount } from "../../feeMath";
 import { mulDiv, sqrt } from "../../utilsMath";
 import { toNumerator } from "../../feeMath";
+import { InvalidInputError, MathOverflowError } from "../../../errors";
 
 /// we denote reference_amount = x0, cliff_fee_numerator = c, fee_increment = i
 /// if input_amount <= x0, then fee = input_amount * c
@@ -134,7 +135,7 @@ export function getMaxIndex(
 
   // delta_numerator = max_fee_numerator.safe_sub(cliff_fee_numerator)
   if (cliffFeeNumerator.gt(maxFeeNumerator)) {
-    throw new Error("cliffFeeNumerator cannot be greater than maxFeeNumerator");
+    throw new InvalidInputError("cliffFeeNumerator cannot be greater than maxFeeNumerator");
   }
   const deltaNumerator = maxFeeNumerator.sub(cliffFeeNumerator);
 
@@ -145,7 +146,7 @@ export function getMaxIndex(
   );
 
   if (feeIncrementNumerator.isZero()) {
-    throw new Error("feeIncrementNumerator cannot be zero");
+    throw new InvalidInputError("feeIncrementNumerator cannot be zero");
   }
 
   const maxIndex = deltaNumerator.div(feeIncrementNumerator);
@@ -234,7 +235,7 @@ export function getFeeNumeratorFromIncludedFeeAmount(
     const numerator = mulDiv(tradingFee, denominator, inputAmount, Rounding.Up);
 
     if (numerator.gt(new BN(U64_MAX))) {
-      throw new Error("Numerator does not fit in u64");
+      throw new MathOverflowError("Numerator does not fit in u64");
     }
 
     return numerator;
@@ -448,7 +449,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
   } else {
     // excludedFeeAmount > checkedExcludedFeeAmount
     if (isOverflow) {
-      throw new Error("Math overflow in getFeeNumeratorFromExcludedFeeAmount");
+      throw new MathOverflowError("Math overflow in getFeeNumeratorFromExcludedFeeAmount");
     }
     // excluded_fee_remaining_amount = excludedFeeAmount - checkedExcludedFeeAmount
     const excludedFeeRemainingAmount = excludedFeeAmount.sub(
@@ -481,7 +482,7 @@ export function getFeeNumeratorFromExcludedFeeAmount(
 
   // sanity check
   if (feeNumerator.lt(cliffFeeNumerator)) {
-    throw new Error("feeNumerator is less than cliffFeeNumerator");
+    throw new InvalidInputError("feeNumerator is less than cliffFeeNumerator");
   }
 
   return feeNumerator;

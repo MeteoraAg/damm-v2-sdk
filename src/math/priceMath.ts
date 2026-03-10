@@ -1,5 +1,6 @@
 import { BN } from "@coral-xyz/anchor";
 import Decimal from "decimal.js";
+import { AmountIsZeroError } from "../errors";
 
 /**
  * Calculates the initial sqrt price
@@ -22,7 +23,7 @@ export function calculateInitSqrtPrice(
   maxSqrtPrice: BN,
 ): BN {
   if (tokenAAmount.isZero() || tokenBAmount.isZero()) {
-    throw new Error("Amount cannot be zero");
+    throw new AmountIsZeroError("Amount cannot be zero");
   }
 
   const amountADecimal = new Decimal(tokenAAmount.toString());

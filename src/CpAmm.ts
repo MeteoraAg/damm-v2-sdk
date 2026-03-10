@@ -103,6 +103,15 @@ import {
   decodePodAlignedFeeRateLimiter,
   decodePodAlignedFeeTimeScheduler,
   decodePodAlignedFeeMarketCapScheduler,
+  validateCustomizablePoolParams,
+  validateCreatePoolParams,
+  validateAddLiquidityParams,
+  validateRemoveLiquidityParams,
+  validateSplitPositionParams,
+  validateSplitPosition2Params,
+  validateLockPositionParams,
+  validateRewardIndex,
+  validateRewardDuration,
 } from "./helpers";
 import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
@@ -1542,6 +1551,14 @@ export class CpAmm {
       isLockLiquidity,
     } = params;
 
+    validateCreatePoolParams({
+      tokenAMint,
+      tokenBMint,
+      liquidityDelta,
+      tokenAAmount,
+      tokenBAmount,
+    });
+
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
     const {
       position,
@@ -1644,6 +1661,21 @@ export class CpAmm {
       tokenBProgram,
       isLockLiquidity,
     } = params;
+
+    validateCustomizablePoolParams({
+      collectFeeMode,
+      activationType,
+      sqrtMinPrice,
+      sqrtMaxPrice,
+      initSqrtPrice,
+      liquidityDelta,
+      tokenAAmount,
+      tokenBAmount,
+      tokenAMint,
+      tokenBMint,
+      poolFees,
+    });
+
     const pool = deriveCustomizablePoolAddress(tokenAMint, tokenBMint);
     const {
       position,
@@ -1758,6 +1790,20 @@ export class CpAmm {
       isLockLiquidity,
     } = params;
 
+    validateCustomizablePoolParams({
+      collectFeeMode,
+      activationType,
+      sqrtMinPrice,
+      sqrtMaxPrice,
+      initSqrtPrice,
+      liquidityDelta,
+      tokenAAmount,
+      tokenBAmount,
+      tokenAMint,
+      tokenBMint,
+      poolFees,
+    });
+
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
     const {
       position,
@@ -1852,6 +1898,8 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async addLiquidity(params: AddLiquidityParams): TxBuilder {
+    validateAddLiquidityParams(params.liquidityDelta);
+
     const {
       owner,
       pool,
@@ -2062,6 +2110,8 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async removeLiquidity(params: RemoveLiquidityParams): TxBuilder {
+    validateRemoveLiquidityParams(params.liquidityDelta);
+
     const {
       owner,
       pool,
@@ -2513,6 +2563,13 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async lockPosition(params: LockPositionParams): TxBuilder {
+    validateLockPositionParams({
+      numberOfPeriod: params.numberOfPeriod,
+      periodFrequency: params.periodFrequency,
+      cliffUnlockLiquidity: params.cliffUnlockLiquidity,
+      liquidityPerPeriod: params.liquidityPerPeriod,
+    });
+
     const {
       owner,
       pool,
@@ -2914,6 +2971,9 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async initializeReward(params: InitializeRewardParams): TxBuilder {
+    validateRewardIndex(params.rewardIndex);
+    validateRewardDuration(params.rewardDuration);
+
     const {
       rewardIndex,
       rewardDuration,
@@ -3024,6 +3084,9 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async updateRewardDuration(params: UpdateRewardDurationParams): TxBuilder {
+    validateRewardIndex(params.rewardIndex);
+    validateRewardDuration(params.newDuration);
+
     const { pool, signer, rewardIndex, newDuration } = params;
     return await this._program.methods
       .updateRewardDuration(rewardIndex, newDuration)
@@ -3040,6 +3103,8 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async updateRewardFunder(params: UpdateRewardFunderParams): TxBuilder {
+    validateRewardIndex(params.rewardIndex);
+
     const { pool, signer, rewardIndex, newFunder } = params;
     return await this._program.methods
       .updateRewardFunder(rewardIndex, newFunder)
@@ -3056,6 +3121,8 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async fundReward(params: FundRewardParams): TxBuilder {
+    validateRewardIndex(params.rewardIndex);
+
     const {
       funder,
       rewardIndex,
@@ -3113,6 +3180,8 @@ export class CpAmm {
   async withdrawIneligibleReward(
     params: WithdrawIneligibleRewardParams,
   ): TxBuilder {
+    validateRewardIndex(params.rewardIndex);
+
     const { rewardIndex, pool, funder } = params;
     const poolState = await this.fetchPoolState(pool);
 
@@ -3296,6 +3365,8 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async claimReward(params: ClaimRewardParams): TxBuilder {
+    validateRewardIndex(params.rewardIndex);
+
     const {
       feePayer,
       user,
@@ -3368,6 +3439,16 @@ export class CpAmm {
       innerVestingLiquidityPercentage,
     } = params;
 
+    validateSplitPositionParams({
+      permanentLockedLiquidityPercentage,
+      unlockedLiquidityPercentage,
+      feeAPercentage,
+      feeBPercentage,
+      reward0Percentage,
+      reward1Percentage,
+      innerVestingLiquidityPercentage,
+    });
+
     return await this._program.methods
       .splitPosition({
         permanentLockedLiquidityPercentage,
@@ -3407,6 +3488,8 @@ export class CpAmm {
       secondPositionNftAccount,
       numerator,
     } = params;
+
+    validateSplitPosition2Params(numerator);
 
     return await this._program.methods
       .splitPosition2(numerator)

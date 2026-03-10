@@ -3,7 +3,8 @@ import {
   ActivationType,
   BaseFeeMode,
   CollectFeeMode,
-  LayoutVersion,
+  DynamicFee,
+  PoolFeesParams,
 } from "../types";
 import {
   getFeeNumeratorFromIncludedFeeAmount,
@@ -12,15 +13,48 @@ import {
   isNonZeroRateLimiter,
   isZeroRateLimiter,
   getFeeMarketCapMinBaseFeeNumerator,
+  getBaseFeeHandlerFromBorshData,
 } from "../math/poolFees";
 import {
+  BASIS_POINT_MAX,
+  BIN_STEP_BPS_DEFAULT,
+  BIN_STEP_BPS_U128_DEFAULT,
+  DEAD_LIQUIDITY,
+  CURRENT_POOL_VERSION,
   FEE_DENOMINATOR,
   MAX_RATE_LIMITER_DURATION_IN_SECONDS,
   MAX_RATE_LIMITER_DURATION_IN_SLOTS,
+  MAX_REWARD_DURATION,
+  MAX_SQRT_PRICE,
   MIN_FEE_NUMERATOR,
+  MIN_REWARD_DURATION,
+  MIN_SQRT_PRICE,
+  NUM_REWARDS,
+  SPLIT_POSITION_DENOMINATOR,
+  U24_MAX,
 } from "../constants";
 import { toNumerator } from "../math";
 import { getMaxFeeBps, getMaxFeeNumerator } from "../math";
+import {
+  AmountIsZeroError,
+  ExceedMaxFeeBpsError,
+  InvalidActivationTypeError,
+  InvalidCollectFeeModeError,
+  InvalidCompoundingFeeBpsError,
+  InvalidDynamicFeeParametersError,
+  InvalidFeeError,
+  InvalidFeeMarketCapSchedulerError,
+  InvalidFeeTimeSchedulerError,
+  InvalidMinimumLiquidityError,
+  InvalidParametersError,
+  InvalidPriceRangeError,
+  InvalidRewardDurationError,
+  InvalidRewardIndexError,
+  InvalidSplitPositionParametersError,
+  InvalidVestingInfoError,
+  SameTokenMintsError,
+} from "../errors";
+import { PublicKey } from "@solana/web3.js";
 
 /**
  * Validate fee scheduler parameters
@@ -39,7 +73,7 @@ export function validateFeeTimeScheduler(
   reductionFactor: BN,
   cliffFeeNumerator: BN,
   baseFeeMode: BaseFeeMode,
-  layoutVersion: LayoutVersion,
+  feeVersion: number,
 ): boolean {
   if (
     !periodFrequency.eq(new BN(0)) ||
@@ -51,7 +85,7 @@ export function validateFeeTimeScheduler(
       periodFrequency.eq(new BN(0)) ||
       reductionFactor.eq(new BN(0))
     ) {
-      throw new Error("PoolError::InvalidFeeTimeScheduler");
+      throw new InvalidFeeTimeSchedulerError();
     }
   }
 
@@ -67,9 +101,9 @@ export function validateFeeTimeScheduler(
 
   if (
     minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
-    maxFeeNumerator.gt(getMaxFeeNumerator(layoutVersion))
+    maxFeeNumerator.gt(getMaxFeeNumerator(feeVersion))
   ) {
-    throw new Error("PoolError::ExceedMaxFeeBps");
+    throw new ExceedMaxFeeBpsError();
   }
 
   return true;
@@ -117,23 +151,23 @@ export function validateFeeMarketCapScheduler(
   reductionFactor: BN,
   schedulerExpirationDuration: BN,
   feeMarketCapSchedulerMode: BaseFeeMode,
-  layoutVersion: LayoutVersion,
+  feeVersion: number,
 ): boolean {
   // doesn't allow zero fee marketcap scheduler
   if (reductionFactor.lte(new BN(0))) {
-    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+    throw new InvalidFeeMarketCapSchedulerError();
   }
 
   if (sqrtPriceStepBps.lte(new BN(0))) {
-    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+    throw new InvalidFeeMarketCapSchedulerError();
   }
 
   if (schedulerExpirationDuration.lte(new BN(0))) {
-    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+    throw new InvalidFeeMarketCapSchedulerError();
   }
 
   if (numberOfPeriod <= 0) {
-    throw new Error("PoolError::InvalidFeeMarketCapScheduler");
+    throw new InvalidFeeMarketCapSchedulerError();
   }
 
   const minFeeNumerator = getFeeMarketCapMinBaseFeeNumerator(
@@ -147,13 +181,13 @@ export function validateFeeMarketCapScheduler(
   validateFeeFraction(minFeeNumerator, new BN(FEE_DENOMINATOR));
   validateFeeFraction(maxFeeNumerator, new BN(FEE_DENOMINATOR));
 
-  const maxAllowedFeeNumerator = getMaxFeeNumerator(layoutVersion);
+  const maxAllowedFeeNumerator = getMaxFeeNumerator(feeVersion);
 
   if (
     minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
     maxFeeNumerator.gt(maxAllowedFeeNumerator)
   ) {
-    throw new Error("PoolError::ExceedMaxFeeBps");
+    throw new ExceedMaxFeeBpsError();
   }
 
   return true;
@@ -197,7 +231,7 @@ export function validateFeeRateLimiter(
   referenceAmount: BN,
   collectFeeMode: CollectFeeMode,
   activationType: ActivationType,
-  layoutVersion: LayoutVersion,
+  feeVersion: number,
 ): boolean {
   // can only be applied in OnlyB collect fee mode
   if (collectFeeMode !== CollectFeeMode.OnlyB) {
@@ -260,7 +294,7 @@ export function validateFeeRateLimiter(
     return false;
   }
 
-  if (maxFeeBps > getMaxFeeBps(layoutVersion)) {
+  if (maxFeeBps > getMaxFeeBps(feeVersion)) {
     return false;
   }
 
@@ -282,7 +316,7 @@ export function validateFeeRateLimiter(
 
   if (
     minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
-    maxFeeNumeratorFromAmount.gt(getMaxFeeNumerator(layoutVersion))
+    maxFeeNumeratorFromAmount.gt(getMaxFeeNumerator(feeVersion))
   ) {
     return false;
   }
@@ -336,8 +370,409 @@ export function validateFeeRateLimiterBaseFeeIsStatic(
  */
 export function validateFeeFraction(numerator: BN, denominator: BN): void {
   if (denominator.isZero() || numerator.gte(denominator)) {
-    throw new Error(
-      "InvalidFee: Fee numerator must be less than denominator and denominator must be non-zero",
+    throw new InvalidFeeError();
+  }
+}
+
+/**
+ * Validates that collectFeeMode is a valid enum value.
+ * @param collectFeeMode - The collect fee mode value.
+ * @throws Error if the collect fee mode is invalid.
+ */
+export function validateCollectFeeMode(collectFeeMode: number): void {
+  if (!(collectFeeMode in CollectFeeMode)) {
+    throw new InvalidCollectFeeModeError();
+  }
+}
+
+/**
+ * Validates that activationType is a valid enum value.
+ * @param activationType - The activation type value.
+ * @throws Error if the activation type is invalid.
+ */
+export function validateActivationType(activationType: number): void {
+  if (!(activationType in ActivationType)) {
+    throw new InvalidActivationTypeError();
+  }
+}
+
+/**
+ * Validates the price range for non-compounding pools.
+ * Compounding pools skip this check (they use the full range).
+ * @param collectFeeMode - The collect fee mode.
+ * @param sqrtMinPrice - The minimum sqrt price.
+ * @param sqrtMaxPrice - The maximum sqrt price.
+ * @throws Error if the price range is invalid.
+ */
+export function validatePriceRange(
+  collectFeeMode: CollectFeeMode,
+  sqrtMinPrice: BN,
+  sqrtMaxPrice: BN,
+): void {
+  if (collectFeeMode === CollectFeeMode.Compounding) {
+    return;
+  }
+
+  if (sqrtMinPrice.lt(MIN_SQRT_PRICE) || sqrtMaxPrice.gt(MAX_SQRT_PRICE)) {
+    throw new InvalidPriceRangeError();
+  }
+
+  if (sqrtMinPrice.gte(sqrtMaxPrice)) {
+    throw new InvalidPriceRangeError();
+  }
+}
+
+/**
+ * Validates the initial sqrt price based on collect fee mode.
+ * - Compounding: initSqrtPrice must be within [MIN_SQRT_PRICE, MAX_SQRT_PRICE].
+ * - Non-compounding: initSqrtPrice must be within [sqrtMinPrice, sqrtMaxPrice].
+ * @param collectFeeMode - The collect fee mode.
+ * @param initSqrtPrice - The initial sqrt price.
+ * @param sqrtMinPrice - The minimum sqrt price.
+ * @param sqrtMaxPrice - The maximum sqrt price.
+ * @throws Error if the initial sqrt price is invalid.
+ */
+export function validateInitialSqrtPrice(
+  collectFeeMode: CollectFeeMode,
+  initSqrtPrice: BN,
+  sqrtMinPrice: BN,
+  sqrtMaxPrice: BN,
+): void {
+  if (collectFeeMode === CollectFeeMode.Compounding) {
+    if (initSqrtPrice.lt(MIN_SQRT_PRICE) || initSqrtPrice.gt(MAX_SQRT_PRICE)) {
+      throw new InvalidPriceRangeError();
+    }
+  } else {
+    if (initSqrtPrice.lt(sqrtMinPrice) || initSqrtPrice.gt(sqrtMaxPrice)) {
+      throw new InvalidPriceRangeError();
+    }
+  }
+}
+
+/**
+ * Validates the compounding fee BPS based on collect fee mode.
+ * - Compounding pools must have compoundingFeeBps > 0 and <= BASIS_POINT_MAX.
+ * - Non-compounding pools must have compoundingFeeBps == 0.
+ * @param collectFeeMode - The collect fee mode.
+ * @param compoundingFeeBps - The compounding fee in basis points.
+ * @throws Error if the compounding fee is invalid.
+ */
+export function validateCompoundingFee(
+  collectFeeMode: CollectFeeMode,
+  compoundingFeeBps: number,
+): void {
+  if (collectFeeMode === CollectFeeMode.Compounding) {
+    if (compoundingFeeBps <= 0 || compoundingFeeBps > BASIS_POINT_MAX) {
+      throw new InvalidCompoundingFeeBpsError();
+    }
+  } else {
+    if (compoundingFeeBps !== 0) {
+      throw new InvalidCompoundingFeeBpsError();
+    }
+  }
+}
+
+/**
+ * Validates dynamic fee parameters, mirroring the on-chain DynamicFeeParameters::validate().
+ * @param dynamicFee - The dynamic fee parameters.
+ * @throws Error if any dynamic fee parameter is invalid.
+ */
+export function validateDynamicFee(dynamicFee: DynamicFee): void {
+  if (dynamicFee.binStep !== BIN_STEP_BPS_DEFAULT) {
+    throw new InvalidDynamicFeeParametersError();
+  }
+
+  if (!dynamicFee.binStepU128.eq(BIN_STEP_BPS_U128_DEFAULT)) {
+    throw new InvalidDynamicFeeParametersError();
+  }
+
+  if (dynamicFee.filterPeriod >= dynamicFee.decayPeriod) {
+    throw new InvalidDynamicFeeParametersError();
+  }
+
+  if (dynamicFee.reductionFactor > BASIS_POINT_MAX) {
+    throw new InvalidDynamicFeeParametersError();
+  }
+
+  if (dynamicFee.variableFeeControl > U24_MAX) {
+    throw new InvalidDynamicFeeParametersError();
+  }
+
+  if (dynamicFee.maxVolatilityAccumulator > U24_MAX) {
+    throw new InvalidDynamicFeeParametersError();
+  }
+}
+
+/**
+ * Validates all pool fee parameters (compounding fee, base fee, and dynamic fee).
+ * Mirrors the on-chain PoolFeeParameters::validate().
+ * @param poolFees - The pool fees parameters.
+ * @param collectFeeMode - The collect fee mode.
+ * @param activationType - The activation type.
+ * @param feeVersion - The fee version (defaults to CURRENT_POOL_VERSION).
+ * @throws Error if any pool fee parameter is invalid.
+ */
+export function validatePoolFees(
+  poolFees: PoolFeesParams,
+  collectFeeMode: CollectFeeMode,
+  activationType: ActivationType,
+  feeVersion: number = CURRENT_POOL_VERSION,
+): void {
+  validateCompoundingFee(collectFeeMode, poolFees.compoundingFeeBps);
+
+  const baseFeeHandler = getBaseFeeHandlerFromBorshData(poolFees.baseFee.data);
+  baseFeeHandler.validate(collectFeeMode, activationType, feeVersion);
+
+  if (poolFees.dynamicFee) {
+    validateDynamicFee(poolFees.dynamicFee);
+  }
+}
+
+/**
+ * Validates all parameters for customizable pool creation, mirroring
+ * the on-chain InitializeCustomizablePoolParameters::validate().
+ * Call this before sending pool creation transactions to surface invalid
+ * configurations early with descriptive errors.
+ * @throws Error if any parameter is invalid.
+ */
+export function validateCustomizablePoolParams(params: {
+  collectFeeMode: number;
+  activationType: number;
+  sqrtMinPrice: BN;
+  sqrtMaxPrice: BN;
+  initSqrtPrice: BN;
+  liquidityDelta: BN;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  poolFees: PoolFeesParams;
+}): void {
+  const {
+    collectFeeMode,
+    activationType,
+    sqrtMinPrice,
+    sqrtMaxPrice,
+    initSqrtPrice,
+    liquidityDelta,
+    tokenAAmount,
+    tokenBAmount,
+    tokenAMint,
+    tokenBMint,
+    poolFees,
+  } = params;
+
+  validateTokenMints(tokenAMint, tokenBMint);
+  validateActivationType(activationType);
+  validateCollectFeeMode(collectFeeMode);
+
+  const cfm = collectFeeMode as CollectFeeMode;
+  const at = activationType as ActivationType;
+
+  validatePriceRange(cfm, sqrtMinPrice, sqrtMaxPrice);
+  validateInitialSqrtPrice(cfm, initSqrtPrice, sqrtMinPrice, sqrtMaxPrice);
+
+  if (liquidityDelta.lte(new BN(0))) {
+    throw new InvalidMinimumLiquidityError();
+  }
+
+  if (cfm === CollectFeeMode.Compounding) {
+    if (liquidityDelta.lte(DEAD_LIQUIDITY)) {
+      throw new InvalidMinimumLiquidityError(
+        "Compounding pool liquidity must be greater than DEAD_LIQUIDITY",
+      );
+    }
+  }
+
+  if (tokenAAmount.lte(new BN(0)) && tokenBAmount.lte(new BN(0))) {
+    throw new AmountIsZeroError();
+  }
+
+  validatePoolFees(poolFees, cfm, at);
+}
+
+/**
+ * Validates that tokenAMint and tokenBMint are different.
+ * @param tokenAMint - Token A mint address.
+ * @param tokenBMint - Token B mint address.
+ * @throws SameTokenMintsError if the mints are identical.
+ */
+export function validateTokenMints(
+  tokenAMint: PublicKey,
+  tokenBMint: PublicKey,
+): void {
+  if (tokenAMint.equals(tokenBMint)) {
+    throw new SameTokenMintsError();
+  }
+}
+
+/**
+ * Validates basic pool creation parameters for static-config pools.
+ * @throws Error if any parameter is invalid.
+ */
+export function validateCreatePoolParams(params: {
+  tokenAMint: PublicKey;
+  tokenBMint: PublicKey;
+  liquidityDelta: BN;
+  tokenAAmount: BN;
+  tokenBAmount: BN;
+}): void {
+  const { tokenAMint, tokenBMint, liquidityDelta, tokenAAmount, tokenBAmount } =
+    params;
+
+  validateTokenMints(tokenAMint, tokenBMint);
+
+  if (liquidityDelta.lte(new BN(0))) {
+    throw new InvalidMinimumLiquidityError();
+  }
+
+  if (tokenAAmount.lte(new BN(0)) && tokenBAmount.lte(new BN(0))) {
+    throw new AmountIsZeroError();
+  }
+}
+
+/**
+ * Validates addLiquidity parameters.
+ * @throws InvalidParametersError if liquidityDelta is not positive.
+ */
+export function validateAddLiquidityParams(liquidityDelta: BN): void {
+  if (liquidityDelta.lte(new BN(0))) {
+    throw new InvalidParametersError("liquidityDelta must be greater than 0");
+  }
+}
+
+/**
+ * Validates removeLiquidity parameters.
+ * @throws InvalidParametersError if liquidityDelta is not positive.
+ */
+export function validateRemoveLiquidityParams(liquidityDelta: BN): void {
+  if (liquidityDelta.lte(new BN(0))) {
+    throw new InvalidParametersError("liquidityDelta must be greater than 0");
+  }
+}
+
+/**
+ * Validates split position parameters (v1 percentage-based).
+ * Each percentage must be <= 100, and at least one must be > 0.
+ * @throws InvalidSplitPositionParametersError if any percentage is invalid.
+ */
+export function validateSplitPositionParams(params: {
+  permanentLockedLiquidityPercentage: number;
+  unlockedLiquidityPercentage: number;
+  feeAPercentage: number;
+  feeBPercentage: number;
+  reward0Percentage: number;
+  reward1Percentage: number;
+  innerVestingLiquidityPercentage: number;
+}): void {
+  const {
+    permanentLockedLiquidityPercentage,
+    unlockedLiquidityPercentage,
+    feeAPercentage,
+    feeBPercentage,
+    reward0Percentage,
+    reward1Percentage,
+    innerVestingLiquidityPercentage,
+  } = params;
+
+  const percentages = [
+    permanentLockedLiquidityPercentage,
+    unlockedLiquidityPercentage,
+    feeAPercentage,
+    feeBPercentage,
+    reward0Percentage,
+    reward1Percentage,
+    innerVestingLiquidityPercentage,
+  ];
+
+  for (const pct of percentages) {
+    if (pct > 100) {
+      throw new InvalidSplitPositionParametersError(
+        "Each percentage must be <= 100",
+      );
+    }
+  }
+
+  if (percentages.every((pct) => pct === 0)) {
+    throw new InvalidSplitPositionParametersError(
+      "At least one percentage must be greater than 0",
+    );
+  }
+}
+
+/**
+ * Validates split position 2 parameters (numerator-based).
+ * The numerator must be > 0 and <= SPLIT_POSITION_DENOMINATOR.
+ * @throws InvalidSplitPositionParametersError if numerator is invalid.
+ */
+export function validateSplitPosition2Params(numerator: number): void {
+  if (numerator <= 0 || numerator > SPLIT_POSITION_DENOMINATOR) {
+    throw new InvalidSplitPositionParametersError(
+      `numerator must be in (0, ${SPLIT_POSITION_DENOMINATOR}]`,
+    );
+  }
+}
+
+/**
+ * Validates lock position vesting parameters (non-time-dependent checks).
+ * @throws InvalidVestingInfoError if any parameter is invalid.
+ */
+export function validateLockPositionParams(params: {
+  numberOfPeriod: number;
+  periodFrequency: BN;
+  cliffUnlockLiquidity: BN;
+  liquidityPerPeriod: BN;
+}): void {
+  const {
+    numberOfPeriod,
+    periodFrequency,
+    cliffUnlockLiquidity,
+    liquidityPerPeriod,
+  } = params;
+
+  if (numberOfPeriod <= 0) {
+    throw new InvalidVestingInfoError("numberOfPeriod must be greater than 0");
+  }
+
+  if (periodFrequency.lte(new BN(0)) || liquidityPerPeriod.lte(new BN(0))) {
+    throw new InvalidVestingInfoError(
+      "periodFrequency and liquidityPerPeriod must be greater than 0",
+    );
+  }
+
+  const totalLockAmount = cliffUnlockLiquidity.add(
+    liquidityPerPeriod.muln(numberOfPeriod),
+  );
+  if (totalLockAmount.lte(new BN(0))) {
+    throw new InvalidVestingInfoError(
+      "Total lock amount must be greater than 0",
+    );
+  }
+}
+
+/**
+ * Validates a reward index is within bounds.
+ * @throws InvalidRewardIndexError if index >= NUM_REWARDS.
+ */
+export function validateRewardIndex(rewardIndex: number): void {
+  if (rewardIndex < 0 || rewardIndex >= NUM_REWARDS) {
+    throw new InvalidRewardIndexError(
+      `rewardIndex must be in [0, ${NUM_REWARDS})`,
+    );
+  }
+}
+
+/**
+ * Validates a reward duration is within the allowed range.
+ * @throws InvalidRewardDurationError if duration is out of range.
+ */
+export function validateRewardDuration(rewardDuration: BN): void {
+  if (
+    rewardDuration.lt(new BN(MIN_REWARD_DURATION)) ||
+    rewardDuration.gt(new BN(MAX_REWARD_DURATION))
+  ) {
+    throw new InvalidRewardDurationError(
+      `rewardDuration must be between ${MIN_REWARD_DURATION} and ${MAX_REWARD_DURATION} seconds`,
     );
   }
 }

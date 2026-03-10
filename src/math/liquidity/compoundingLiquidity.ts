@@ -8,6 +8,11 @@ import {
 } from "../../types";
 import { mulDiv, sqrt } from "../utilsMath";
 import { DEAD_LIQUIDITY, U128_MAX } from "../../constants";
+import {
+  InsufficientLiquidityError,
+  InvalidMinimumLiquidityError,
+  MathOverflowError,
+} from "../../errors";
 
 /**
  * Calculate initial pool information given sqrt_price and liquidity.
@@ -21,7 +26,7 @@ export function getInitialCompoundingPoolInformation(
   liquidity: BN,
 ): InitialPoolInformation {
   if (liquidity.lte(DEAD_LIQUIDITY)) {
-    throw new Error("InvalidMinimumLiquidity");
+    throw new InvalidMinimumLiquidityError();
   }
 
   // a * b = liquidity^2
@@ -188,7 +193,7 @@ export function calculateAtoBFromAmountOutForCompoundingLiquidity(
   amountOut: BN,
 ): SwapAmountFromOutput {
   if (amountOut.gte(tokenBAmount)) {
-    throw new Error("InsufficientLiquidity");
+    throw new InsufficientLiquidityError();
   }
 
   const inputAmount = mulDiv(
@@ -219,7 +224,7 @@ export function calculateBtoAFromAmountOutForCompoundingLiquidity(
   amountOut: BN,
 ): SwapAmountFromOutput {
   if (amountOut.gte(tokenAAmount)) {
-    throw new Error("InsufficientLiquidity");
+    throw new InsufficientLiquidityError();
   }
 
   const inputAmount = mulDiv(
@@ -285,7 +290,7 @@ export function getSqrtPriceFromAmountsForCompoundingLiquidity(
   const sqrtPrice = sqrt(price);
 
   if (!sqrtPrice) {
-    throw new Error("MathOverflow in getSqrtPriceFromAmounts");
+    throw new MathOverflowError("MathOverflow in getSqrtPriceFromAmounts");
   }
 
   return sqrtPrice;

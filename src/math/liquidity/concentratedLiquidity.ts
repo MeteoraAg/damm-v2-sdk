@@ -2,6 +2,11 @@ import BN from "bn.js";
 import { InitialPoolInformation, PoolState, Rounding } from "../../types";
 import { SCALE_OFFSET } from "../../constants";
 import { mulDiv } from "../utilsMath";
+import {
+  InvalidInputError,
+  MathOverflowError,
+  PriceRangeViolationError,
+} from "../../errors";
 
 /**
  * Compute the initial pool information for a concentrated liquidity pool.
@@ -104,7 +109,7 @@ export function calculateAtoBFromAmountInForConcentratedLiquidity(
   );
 
   if (nextSqrtPrice.lt(sqrtMinPrice)) {
-    throw new Error("Price range is violated");
+    throw new PriceRangeViolationError();
   }
 
   // finding output amount
@@ -147,7 +152,7 @@ export function calculateBtoAFromAmountInForConcentratedLiquidity(
   );
 
   if (nextSqrtPrice.gt(sqrtMaxPrice)) {
-    throw new Error("Price range is violated");
+    throw new PriceRangeViolationError();
   }
 
   // finding output amount
@@ -295,7 +300,7 @@ export function calculateAtoBFromAmountOutForConcentratedLiquidity(
   );
 
   if (nextSqrtPrice.lt(sqrtMinPrice)) {
-    throw new Error("Price Range Violation");
+    throw new PriceRangeViolationError();
   }
 
   const inputAmount = getAmountAFromLiquidityDeltaForConcentratedLiquidity(
@@ -331,7 +336,7 @@ export function calculateBtoAFromAmountOutForConcentratedLiquidity(
   );
 
   if (nextSqrtPrice.gt(sqrtMaxPrice)) {
-    throw new Error("Price Range Violation");
+    throw new PriceRangeViolationError();
   }
 
   const inputAmount = getAmountBFromLiquidityDeltaForConcentratedLiquidity(
@@ -432,7 +437,7 @@ export function getAmountAFromLiquidityDeltaForConcentratedLiquidity(
   const denominator = lowerSqrtPrice.mul(upperSqrtPrice);
 
   if (denominator.lte(new BN(0))) {
-    throw new Error("Denominator must be greater than zero");
+    throw new MathOverflowError("Denominator must be greater than zero");
   }
 
   const result = mulDiv(numerator1, numerator2, denominator, rounding);
@@ -454,10 +459,10 @@ export function getNextSqrtPriceFromInput(
   aForB: boolean,
 ): BN {
   if (sqrtPrice.lte(new BN(0))) {
-    throw new Error("sqrtPrice must be greater than 0");
+    throw new InvalidInputError("sqrtPrice must be greater than 0");
   }
   if (liquidity.lte(new BN(0))) {
-    throw new Error("liquidity must be greater than 0");
+    throw new InvalidInputError("liquidity must be greater than 0");
   }
 
   if (aForB) {
@@ -492,10 +497,10 @@ export function getNextSqrtPriceFromOutput(
   aForB: boolean,
 ): BN {
   if (sqrtPrice.lte(new BN(0))) {
-    throw new Error("sqrtPrice must be greater than 0");
+    throw new InvalidInputError("sqrtPrice must be greater than 0");
   }
   if (liquidity.lte(new BN(0))) {
-    throw new Error("liquidity must be greater than 0");
+    throw new InvalidInputError("liquidity must be greater than 0");
   }
 
   if (aForB) {
@@ -564,7 +569,7 @@ export function getNextSqrtPriceFromAmountOutARoundingUp(
 
   const denominator = liquidity.sub(product);
   if (denominator.lte(new BN(0))) {
-    throw new Error("MathOverflow: denominator is zero or negative");
+    throw new MathOverflowError("Denominator is zero or negative");
   }
 
   // result = mulDiv(liquidity, sqrtPrice, denominator, Rounding.Up)
@@ -614,7 +619,7 @@ export function getNextSqrtPriceFromAmountOutBRoundingDown(
   const result = sqrtPrice.sub(quotient);
 
   if (result.isNeg()) {
-    throw new Error("sqrt price cannot be negative");
+    throw new MathOverflowError("sqrt price cannot be negative");
   }
 
   return result;

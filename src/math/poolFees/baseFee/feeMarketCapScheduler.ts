@@ -44,7 +44,9 @@ export function getFeeMarketCapBaseFeeNumeratorByPeriod(
       return feeNumerator;
     }
     default:
-      throw new InvalidBaseFeeModeError("Invalid fee market cap scheduler mode");
+      throw new InvalidBaseFeeModeError(
+        "Invalid fee market cap scheduler mode",
+      );
   }
 }
 

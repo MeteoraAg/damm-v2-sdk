@@ -32,6 +32,7 @@ import {
   NUM_REWARDS,
   SPLIT_POSITION_DENOMINATOR,
   U24_MAX,
+  U64_MAX,
 } from "../constants";
 import { toNumerator } from "../math";
 import { getMaxFeeBps, getMaxFeeNumerator } from "../math";
@@ -44,6 +45,7 @@ import {
   InvalidDynamicFeeParametersError,
   InvalidFeeError,
   InvalidFeeMarketCapSchedulerError,
+  InvalidFeeRateLimiterError,
   InvalidFeeTimeSchedulerError,
   InvalidMinimumLiquidityError,
   InvalidParametersError,
@@ -235,7 +237,9 @@ export function validateFeeRateLimiter(
 ): boolean {
   // can only be applied in OnlyB collect fee mode
   if (collectFeeMode !== CollectFeeMode.OnlyB) {
-    return false;
+    throw new InvalidFeeRateLimiterError(
+      "Rate limiter can only be applied in OnlyB collect fee mode",
+    );
   }
 
   // max_fee_numerator_from_bps = to_numerator(maxFeeBps, FEE_DENOMINATOR)
@@ -249,7 +253,9 @@ export function validateFeeRateLimiter(
     cliffFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
     cliffFeeNumerator.gt(maxFeeNumeratorFromBps)
   ) {
-    return false;
+    throw new InvalidFeeRateLimiterError(
+      "cliffFeeNumerator out of valid range",
+    );
   }
 
   // is_zero_rate_limiter
@@ -265,14 +271,14 @@ export function validateFeeRateLimiter(
   }
 
   if (
-    isNonZeroRateLimiter(
+    !isNonZeroRateLimiter(
       referenceAmount,
       maxLimiterDuration,
       maxFeeBps,
       feeIncrementBps,
     )
   ) {
-    return false;
+    throw new InvalidFeeRateLimiterError();
   }
 
   // max_limiter_duration = match activation_type
@@ -282,7 +288,9 @@ export function validateFeeRateLimiter(
       : new BN(MAX_RATE_LIMITER_DURATION_IN_SECONDS);
 
   if (new BN(maxLimiterDuration).gt(maxLimiterDurationLimit)) {
-    return false;
+    throw new InvalidFeeRateLimiterError(
+      "maxLimiterDuration exceeds limit for activation type",
+    );
   }
 
   // fee_increment_numerator = to_numerator(feeIncrementBps, FEE_DENOMINATOR)
@@ -291,11 +299,13 @@ export function validateFeeRateLimiter(
     new BN(FEE_DENOMINATOR),
   );
   if (feeIncrementNumerator.gte(new BN(FEE_DENOMINATOR))) {
-    return false;
+    throw new InvalidFeeRateLimiterError(
+      "feeIncrementNumerator must be less than FEE_DENOMINATOR",
+    );
   }
 
   if (maxFeeBps > getMaxFeeBps(feeVersion)) {
-    return false;
+    throw new ExceedMaxFeeBpsError();
   }
 
   // validate max fee (more amount, then more fee)
@@ -307,7 +317,7 @@ export function validateFeeRateLimiter(
     feeIncrementBps,
   );
   const maxFeeNumeratorFromAmount = getFeeNumeratorFromIncludedFeeAmount(
-    new BN(Number.MAX_SAFE_INTEGER),
+    U64_MAX,
     cliffFeeNumerator,
     referenceAmount,
     maxFeeBps,
@@ -318,7 +328,7 @@ export function validateFeeRateLimiter(
     minFeeNumerator.lt(new BN(MIN_FEE_NUMERATOR)) ||
     maxFeeNumeratorFromAmount.gt(getMaxFeeNumerator(feeVersion))
   ) {
-    return false;
+    throw new InvalidFeeRateLimiterError("Fee numerator out of valid range");
   }
 
   return true;
@@ -730,14 +740,16 @@ export function validateLockPositionParams(params: {
     liquidityPerPeriod,
   } = params;
 
-  if (numberOfPeriod <= 0) {
-    throw new InvalidVestingInfoError("numberOfPeriod must be greater than 0");
+  if (numberOfPeriod < 0) {
+    throw new InvalidVestingInfoError("numberOfPeriod must be >= 0");
   }
 
-  if (periodFrequency.lte(new BN(0)) || liquidityPerPeriod.lte(new BN(0))) {
-    throw new InvalidVestingInfoError(
-      "periodFrequency and liquidityPerPeriod must be greater than 0",
-    );
+  if (numberOfPeriod > 0) {
+    if (periodFrequency.lte(new BN(0)) || liquidityPerPeriod.lte(new BN(0))) {
+      throw new InvalidVestingInfoError(
+        "periodFrequency and liquidityPerPeriod must be greater than 0 when numberOfPeriod > 0",
+      );
+    }
   }
 
   const totalLockAmount = cliffUnlockLiquidity.add(

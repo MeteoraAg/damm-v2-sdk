@@ -55,7 +55,7 @@ export function isNonZeroRateLimiter(
   feeIncrementBps: number,
 ): boolean {
   return (
-    referenceAmount.isZero() &&
+    !referenceAmount.isZero() &&
     maxLimiterDuration !== 0 &&
     maxFeeBps !== 0 &&
     feeIncrementBps !== 0
@@ -135,7 +135,9 @@ export function getMaxIndex(
 
   // delta_numerator = max_fee_numerator.safe_sub(cliff_fee_numerator)
   if (cliffFeeNumerator.gt(maxFeeNumerator)) {
-    throw new InvalidInputError("cliffFeeNumerator cannot be greater than maxFeeNumerator");
+    throw new InvalidInputError(
+      "cliffFeeNumerator cannot be greater than maxFeeNumerator",
+    );
   }
   const deltaNumerator = maxFeeNumerator.sub(cliffFeeNumerator);
 
@@ -449,7 +451,9 @@ export function getFeeNumeratorFromExcludedFeeAmount(
   } else {
     // excludedFeeAmount > checkedExcludedFeeAmount
     if (isOverflow) {
-      throw new MathOverflowError("Math overflow in getFeeNumeratorFromExcludedFeeAmount");
+      throw new MathOverflowError(
+        "Math overflow in getFeeNumeratorFromExcludedFeeAmount",
+      );
     }
     // excluded_fee_remaining_amount = excludedFeeAmount - checkedExcludedFeeAmount
     const excludedFeeRemainingAmount = excludedFeeAmount.sub(

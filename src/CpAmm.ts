@@ -4,7 +4,7 @@ import invariant from "invariant";
 
 import CpAmmIDL from "./idl/cp_amm.json";
 import type { CpAmm as CpAmmTypes } from "./idl/cp_amm";
-import { DepositTokenNotAcceptedError } from "./errors";
+import { AmountIsZeroError, DepositTokenNotAcceptedError } from "./errors";
 import {
   Connection,
   Transaction,
@@ -2286,6 +2286,10 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async swap(params: SwapParams): TxBuilder {
+    if (params.amountIn.isZero()) {
+      throw new AmountIsZeroError("amountIn must be greater than 0");
+    }
+
     const {
       payer,
       pool,
@@ -2417,6 +2421,11 @@ export class CpAmm {
    * @returns Transaction builder.
    */
   async swap2(params: Swap2Params): TxBuilder {
+    const amount = "amountIn" in params ? params.amountIn : params.amountOut;
+    if (amount.isZero()) {
+      throw new AmountIsZeroError("swap amount must be greater than 0");
+    }
+
     const {
       payer,
       pool,
@@ -3122,6 +3131,9 @@ export class CpAmm {
    */
   async fundReward(params: FundRewardParams): TxBuilder {
     validateRewardIndex(params.rewardIndex);
+    if (params.amount.isZero()) {
+      throw new AmountIsZeroError("fund reward amount must be greater than 0");
+    }
 
     const {
       funder,

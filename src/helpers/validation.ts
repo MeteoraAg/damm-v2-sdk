@@ -390,7 +390,12 @@ export function validateFeeFraction(numerator: BN, denominator: BN): void {
  * @throws Error if the collect fee mode is invalid.
  */
 export function validateCollectFeeMode(collectFeeMode: number): void {
-  if (!(collectFeeMode in CollectFeeMode)) {
+  const allowed = [
+    CollectFeeMode.BothToken,
+    CollectFeeMode.OnlyB,
+    CollectFeeMode.Compounding,
+  ];
+  if (!allowed.includes(collectFeeMode)) {
     throw new InvalidCollectFeeModeError();
   }
 }
@@ -401,7 +406,8 @@ export function validateCollectFeeMode(collectFeeMode: number): void {
  * @throws Error if the activation type is invalid.
  */
 export function validateActivationType(activationType: number): void {
-  if (!(activationType in ActivationType)) {
+  const allowed = [ActivationType.Timestamp, ActivationType.Slot];
+  if (!allowed.includes(activationType)) {
     throw new InvalidActivationTypeError();
   }
 }
@@ -696,7 +702,7 @@ export function validateSplitPositionParams(params: {
   ];
 
   for (const pct of percentages) {
-    if (pct > 100) {
+    if (pct > 100 || pct < 0) {
       throw new InvalidSplitPositionParametersError(
         "Each percentage must be <= 100",
       );

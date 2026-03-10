@@ -4,7 +4,6 @@ import {
   Rounding,
   SwapAmountFromInput,
   SwapAmountFromOutput,
-  TradeDirection,
 } from "../../types";
 import { mulDiv, sqrt } from "../utilsMath";
 import { DEAD_LIQUIDITY, U128_MAX } from "../../constants";
@@ -15,11 +14,13 @@ import {
 } from "../../errors";
 
 /**
- * Calculate initial pool information given sqrt_price and liquidity.
- * @param sqrtPrice BN
- * @param liquidity BN
- * @throws Error if liquidity is not greater than DEAD_LIQUIDITY
- * @returns InitialPoolInformation
+ * Calculate initial pool information given sqrtPrice and liquidity.
+ * Computes the initial token A and B amounts, calculates actual initial liquidity,
+ * and derives the min and max sqrt price bounds for the pool.
+ * @param sqrtPrice - Initial sqrt price as BN
+ * @param liquidity - Initial liquidity as BN
+ * @throws {InvalidMinimumLiquidityError} If liquidity is not greater than DEAD_LIQUIDITY
+ * @returns {InitialPoolInformation} The pool initialization info
  */
 export function getInitialCompoundingPoolInformation(
   sqrtPrice: BN,
@@ -59,13 +60,13 @@ export function getInitialCompoundingPoolInformation(
 }
 
 /**
- * Get the amounts for modify liquidity.
- * @param tokenAAmount - pool's token A reserve
- * @param tokenBAmount - pool's token B reserve
- * @param liquidity - pool's total liquidity
- * @param liquidityDelta - liquidity delta being added/removed
- * @param round - rounding
- * @returns [amountA, amountB] as a tuple of BN's
+ * Get the proportional token amounts for a given liquidity delta in a compounding pool.
+ * @param tokenAAmount - Pool's token A reserve (BN)
+ * @param tokenBAmount - Pool's token B reserve (BN)
+ * @param liquidity - Current pool total liquidity (BN)
+ * @param liquidityDelta - Change in liquidity, positive or negative (BN)
+ * @param round - Rounding mode (Rounding)
+ * @returns {[BN, BN]} [amountA, amountB] as a tuple of BNs
  */
 export function getAmountsForModifyForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -81,12 +82,12 @@ export function getAmountsForModifyForCompoundingLiquidity(
 }
 
 /**
- * Calculates the output amount B from input amount A in a compounding pool (constant product: a * b = k)
- * Formula: output_amount = b * amount_in / (a + amount_in)
- * @param tokenAAmount - Current token A amount (BN)
- * @param tokenBAmount - Current token B amount (BN)
+ * Calculates the output amount B received from an input amount A in a compounding pool (constant product: a * b = k).
+ * Formula: outputAmount = tokenBAmount * amountIn / (tokenAAmount + amountIn)
+ * @param tokenAAmount - Current token A reserve (BN)
+ * @param tokenBAmount - Current token B reserve (BN)
  * @param amountIn - Input amount of token A (BN)
- * @returns An object representing the swap result, { amountLeft, outputAmount, nextSqrtPrice }
+ * @returns {SwapAmountFromInput} The result with output amount B and meta info
  */
 export function calculateAtoBFromAmountInForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -110,12 +111,12 @@ export function calculateAtoBFromAmountInForCompoundingLiquidity(
 }
 
 /**
- * Calculates the output amount A from input amount B in a compounding pool (constant product: a * b = k)
- * Formula: outputAmount = a * amountIn / (b + amountIn)
- * @param tokenAAmount - Current token A amount (BN)
- * @param tokenBAmount - Current token B amount (BN)
+ * Calculates the output amount A received from an input amount B in a compounding pool (constant product: a * b = k).
+ * Formula: outputAmount = tokenAAmount * amountIn / (tokenBAmount + amountIn)
+ * @param tokenAAmount - Current token A reserve (BN)
+ * @param tokenBAmount - Current token B reserve (BN)
  * @param amountIn - Input amount of token B (BN)
- * @returns An object representing the swap result, { amountLeft, outputAmount, nextSqrtPrice }
+ * @returns {SwapAmountFromInput} The result with output amount A and meta info
  */
 export function calculateBtoAFromAmountInForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -139,11 +140,12 @@ export function calculateBtoAFromAmountInForCompoundingLiquidity(
 }
 
 /**
- * Calculates the output amount B from a partial input amount A in a compounding pool (constant product: a * b = k).
- * @param tokenAAmount - Current token A amount (BN)
- * @param tokenBAmount - Current token B amount (BN)
+ * Calculates the output amount B for a partial input amount A in a compounding pool.
+ * (Simply delegates to calculateAtoBFromAmountInForCompoundingLiquidity)
+ * @param tokenAAmount - Current token A reserve (BN)
+ * @param tokenBAmount - Current token B reserve (BN)
  * @param amountIn - Partial input amount of token A (BN)
- * @returns An object representing the swap result, { amountLeft, outputAmount, nextSqrtPrice }
+ * @returns {SwapAmountFromInput} The result with output amount B and meta info
  */
 export function calculateAtoBFromPartialAmountInForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -159,11 +161,12 @@ export function calculateAtoBFromPartialAmountInForCompoundingLiquidity(
 }
 
 /**
- * Calculates the output amount A from a partial input amount B in a compounding pool (constant product: a * b = k).
- * @param tokenAAmount - Current token A amount (BN)
- * @param tokenBAmount - Current token B amount (BN)
+ * Calculates the output amount A for a partial input amount B in a compounding pool.
+ * (Simply delegates to calculateBtoAFromAmountInForCompoundingLiquidity)
+ * @param tokenAAmount - Current token A reserve (BN)
+ * @param tokenBAmount - Current token B reserve (BN)
  * @param amountIn - Partial input amount of token B (BN)
- * @returns An object representing the swap result, { amountLeft, outputAmount, nextSqrtPrice }
+ * @returns {SwapAmountFromInput} The result with output amount A and meta info
  */
 export function calculateBtoAFromPartialAmountInForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -180,12 +183,12 @@ export function calculateBtoAFromPartialAmountInForCompoundingLiquidity(
 
 /**
  * Calculates the input amount A required for a desired output amount B in a compounding pool (constant product: a * b = k).
- * a * b = (a + amount_in) * (b - amount_out)
- * => amount_in = a * amount_out / (b - amount_out)
- * @param tokenAAmount - Current token A amount (BN)
- * @param tokenBAmount - Current token B amount (BN)
+ * Formula: amountIn = tokenAAmount * amountOut / (tokenBAmount - amountOut)
+ * @param tokenAAmount - Current token A reserve (BN)
+ * @param tokenBAmount - Current token B reserve (BN)
  * @param amountOut - Desired output amount of token B (BN)
- * @returns An object representing { inputAmount, nextSqrtPrice }
+ * @throws {InsufficientLiquidityError} If requested output >= available reserve
+ * @returns {SwapAmountFromOutput} The result with required input amount A and meta info
  */
 export function calculateAtoBFromAmountOutForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -205,18 +208,18 @@ export function calculateAtoBFromAmountOutForCompoundingLiquidity(
 
   return {
     inputAmount,
-    nextSqrtPrice: new BN(0), // dont need to care for next sqrt price now
+    nextSqrtPrice: new BN(0), // don't need to care for next sqrt price now
   };
 }
 
 /**
  * Calculates the input amount B required for a desired output amount A in a compounding pool (constant product: a * b = k).
- * a * b = (b + amount_in) * (a - amount_out)
- * => amount_in = a * b / (a - amount_out) - b = b * amount_out / (a - amount_out)
- * @param tokenAAmount - Current token A amount (BN)
- * @param tokenBAmount - Current token B amount (BN)
+ * Formula: amountIn = tokenBAmount * amountOut / (tokenAAmount - amountOut)
+ * @param tokenAAmount - Current token A reserve (BN)
+ * @param tokenBAmount - Current token B reserve (BN)
  * @param amountOut - Desired output amount of token A (BN)
- * @returns An object representing { inputAmount, nextSqrtPrice }
+ * @throws {InsufficientLiquidityError} If requested output >= available reserve
+ * @returns {SwapAmountFromOutput} The result with required input amount B and meta info
  */
 export function calculateBtoAFromAmountOutForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -241,10 +244,10 @@ export function calculateBtoAFromAmountOutForCompoundingLiquidity(
 }
 
 /**
- * Returns the current reserves as [tokenAAmount, tokenBAmount].
+ * Returns the current pool reserves for compounding liquidity.
  * @param tokenAAmount - Amount of token A in the pool (BN)
  * @param tokenBAmount - Amount of token B in the pool (BN)
- * @returns A tuple of [tokenAAmount, tokenBAmount]
+ * @returns {[BN, BN]} A tuple of reserve amounts [tokenAAmount, tokenBAmount]
  */
 export function getReservesAmountForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -254,11 +257,11 @@ export function getReservesAmountForCompoundingLiquidity(
 }
 
 /**
- * Calculates the next sqrt price from the current reserves.
- * price = sqrt(tokenB / tokenA) * (2^64), rounded down.
+ * Calculates the next sqrt price from the current reserves for a compounding pool.
+ * Formula: sqrtPrice = sqrt((tokenBAmount << 128) / tokenAAmount)
  * @param tokenAAmount - Amount of token A in the pool (BN)
  * @param tokenBAmount - Amount of token B in the pool (BN)
- * @returns The next sqrt price as a BN
+ * @returns {BN} The calculated sqrt price (u128 Q64.64)
  */
 export function getNextSqrtPriceForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -271,11 +274,12 @@ export function getNextSqrtPriceForCompoundingLiquidity(
 }
 
 /**
- * Calculates the sqrt price from tokenA and tokenB amounts.
- * sqrt_price = sqrt((token_b_amount << 128) / token_a_amount)
- * Returns BN representing a u128 Q64.64 sqrt price, throws on overflow/bad cast.
- * @param tokenAAmount - BN/bignum of token A in pool
- * @param tokenBAmount - BN/bignum of token B in pool
+ * Calculates the Q64.64 sqrt price from given tokenA and tokenB pool reserves.
+ * Returns a BN representing a u128 Q64.64 sqrt price.
+ * @param tokenAAmount - Amount of token A in pool (BN)
+ * @param tokenBAmount - Amount of token B in pool (BN)
+ * @throws {MathOverflowError} If sqrt computation fails
+ * @returns {BN} The calculated sqrt price
  */
 export function getSqrtPriceFromAmountsForCompoundingLiquidity(
   tokenAAmount: BN,
@@ -297,12 +301,13 @@ export function getSqrtPriceFromAmountsForCompoundingLiquidity(
 }
 
 /**
- * Computes the token A amount from a liquidity delta.
- * @param liquidityDelta - The liquidity delta (BN)
+ * Calculates the corresponding token A amount for a given liquidity delta in a compounding pool.
+ * Formula: amountA = liquidityDelta * tokenAAmount / liquidity
+ * @param liquidityDelta - Liquidity change (BN)
  * @param tokenAAmount - Pool's token A reserve (BN)
  * @param liquidity - Pool's total liquidity (BN)
- * @param rounding - The rounding (Rounding)
- * @returns The token A amount (BN)
+ * @param rounding - Rounding mode (Rounding)
+ * @returns {BN} Proportional token A amount
  */
 export function getAmountAFromLiquidityDeltaForCompoundingLiquidity(
   liquidityDelta: BN,
@@ -314,12 +319,13 @@ export function getAmountAFromLiquidityDeltaForCompoundingLiquidity(
 }
 
 /**
- * Computes the token B amount from a liquidity delta.
- * @param liquidityDelta - The liquidity delta (BN)
+ * Calculates the corresponding token B amount for a given liquidity delta in a compounding pool.
+ * Formula: amountB = liquidityDelta * tokenBAmount / liquidity
+ * @param liquidityDelta - Liquidity change (BN)
  * @param tokenBAmount - Pool's token B reserve (BN)
  * @param liquidity - Pool's total liquidity (BN)
- * @param rounding - The rounding (Rounding)
- * @returns The token B amount (BN)
+ * @param rounding - Rounding mode (Rounding)
+ * @returns {BN} Proportional token B amount
  */
 export function getAmountBFromLiquidityDeltaForCompoundingLiquidity(
   liquidityDelta: BN,
@@ -331,12 +337,11 @@ export function getAmountBFromLiquidityDeltaForCompoundingLiquidity(
 }
 
 /**
- * Computes the initial amount of token A needed given sqrt_price and liquidity.
- * liquidity.div_ceil(sqrt_price)
- * Returns a BN
+ * Computes the initial amount of token A needed to create a pool, given sqrtPrice and liquidity.
+ * Performs ceil(liquidity / sqrtPrice).
  * @param sqrtPrice - The sqrt price as BN
  * @param liquidity - The liquidity as BN
- * @returns amount as BN
+ * @returns {BN} Required token A amount (rounded up)
  */
 export function getPoolCreationAmountAFromLiquidityDeltaForCompoundingLiquidity(
   sqrtPrice: BN,
@@ -348,12 +353,11 @@ export function getPoolCreationAmountAFromLiquidityDeltaForCompoundingLiquidity(
 }
 
 /**
- * Computes the initial amount of token B needed given sqrt_price and liquidity.
- * ceil_div(liquidity * sqrt_price, 1 << 128)
- * Returns a BN
+ * Computes the initial amount of token B needed to create a pool, given sqrtPrice and liquidity.
+ * Performs ceil(liquidity * sqrtPrice / 2^128).
  * @param sqrtPrice - The sqrt price as BN
  * @param liquidity - The liquidity as BN
- * @returns amount as BN
+ * @returns {BN} Required token B amount (rounded up)
  */
 export function getPoolCreationAmountBFromLiquidityDeltaForCompoundingLiquidity(
   sqrtPrice: BN,
@@ -370,12 +374,12 @@ export function getPoolCreationAmountBFromLiquidityDeltaForCompoundingLiquidity(
 }
 
 /**
- * Calculates the liquidity delta from a given amount of token A.
- * liquidityDelta = floor(amountA * totalLiquidity / poolTokenAReserve)
- * @param amountA - User's token A amount (BN)
+ * Calculates the liquidity delta achievable with a given token A amount in the current pool.
+ * Formula: liquidityDelta = floor(amountA * liquidity / tokenAAmount)
+ * @param amountA - Provided token A amount (BN)
  * @param tokenAAmount - Pool's token A reserve (BN)
  * @param liquidity - Pool's total liquidity (BN)
- * @returns The liquidity delta (BN)
+ * @returns {BN} Liquidity delta (how much liquidity user can provide)
  */
 export function getLiquidityDeltaFromAmountAForCompoundingLiquidity(
   amountA: BN,
@@ -386,12 +390,12 @@ export function getLiquidityDeltaFromAmountAForCompoundingLiquidity(
 }
 
 /**
- * Calculates the liquidity delta from a given amount of token B.
- * liquidityDelta = floor(amountB * totalLiquidity / poolTokenBReserve)
- * @param amountB - User's token B amount (BN)
+ * Calculates the liquidity delta achievable with a given token B amount in the current pool.
+ * Formula: liquidityDelta = floor(amountB * liquidity / tokenBAmount)
+ * @param amountB - Provided token B amount (BN)
  * @param tokenBAmount - Pool's token B reserve (BN)
  * @param liquidity - Pool's total liquidity (BN)
- * @returns The liquidity delta (BN)
+ * @returns {BN} Liquidity delta (how much liquidity user can provide)
  */
 export function getLiquidityDeltaFromAmountBForCompoundingLiquidity(
   amountB: BN,
@@ -402,10 +406,11 @@ export function getLiquidityDeltaFromAmountBForCompoundingLiquidity(
 }
 
 /**
- * Computes the liquidity delta for pool creation from a given amount of token A.
+ * Computes the liquidity delta for pool creation from a given token A amount and sqrt price.
+ * Formula: liquidityDelta = amountA * sqrtPrice
  * @param amountA - User's token A amount (BN)
- * @param tokenAAmount - Pool's token A reserve (BN)
- * @param liquidity - Pool's total liquidity (BN)
+ * @param sqrtPrice - The sqrt price as BN
+ * @returns {BN} Liquidity delta to use for pool creation
  */
 export function getPoolCreationLiquidityDeltaFromAmountAForCompoundingLiquidity(
   amountA: BN,
@@ -415,10 +420,11 @@ export function getPoolCreationLiquidityDeltaFromAmountAForCompoundingLiquidity(
 }
 
 /**
- * Computes the liquidity delta for pool creation from a given amount of token B.
+ * Computes the liquidity delta for pool creation from a given token B amount and sqrt price.
+ * Formula: liquidityDelta = (amountB << 128) / sqrtPrice
  * @param amountB - User's token B amount (BN)
- * @param sqrtPrice - The sqrt price (BN)
- * @returns The liquidity delta (BN)
+ * @param sqrtPrice - The sqrt price as BN
+ * @returns {BN} Liquidity delta to use for pool creation
  */
 export function getPoolCreationLiquidityDeltaFromAmountBForCompoundingLiquidity(
   amountB: BN,

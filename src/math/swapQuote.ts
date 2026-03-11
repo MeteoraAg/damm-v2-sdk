@@ -718,7 +718,7 @@ export function swapQuotePartialInput(
   );
 
   const priceImpact = getPriceImpact(
-    actualAmountIn,
+    swapResult.includedFeeInputAmount,
     actualAmountOut,
     pool.sqrtPrice,
     aToB,

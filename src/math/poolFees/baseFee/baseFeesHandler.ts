@@ -5,8 +5,7 @@ import {
   CollectFeeMode,
   ActivationType,
   BaseFeeHandler,
-  PoolVersion,
-} from "../../types";
+} from "../../../types";
 import {
   getFeeNumeratorFromIncludedFeeAmount,
   getFeeNumeratorFromExcludedFeeAmount,
@@ -32,8 +31,12 @@ import {
   decodePodAlignedFeeRateLimiter,
   decodePodAlignedFeeTimeScheduler,
   decodePodAlignedFeeMarketCapScheduler,
-} from "../../helpers";
-import { U64_MAX } from "../../constants";
+  decodeFeeTimeSchedulerParams,
+  decodeFeeRateLimiterParams,
+  decodeFeeMarketCapSchedulerParams,
+} from "../../../helpers";
+import { U64_MAX } from "../../../constants";
+import { InvalidBaseFeeModeError } from "../../../errors";
 
 /**
  * Fee Rate Limiter class
@@ -50,7 +53,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion,
+    feeVersion: number,
   ): boolean {
     return validateFeeRateLimiter(
       this.cliffFeeNumerator,
@@ -60,7 +63,7 @@ export class FeeRateLimiter implements BaseFeeHandler {
       this.referenceAmount,
       collectFeeMode,
       activationType,
-      poolVersion,
+      feeVersion,
     );
   }
 
@@ -167,7 +170,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
   validate(
     collectFeeMode: CollectFeeMode,
     activationType: ActivationType,
-    poolVersion: PoolVersion,
+    feeVersion: number,
   ): boolean {
     return validateFeeTimeScheduler(
       this.numberOfPeriod,
@@ -175,7 +178,7 @@ export class FeeTimeScheduler implements BaseFeeHandler {
       this.reductionFactor,
       this.cliffFeeNumerator,
       this.feeTimeSchedulerMode,
-      poolVersion,
+      feeVersion,
     );
   }
 
@@ -256,7 +259,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
   validate(
     _collectFeeMode: CollectFeeMode,
     _activationType: ActivationType,
-    poolVersion: PoolVersion,
+    feeVersion: number,
   ): boolean {
     return validateFeeMarketCapScheduler(
       this.cliffFeeNumerator,
@@ -265,7 +268,7 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
       this.reductionFactor,
       new BN(this.schedulerExpirationDuration),
       this.feeMarketCapSchedulerMode,
-      poolVersion,
+      feeVersion,
     );
   }
 
@@ -336,11 +339,13 @@ export class FeeMarketCapScheduler implements BaseFeeHandler {
 }
 
 /**
- * Get base fee handler based on base fee mode
- * @param rawData Raw data
+ * Get base fee handler from pod-aligned data.
+ * @param rawData Raw data in pod-aligned format
  * @returns Base fee handler instance
  */
-export function getBaseFeeHandler(rawData: number[]): BaseFeeHandler {
+export function getBaseFeeHandlerFromPodAlignedData(
+  rawData: number[],
+): BaseFeeHandler {
   const data = Buffer.from(rawData);
   const modeIndex = data.readUInt8(8); // offset 8 for poolFees pod format
   const baseFeeMode = modeIndex as BaseFeeMode;
@@ -380,6 +385,58 @@ export function getBaseFeeHandler(rawData: number[]): BaseFeeHandler {
       );
     }
     default:
-      throw new Error("Invalid base fee mode");
+      throw new InvalidBaseFeeModeError();
+  }
+}
+
+/**
+ * Get base fee handler from Borsh-encoded data.
+ * In Borsh encoding, base_fee_mode is the last byte (offset 26).
+ * @param rawData Raw data in Borsh format
+ * @returns Base fee handler instance
+ */
+export function getBaseFeeHandlerFromBorshData(
+  rawData: number[],
+): BaseFeeHandler {
+  const data = Buffer.from(rawData);
+  const modeIndex = data.readUInt8(data.length - 1);
+  const baseFeeMode = modeIndex as BaseFeeMode;
+
+  switch (baseFeeMode) {
+    case BaseFeeMode.FeeTimeSchedulerLinear:
+    case BaseFeeMode.FeeTimeSchedulerExponential: {
+      const poolFees = decodeFeeTimeSchedulerParams(data);
+      return new FeeTimeScheduler(
+        poolFees.cliffFeeNumerator,
+        poolFees.numberOfPeriod,
+        poolFees.periodFrequency,
+        poolFees.reductionFactor,
+        poolFees.baseFeeMode,
+      );
+    }
+    case BaseFeeMode.RateLimiter: {
+      const poolFees = decodeFeeRateLimiterParams(data);
+      return new FeeRateLimiter(
+        poolFees.cliffFeeNumerator,
+        poolFees.feeIncrementBps,
+        poolFees.maxFeeBps,
+        poolFees.maxLimiterDuration,
+        poolFees.referenceAmount,
+      );
+    }
+    case BaseFeeMode.FeeMarketCapSchedulerLinear:
+    case BaseFeeMode.FeeMarketCapSchedulerExponential: {
+      const poolFees = decodeFeeMarketCapSchedulerParams(data);
+      return new FeeMarketCapScheduler(
+        poolFees.cliffFeeNumerator,
+        poolFees.numberOfPeriod,
+        poolFees.sqrtPriceStepBps,
+        poolFees.schedulerExpirationDuration,
+        poolFees.reductionFactor,
+        poolFees.baseFeeMode,
+      );
+    }
+    default:
+      throw new InvalidBaseFeeModeError();
   }
 }

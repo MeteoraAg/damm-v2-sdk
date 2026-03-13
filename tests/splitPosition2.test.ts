@@ -17,6 +17,7 @@ import { expect, beforeEach, describe, it } from "vitest";
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   CreatePositionParams,
   derivePositionAddress,
@@ -31,323 +32,350 @@ import {
 } from "../src";
 import { DECIMALS } from "./bankrun-utils";
 
+const poolModes = [
+  {
+    label: "BothToken",
+    collectFeeMode: CollectFeeMode.BothToken,
+    compoundingFeeBps: 0,
+  },
+  {
+    label: "Compounding",
+    collectFeeMode: CollectFeeMode.Compounding,
+    compoundingFeeBps: 5000,
+  },
+] as const;
+
 describe("Split Position 2", () => {
-  describe("Split position 2 with SPL-Token", () => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let poolCreator: Keypair;
-    let user: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
+  describe.each(poolModes)(
+    "Split position 2 with SPL-Token ($label)",
+    ({ collectFeeMode, compoundingFeeBps }) => {
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let poolCreator: Keypair;
+      let user: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
 
-    beforeEach(async () => {
-      context = await startTest();
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        false,
-      );
+      beforeEach(async () => {
+        context = await startTest();
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          false,
+        );
 
-      poolCreator = prepareContext.poolCreator;
-      user = prepareContext.user;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
-    });
+        poolCreator = prepareContext.poolCreator;
+        user = prepareContext.user;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
+      });
 
-    it("Should successfully split position 2 between poolCreator and user", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
+      it("Should successfully split position 2 between poolCreator and user", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
           },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
+          6,
+          ActivationType.Timestamp,
+        );
 
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        padding: [],
-        dynamicFee: null,
-      };
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      // 1. Create pool with first position (owned by poolCreator)
-      const firstPositionNft = Keypair.generate();
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
-        });
+        // 1. Create pool with first position (owned by poolCreator)
+        const firstPositionNft = Keypair.generate();
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
 
-      const createPoolParams: InitializeCustomizeablePoolParams = {
-        payer: payer.publicKey,
-        creator: poolCreator.publicKey,
-        positionNft: firstPositionNft.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
-        activationPoint: null,
-        tokenAProgram: TOKEN_PROGRAM_ID,
-        tokenBProgram: TOKEN_PROGRAM_ID,
-      };
+        const createPoolParams: InitializeCustomizeablePoolParams = {
+          payer: payer.publicKey,
+          creator: poolCreator.publicKey,
+          positionNft: firstPositionNft.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
+          collectFeeMode,
+          activationPoint: null,
+          tokenAProgram: TOKEN_PROGRAM_ID,
+          tokenBProgram: TOKEN_PROGRAM_ID,
+        };
 
-      const {
-        tx: createPoolTransaction,
-        pool,
-        position: firstPosition,
-      } = await ammInstance.createCustomPool(createPoolParams);
+        const {
+          tx: createPoolTransaction,
+          pool,
+          position: firstPosition,
+        } = await ammInstance.createCustomPool(createPoolParams);
 
-      await executeTransaction(context.banksClient, createPoolTransaction, [
-        payer,
-        firstPositionNft,
-      ]);
+        await executeTransaction(context.banksClient, createPoolTransaction, [
+          payer,
+          firstPositionNft,
+        ]);
 
-      // 2. Create second position (owned by user)
-      const secondPositionNft = Keypair.generate();
-      const createSecondPositionParams: CreatePositionParams = {
-        owner: user.publicKey,
-        payer: user.publicKey,
-        pool,
-        positionNft: secondPositionNft.publicKey,
-      };
-      const createSecondPositionTx = await ammInstance.createPosition(
-        createSecondPositionParams,
-      );
-      await executeTransaction(context.banksClient, createSecondPositionTx, [
-        user,
-        secondPositionNft,
-      ]);
+        // 2. Create second position (owned by user)
+        const secondPositionNft = Keypair.generate();
+        const createSecondPositionParams: CreatePositionParams = {
+          owner: user.publicKey,
+          payer: user.publicKey,
+          pool,
+          positionNft: secondPositionNft.publicKey,
+        };
+        const createSecondPositionTx = await ammInstance.createPosition(
+          createSecondPositionParams,
+        );
+        await executeTransaction(context.banksClient, createSecondPositionTx, [
+          user,
+          secondPositionNft,
+        ]);
 
-      const secondPosition = derivePositionAddress(secondPositionNft.publicKey);
-
-      // 3. Execute split position
-      const splitPositionParams: SplitPosition2Params = {
-        firstPositionOwner: poolCreator.publicKey,
-        secondPositionOwner: user.publicKey,
-        pool,
-        firstPosition,
-        firstPositionNftAccount: derivePositionNftAccount(
-          firstPositionNft.publicKey,
-        ),
-        secondPosition,
-        secondPositionNftAccount: derivePositionNftAccount(
+        const secondPosition = derivePositionAddress(
           secondPositionNft.publicKey,
-        ),
-        numerator: SPLIT_POSITION_DENOMINATOR / 2,
-      };
+        );
 
-      const splitPositionTx =
-        await ammInstance.splitPosition2(splitPositionParams);
-      await executeTransaction(context.banksClient, splitPositionTx, [
-        poolCreator,
-        user,
-      ]);
+        // 3. Execute split position
+        const splitPositionParams: SplitPosition2Params = {
+          firstPositionOwner: poolCreator.publicKey,
+          secondPositionOwner: user.publicKey,
+          pool,
+          firstPosition,
+          firstPositionNftAccount: derivePositionNftAccount(
+            firstPositionNft.publicKey,
+          ),
+          secondPosition,
+          secondPositionNftAccount: derivePositionNftAccount(
+            secondPositionNft.publicKey,
+          ),
+          numerator: SPLIT_POSITION_DENOMINATOR / 2,
+        };
 
-      const afterFirstPositionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        firstPosition,
-      );
-      const afterSecondPositionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        secondPosition,
-      );
+        const splitPositionTx =
+          await ammInstance.splitPosition2(splitPositionParams);
+        await executeTransaction(context.banksClient, splitPositionTx, [
+          poolCreator,
+          user,
+        ]);
 
-      expect(afterFirstPositionState.unlockedLiquidity.toString()).toBe(
-        afterSecondPositionState.unlockedLiquidity.toString(),
-      );
-      expect(afterFirstPositionState.permanentLockedLiquidity.toString()).toBe(
-        afterSecondPositionState.permanentLockedLiquidity.toString(),
-      );
-      expect(afterFirstPositionState.feeAPending.toString()).toBe(
-        afterSecondPositionState.feeAPending.toString(),
-      );
-      expect(afterFirstPositionState.feeBPending.toString()).toBe(
-        afterSecondPositionState.feeBPending.toString(),
-      );
-    });
-  });
+        const afterFirstPositionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          firstPosition,
+        );
+        const afterSecondPositionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          secondPosition,
+        );
 
-  describe("Split position 2 with Token 2022", () => {
-    let context: ProgramTestContext;
-    let payer: Keypair;
-    let poolCreator: Keypair;
-    let user: Keypair;
-    let tokenX: PublicKey;
-    let tokenY: PublicKey;
-    let ammInstance: CpAmm;
+        expect(afterFirstPositionState.unlockedLiquidity.toString()).toBe(
+          afterSecondPositionState.unlockedLiquidity.toString(),
+        );
+        expect(
+          afterFirstPositionState.permanentLockedLiquidity.toString(),
+        ).toBe(afterSecondPositionState.permanentLockedLiquidity.toString());
+        expect(afterFirstPositionState.feeAPending.toString()).toBe(
+          afterSecondPositionState.feeAPending.toString(),
+        );
+        expect(afterFirstPositionState.feeBPending.toString()).toBe(
+          afterSecondPositionState.feeBPending.toString(),
+        );
+      });
+    },
+  );
 
-    beforeEach(async () => {
-      context = await startTest();
-      const extensions = [ExtensionType.TransferFeeConfig];
-      const prepareContext = await setupTestContext(
-        context.banksClient,
-        context.payer,
-        true,
-        extensions,
-      );
+  describe.each(poolModes)(
+    "Split position 2 with Token 2022 ($label)",
+    ({ collectFeeMode, compoundingFeeBps }) => {
+      let context: ProgramTestContext;
+      let payer: Keypair;
+      let poolCreator: Keypair;
+      let user: Keypair;
+      let tokenX: PublicKey;
+      let tokenY: PublicKey;
+      let ammInstance: CpAmm;
 
-      poolCreator = prepareContext.poolCreator;
-      user = prepareContext.user;
-      payer = prepareContext.payer;
-      tokenX = prepareContext.tokenAMint;
-      tokenY = prepareContext.tokenBMint;
+      beforeEach(async () => {
+        context = await startTest();
+        const extensions = [ExtensionType.TransferFeeConfig];
+        const prepareContext = await setupTestContext(
+          context.banksClient,
+          context.payer,
+          true,
+          extensions,
+        );
 
-      const connection = new Connection(clusterApiUrl("devnet"));
-      ammInstance = new CpAmm(connection);
-    });
+        poolCreator = prepareContext.poolCreator;
+        user = prepareContext.user;
+        payer = prepareContext.payer;
+        tokenX = prepareContext.tokenAMint;
+        tokenY = prepareContext.tokenBMint;
 
-    it("Should successfully split position 2 between poolCreator and user with Token 2022", async () => {
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 5000,
-            endingFeeBps: 100,
-            numberOfPeriod: 180,
-            totalDuration: 180,
+        const connection = new Connection(clusterApiUrl("devnet"));
+        ammInstance = new CpAmm(connection);
+      });
+
+      it("Should successfully split position 2 between poolCreator and user with Token 2022", async () => {
+        const baseFee = getBaseFeeParams(
+          {
+            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+            feeTimeSchedulerParam: {
+              startingFeeBps: 5000,
+              endingFeeBps: 100,
+              numberOfPeriod: 180,
+              totalDuration: 180,
+            },
           },
-        },
-        6,
-        ActivationType.Timestamp,
-      );
+          6,
+          ActivationType.Timestamp,
+        );
 
-      const poolFees: PoolFeesParams = {
-        baseFee,
-        padding: [],
-        dynamicFee: null,
-      };
+        const poolFees: PoolFeesParams = {
+          baseFee,
+          compoundingFeeBps,
+          padding: 0,
+          dynamicFee: null,
+        };
 
-      // 1. Create pool with first position (owned by poolCreator)
-      const firstPositionNft = Keypair.generate();
-      const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-      const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-      const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
-        ammInstance.preparePoolCreationParams({
-          tokenAAmount,
-          tokenBAmount,
-          minSqrtPrice: MIN_SQRT_PRICE,
-          maxSqrtPrice: MAX_SQRT_PRICE,
-        });
+        // 1. Create pool with first position (owned by poolCreator)
+        const firstPositionNft = Keypair.generate();
+        const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+        const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+        const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+          ammInstance.preparePoolCreationParams({
+            tokenAAmount,
+            tokenBAmount,
+            minSqrtPrice: MIN_SQRT_PRICE,
+            maxSqrtPrice: MAX_SQRT_PRICE,
+            collectFeeMode,
+          });
 
-      const createPoolParams: InitializeCustomizeablePoolParams = {
-        payer: payer.publicKey,
-        creator: poolCreator.publicKey,
-        positionNft: firstPositionNft.publicKey,
-        tokenAMint: tokenX,
-        tokenBMint: tokenY,
-        tokenAAmount: new BN(1000 * 10 ** DECIMALS),
-        tokenBAmount: new BN(1000 * 10 ** DECIMALS),
-        sqrtMinPrice: MIN_SQRT_PRICE,
-        sqrtMaxPrice: MAX_SQRT_PRICE,
-        liquidityDelta: initPoolLiquidityDelta,
-        initSqrtPrice,
-        poolFees,
-        hasAlphaVault: false,
-        activationType: 1, // 0 slot, 1 timestamp
-        collectFeeMode: 0,
-        activationPoint: null,
-        tokenAProgram: TOKEN_2022_PROGRAM_ID,
-        tokenBProgram: TOKEN_2022_PROGRAM_ID,
-      };
+        const createPoolParams: InitializeCustomizeablePoolParams = {
+          payer: payer.publicKey,
+          creator: poolCreator.publicKey,
+          positionNft: firstPositionNft.publicKey,
+          tokenAMint: tokenX,
+          tokenBMint: tokenY,
+          tokenAAmount: new BN(1000 * 10 ** DECIMALS),
+          tokenBAmount: new BN(1000 * 10 ** DECIMALS),
+          sqrtMinPrice: MIN_SQRT_PRICE,
+          sqrtMaxPrice: MAX_SQRT_PRICE,
+          liquidityDelta: initPoolLiquidityDelta,
+          initSqrtPrice,
+          poolFees,
+          hasAlphaVault: false,
+          activationType: 1, // 0 slot, 1 timestamp
+          collectFeeMode,
+          activationPoint: null,
+          tokenAProgram: TOKEN_2022_PROGRAM_ID,
+          tokenBProgram: TOKEN_2022_PROGRAM_ID,
+        };
 
-      const {
-        tx: createPoolTransaction,
-        pool,
-        position: firstPosition,
-      } = await ammInstance.createCustomPool(createPoolParams);
+        const {
+          tx: createPoolTransaction,
+          pool,
+          position: firstPosition,
+        } = await ammInstance.createCustomPool(createPoolParams);
 
-      await executeTransaction(context.banksClient, createPoolTransaction, [
-        payer,
-        firstPositionNft,
-      ]);
+        await executeTransaction(context.banksClient, createPoolTransaction, [
+          payer,
+          firstPositionNft,
+        ]);
 
-      // 2. Create second position (owned by user)
-      const secondPositionNft = Keypair.generate();
-      const createSecondPositionParams: CreatePositionParams = {
-        owner: user.publicKey,
-        payer: user.publicKey,
-        pool,
-        positionNft: secondPositionNft.publicKey,
-      };
-      const createSecondPositionTx = await ammInstance.createPosition(
-        createSecondPositionParams,
-      );
-      await executeTransaction(context.banksClient, createSecondPositionTx, [
-        user,
-        secondPositionNft,
-      ]);
+        // 2. Create second position (owned by user)
+        const secondPositionNft = Keypair.generate();
+        const createSecondPositionParams: CreatePositionParams = {
+          owner: user.publicKey,
+          payer: user.publicKey,
+          pool,
+          positionNft: secondPositionNft.publicKey,
+        };
+        const createSecondPositionTx = await ammInstance.createPosition(
+          createSecondPositionParams,
+        );
+        await executeTransaction(context.banksClient, createSecondPositionTx, [
+          user,
+          secondPositionNft,
+        ]);
 
-      const secondPosition = derivePositionAddress(secondPositionNft.publicKey);
-
-      // 3. Execute split position
-      const splitPositionParams: SplitPosition2Params = {
-        firstPositionOwner: poolCreator.publicKey,
-        secondPositionOwner: user.publicKey,
-        pool,
-        firstPosition,
-        firstPositionNftAccount: derivePositionNftAccount(
-          firstPositionNft.publicKey,
-        ),
-        secondPosition,
-        secondPositionNftAccount: derivePositionNftAccount(
+        const secondPosition = derivePositionAddress(
           secondPositionNft.publicKey,
-        ),
-        numerator: SPLIT_POSITION_DENOMINATOR / 2,
-      };
+        );
 
-      const splitPositionTx =
-        await ammInstance.splitPosition2(splitPositionParams);
-      await executeTransaction(context.banksClient, splitPositionTx, [
-        poolCreator,
-        user,
-      ]);
+        // 3. Execute split position
+        const splitPositionParams: SplitPosition2Params = {
+          firstPositionOwner: poolCreator.publicKey,
+          secondPositionOwner: user.publicKey,
+          pool,
+          firstPosition,
+          firstPositionNftAccount: derivePositionNftAccount(
+            firstPositionNft.publicKey,
+          ),
+          secondPosition,
+          secondPositionNftAccount: derivePositionNftAccount(
+            secondPositionNft.publicKey,
+          ),
+          numerator: SPLIT_POSITION_DENOMINATOR / 2,
+        };
 
-      const afterFirstPositionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        firstPosition,
-      );
-      const afterSecondPositionState = await getPosition(
-        context.banksClient,
-        ammInstance._program,
-        secondPosition,
-      );
+        const splitPositionTx =
+          await ammInstance.splitPosition2(splitPositionParams);
+        await executeTransaction(context.banksClient, splitPositionTx, [
+          poolCreator,
+          user,
+        ]);
 
-      expect(afterFirstPositionState.unlockedLiquidity.toString()).toBe(
-        afterSecondPositionState.unlockedLiquidity.toString(),
-      );
-      expect(afterFirstPositionState.permanentLockedLiquidity.toString()).toBe(
-        afterSecondPositionState.permanentLockedLiquidity.toString(),
-      );
-      expect(afterFirstPositionState.feeAPending.toString()).toBe(
-        afterSecondPositionState.feeAPending.toString(),
-      );
-      expect(afterFirstPositionState.feeBPending.toString()).toBe(
-        afterSecondPositionState.feeBPending.toString(),
-      );
-    });
-  });
+        const afterFirstPositionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          firstPosition,
+        );
+        const afterSecondPositionState = await getPosition(
+          context.banksClient,
+          ammInstance._program,
+          secondPosition,
+        );
+
+        expect(afterFirstPositionState.unlockedLiquidity.toString()).toBe(
+          afterSecondPositionState.unlockedLiquidity.toString(),
+        );
+        expect(
+          afterFirstPositionState.permanentLockedLiquidity.toString(),
+        ).toBe(afterSecondPositionState.permanentLockedLiquidity.toString());
+        expect(afterFirstPositionState.feeAPending.toString()).toBe(
+          afterSecondPositionState.feeAPending.toString(),
+        );
+        expect(afterFirstPositionState.feeBPending.toString()).toBe(
+          afterSecondPositionState.feeBPending.toString(),
+        );
+      });
+    },
+  );
 });

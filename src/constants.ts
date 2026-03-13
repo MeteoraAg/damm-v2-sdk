@@ -1,6 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { PoolVersion } from "./types";
 
 export const CP_AMM_PROGRAM_ID = new PublicKey(
   "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
@@ -41,6 +40,7 @@ export const MAX_PRICE_CHANGE_BPS_DEFAULT = 1500; // 15%
 
 export const U128_MAX = new BN("340282366920938463463374607431768211455");
 export const U64_MAX = new BN("18446744073709551615");
+export const U24_MAX = 16_777_215;
 export const U16_MAX = 65535;
 
 export const MAX_RATE_LIMITER_DURATION_IN_SECONDS = 43200; // 12 hours
@@ -48,6 +48,10 @@ export const MAX_RATE_LIMITER_DURATION_IN_SLOTS = 108000; // 12 hours
 
 export const SPLIT_POSITION_DENOMINATOR = 1_000_000_000;
 
-export const CURRENT_POOL_VERSION = PoolVersion.V1;
+export const CURRENT_POOL_VERSION = 1;
 
-export const FEE_PADDING = Array.from(Buffer.alloc(3));
+export const DEAD_LIQUIDITY = new BN(100).shln(SCALE_OFFSET); // 100 << 64, matches on-chain DEAD_LIQUIDITY for compounding pools
+
+export const NUM_REWARDS = 2;
+export const MIN_REWARD_DURATION = 86_400; // 1 day in seconds
+export const MAX_REWARD_DURATION = 31_536_000; // 1 year in seconds

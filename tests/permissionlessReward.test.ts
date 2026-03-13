@@ -17,6 +17,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import {
   ActivationType,
   BaseFeeMode,
+  CollectFeeMode,
   CpAmm,
   getBaseFeeParams,
   InitializeCustomizeablePoolParams,
@@ -27,56 +28,74 @@ import {
 import { DECIMALS } from "./bankrun-utils";
 import { beforeEach, describe, it } from "vitest";
 
-describe("Permissionless reward", () => {
-  let context: ProgramTestContext;
-  let payer: Keypair;
-  let creator: Keypair;
-  let tokenAMint: PublicKey;
-  let tokenBMint: PublicKey;
-  let rewardMint: PublicKey;
-  let ammInstance: CpAmm;
+const poolModes = [
+  {
+    label: "BothToken",
+    collectFeeMode: CollectFeeMode.BothToken,
+    compoundingFeeBps: 0,
+  },
+  {
+    label: "Compounding",
+    collectFeeMode: CollectFeeMode.Compounding,
+    compoundingFeeBps: 5000,
+  },
+] as const;
 
-  beforeEach(async () => {
-    context = await startTest();
-    const prepareContext = await setupTestContext(
-      context.banksClient,
-      context.payer,
-      false,
-    );
+describe.each(poolModes)(
+  "Permissionless reward ($label)",
+  ({ collectFeeMode, compoundingFeeBps }) => {
+    let context: ProgramTestContext;
+    let payer: Keypair;
+    let creator: Keypair;
+    let tokenAMint: PublicKey;
+    let tokenBMint: PublicKey;
+    let rewardMint: PublicKey;
+    let ammInstance: CpAmm;
 
-    creator = prepareContext.poolCreator;
-    payer = prepareContext.payer;
-    tokenAMint = prepareContext.tokenAMint;
-    tokenBMint = prepareContext.tokenBMint;
-    rewardMint = prepareContext.rewardMint;
-    const connection = new Connection(clusterApiUrl("devnet"));
-    ammInstance = new CpAmm(connection);
-  });
+    beforeEach(async () => {
+      context = await startTest();
+      const prepareContext = await setupTestContext(
+        context.banksClient,
+        context.payer,
+        false,
+      );
 
-  it("Full flow ", async () => {
-    const { pool, position } = await createPool(
-      context.banksClient,
-      ammInstance,
-      payer,
-      creator,
-      tokenAMint,
-      tokenBMint,
-    );
-    const rewardIndex = 0;
-    const rewardDuration = new BN(24 * 60 * 60);
-    await rewardFlow(
-      context,
-      ammInstance,
-      creator,
-      payer,
-      rewardMint,
-      rewardIndex,
-      payer.publicKey,
-      pool,
-      rewardDuration,
-    );
-  });
-});
+      creator = prepareContext.poolCreator;
+      payer = prepareContext.payer;
+      tokenAMint = prepareContext.tokenAMint;
+      tokenBMint = prepareContext.tokenBMint;
+      rewardMint = prepareContext.rewardMint;
+      const connection = new Connection(clusterApiUrl("devnet"));
+      ammInstance = new CpAmm(connection);
+    });
+
+    it("Full flow ", async () => {
+      const { pool, position } = await createPool(
+        context.banksClient,
+        ammInstance,
+        payer,
+        creator,
+        tokenAMint,
+        tokenBMint,
+        collectFeeMode,
+        compoundingFeeBps,
+      );
+      const rewardIndex = 0;
+      const rewardDuration = new BN(24 * 60 * 60);
+      await rewardFlow(
+        context,
+        ammInstance,
+        creator,
+        payer,
+        rewardMint,
+        rewardIndex,
+        payer.publicKey,
+        pool,
+        rewardDuration,
+      );
+    });
+  },
+);
 
 async function createPool(
   banksClient: BanksClient,
@@ -85,6 +104,8 @@ async function createPool(
   creator: Keypair,
   tokenAMint: PublicKey,
   tokenBMint: PublicKey,
+  collectFeeMode: CollectFeeMode,
+  compoundingFeeBps: number,
 ): Promise<{ pool: PublicKey; position: PublicKey }> {
   const baseFee = getBaseFeeParams(
     {
@@ -102,7 +123,8 @@ async function createPool(
 
   const poolFees: PoolFeesParams = {
     baseFee,
-    padding: [],
+    compoundingFeeBps,
+    padding: 0,
     dynamicFee: null,
   };
 
@@ -116,6 +138,7 @@ async function createPool(
       tokenBAmount,
       minSqrtPrice: MIN_SQRT_PRICE,
       maxSqrtPrice: MAX_SQRT_PRICE,
+      collectFeeMode,
     });
 
   const params: InitializeCustomizeablePoolParams = {
@@ -133,7 +156,7 @@ async function createPool(
     poolFees,
     hasAlphaVault: false,
     activationType: 1, // 0 slot, 1 timestamp
-    collectFeeMode: 0,
+    collectFeeMode,
     activationPoint: null,
     tokenAProgram: TOKEN_PROGRAM_ID,
     tokenBProgram: TOKEN_PROGRAM_ID,

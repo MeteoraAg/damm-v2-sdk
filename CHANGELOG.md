@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.7] [PR #101](https://github.com/MeteoraAg/damm-v2-sdk/pull/101)
+
+### Added
+
+- Added new `CollectFeeMode.Compounding` mode — a constant-product (x \* y = k) liquidity mode where a configurable percentage of trading fees are compounded back into pool liquidity (as token B), with the remaining fees available for claiming. Pools with compounding mode do not use price ranges.
+- Added `LiquidityHandler` interface and two implementations: `CompoundingLiquidityHandler` and `ConcentratedLiquidityHandler`, with a `getLiquidityHandler` factory function that dispatches based on `collectFeeMode`.
+- Added `compoundingFeeBps` field to `PoolFeesParams` for configuring the compounding fee split.
+- Added `collectFeeMode` parameter to `getLiquidityDelta`, `getDepositQuote`, `getWithdrawQuote`, and `preparePoolCreationParams`.
+- Added `tokenAAmount`, `tokenBAmount`, and `liquidity` parameters to `getDepositQuote` and `getWithdrawQuote` for compounding liquidity calculations.
+
+### Changed
+
+- Rewrote `swapQuote.ts` to use `LiquidityHandler` abstraction, supporting both concentrated and compounding liquidity modes.
+- Fee structure: `tradingFee` split into `claimingFee` + `compoundingFee` in `SwapResult2`, `FeeOnAmountResult`, and `SplitFees` types.
+- Renamed `PoolVersion` enum to `LayoutVersion`.
+- `PoolFeesParams.padding` changed from `number[]` to `number`.
+- `splitFees` and `getFeeOnAmount` no longer accept `hasPartner` parameter.
+- `getQuote` `totalFee` now computed as `claimingFee + compoundingFee + protocolFee + referralFee`.
+- `getQuote2` return type: `tradingFee` and `partnerFee` replaced with `claimingFee` and `compoundingFee`.
+- `collectFeeMode` comment updated: `0: BothToken, 1: OnlyB, 2: Compounding`.
+- Liquidity delta and amount functions (`getLiquidityDeltaFromAmountA`, `getLiquidityDeltaFromAmountB`, `getAmountAFromLiquidityDelta`, `getAmountBFromLiquidityDelta`) now accept `collectFeeMode` and dispatch to the appropriate handler.
+
+### Removed
+
+- Removed `claimPartnerFee` endpoint and `ClaimPartnerFeeParams` type.
+- Removed `partnerFee` from fee result types (`FeeOnAmountResult`, `SplitFees`, `SwapResult2`).
+- Removed `hasPartner` helper function.
+- Removed `FEE_PADDING` constant.
+
 ## damm_v2_sdk [1.3.6] [PR #100](https://github.com/MeteoraAg/damm-v2-sdk/pull/100)
 
 ### Fixed

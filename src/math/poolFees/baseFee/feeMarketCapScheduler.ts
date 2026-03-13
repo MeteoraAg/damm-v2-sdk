@@ -1,10 +1,11 @@
 import BN from "bn.js";
-import { BaseFeeMode } from "../../types";
-import { BASIS_POINT_MAX } from "../../constants";
+import { BaseFeeMode } from "../../../types";
+import { BASIS_POINT_MAX } from "../../../constants";
 import {
   getFeeNumeratorOnExponentialFeeScheduler,
   getFeeNumeratorOnLinearFeeScheduler,
 } from "./feeScheduler";
+import { InvalidBaseFeeModeError } from "../../../errors";
 
 /**
  * Gets the base fee numerator by period for the market cap fee scheduler.
@@ -43,7 +44,9 @@ export function getFeeMarketCapBaseFeeNumeratorByPeriod(
       return feeNumerator;
     }
     default:
-      throw new Error("Invalid fee market cap scheduler mode");
+      throw new InvalidBaseFeeModeError(
+        "Invalid fee market cap scheduler mode",
+      );
   }
 }
 

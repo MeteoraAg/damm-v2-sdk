@@ -842,6 +842,26 @@ export class CpAmm {
   }
 
   /**
+   * Retrieves static config public keys where vault and creator authority are default.
+   * @returns Array of static config public keys.
+   */
+  async getStaticConfigs(): Promise<PublicKey[]> {
+    const configAccounts = await this._program.account.config.all();
+    const DEFAULT_PUBLIC_KEY = new PublicKey(
+      "11111111111111111111111111111111",
+    );
+
+    return configAccounts
+      .filter(
+        (config) =>
+          config.account.configType === 0 &&
+          config.account.vaultConfigKey.equals(DEFAULT_PUBLIC_KEY) &&
+          config.account.poolCreatorAuthority.equals(DEFAULT_PUBLIC_KEY),
+      )
+      .map((config) => config.publicKey);
+  }
+
+  /**
    * Retrieves all pool accounts.
    * @returns Array of pool public keys and their states.
    */

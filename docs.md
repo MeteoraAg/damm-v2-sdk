@@ -46,6 +46,7 @@
   - [getMultiplePools](#getmultiplepools)
   - [getMultiplePositions](#getmultiplepositions)
   - [getAllConfigs](#getallconfigs)
+  - [getStaticConfigs](#getstaticconfigs)
   - [getAllPools](#getallpools)
   - [getAllPositions](#getallpositions)
   - [getAllPositionsByPool](#getallpositionsbypool)
@@ -130,7 +131,11 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 // First, fetch the config and prepare pool creation parameters
 const configState = await cpAmm.fetchConfigState(configAddress);
 const initPrice = 10; // 1 base token = 10 quote token
-const initSqrtPrice = getSqrtPriceFromPrice(initPrice, tokenADecimal, tokenBDecimal);
+const initSqrtPrice = getSqrtPriceFromPrice(
+  initPrice,
+  tokenADecimal,
+  tokenBDecimal,
+);
 
 // Use preparePoolCreationParams to compute initial liquidity
 const { liquidityDelta } = cpAmm.preparePoolCreationParams({
@@ -282,7 +287,7 @@ const baseFeeParams = getBaseFeeParams(
     },
   },
   9,
-  ActivationType.Timestamp
+  ActivationType.Timestamp,
 );
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
@@ -400,7 +405,7 @@ const baseFeeParams = getBaseFeeParams(
     },
   },
   9,
-  ActivationType.Timestamp
+  ActivationType.Timestamp,
 );
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
@@ -672,7 +677,7 @@ An object containing:
 const poolState = await cpAmm.fetchPoolState(poolAddress);
 const currentPoint = await getCurrentPoint(
   connection,
-  poolState.activationType
+  poolState.activationType,
 );
 const quote = await cpAmm.getQuote2({
   inputTokenMint: poolState.tokenBMint,
@@ -963,7 +968,7 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 const poolState = await cpAmm.fetchPoolState(poolAddress);
 const currentPoint = await getCurrentPoint(
   connection,
-  poolState.activationType
+  poolState.activationType,
 );
 // Get quote first
 const quote = await cpAmm.getQuote2({
@@ -2217,7 +2222,7 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 ```typescript
 const firstPosition = await client.getUserPositionByPool(
   poolAddress,
-  firstUser.publicKey
+  firstUser.publicKey,
 );
 
 const secondPositionKP = Keypair.generate();
@@ -2236,13 +2241,13 @@ const createSignature = await sendAndConfirmTransaction(
   {
     commitment: "confirmed",
     skipPreflight: true,
-  }
+  },
 );
 console.log("Second position created:", createSignature);
 
 const secondPosition = await client.getUserPositionByPool(
   poolAddress,
-  secondUser.publicKey
+  secondUser.publicKey,
 );
 
 const splitPositionTx = await client.splitPosition({
@@ -2304,7 +2309,7 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 ```typescript
 const firstPosition = await client.getUserPositionByPool(
   poolAddress,
-  firstUser.publicKey
+  firstUser.publicKey,
 );
 
 const secondPositionKP = Keypair.generate();
@@ -2323,13 +2328,13 @@ const createSignature = await sendAndConfirmTransaction(
   {
     commitment: "confirmed",
     skipPreflight: true,
-  }
+  },
 );
 console.log("Second position created:", createSignature);
 
 const secondPosition = await client.getUserPositionByPool(
   poolAddress,
-  secondUser.publicKey
+  secondUser.publicKey,
 );
 
 const splitPosition2Tx = await client.splitPosition2({
@@ -2508,11 +2513,11 @@ Parsed PositionState.
 ```typescript
 const positionState = await cpAmm.fetchPositionState(positionAddress);
 console.log(
-  `Unlocked Liquidity: ${positionState.unlockedLiquidity.toString()}`
+  `Unlocked Liquidity: ${positionState.unlockedLiquidity.toString()}`,
 );
 console.log(`Vested Liquidity: ${positionState.vestedLiquidity.toString()}`);
 console.log(
-  `Permanent Locked Liquidity: ${positionState.permanentLockedLiquidity.toString()}`
+  `Permanent Locked Liquidity: ${positionState.permanentLockedLiquidity.toString()}`,
 );
 ```
 
@@ -2544,7 +2549,10 @@ Array of parsed ConfigState.
 **Example**
 
 ```typescript
-const configStates = await cpAmm.getMultipleConfigs([configAddress1, configAddress2]);
+const configStates = await cpAmm.getMultipleConfigs([
+  configAddress1,
+  configAddress2,
+]);
 configStates.forEach((config, i) => {
   console.log(`Config ${i}: activation type = ${config.activationType}`);
 });
@@ -2612,9 +2620,14 @@ Array of parsed PositionState.
 **Example**
 
 ```typescript
-const positionStates = await cpAmm.getMultiplePositions([positionAddress1, positionAddress2]);
+const positionStates = await cpAmm.getMultiplePositions([
+  positionAddress1,
+  positionAddress2,
+]);
 positionStates.forEach((pos, i) => {
-  console.log(`Position ${i}: unlocked liquidity = ${pos.unlockedLiquidity.toString()}`);
+  console.log(
+    `Position ${i}: unlocked liquidity = ${pos.unlockedLiquidity.toString()}`,
+  );
 });
 ```
 
@@ -2646,6 +2659,36 @@ const configs = await cpAmm.getAllConfigs();
 console.log(`Found ${configs.length} configs`);
 configs.forEach((config, i) => {
   console.log(`Config ${i}: ${config.publicKey.toString()}`);
+});
+```
+
+---
+
+### getStaticConfigs
+
+Retrieves static config public keys where:
+
+- `configType === 0` (static)
+- `vaultConfigKey === 11111111111111111111111111111111`
+- `poolCreatorAuthority === 11111111111111111111111111111111`
+
+**Function**
+
+```typescript
+async getStaticConfigs(): Promise<PublicKey[]>
+```
+
+**Returns**
+
+Array of static config public keys.
+
+**Example**
+
+```typescript
+const staticConfigs = await cpAmm.getStaticConfigs();
+console.log(`Found ${staticConfigs.length} static configs`);
+staticConfigs.forEach((configKey, i) => {
+  console.log(`Static config ${i}: ${configKey.toString()}`);
 });
 ```
 
@@ -2753,7 +2796,7 @@ List of user positions for the pool.
 ```typescript
 const userPoolPositions = await cpAmm.getUserPositionByPool(
   poolAddress,
-  wallet.publicKey
+  wallet.publicKey,
 );
 console.log(`User has ${userPoolPositions.length} positions in this pool`);
 ```
@@ -3056,7 +3099,11 @@ A BN representing the liquidity delta.
 **Example**
 
 ```typescript
-const initSqrtPrice = getSqrtPriceFromPrice("100", tokenADecimal, tokenBDecimal);
+const initSqrtPrice = getSqrtPriceFromPrice(
+  "100",
+  tokenADecimal,
+  tokenBDecimal,
+);
 const liquidityDelta = cpAmm.preparePoolCreationSingleSide({
   tokenAAmount: new BN(10_000_000_000),
   minSqrtPrice: initSqrtPrice,
@@ -3085,7 +3132,7 @@ Checks if a vesting schedule is ready for full release.
 ```typescript
 function isVestingComplete(
   vestingData: VestingState,
-  currentPoint: BN
+  currentPoint: BN,
 ): boolean;
 ```
 
@@ -3167,7 +3214,7 @@ Calculates the available liquidity to withdraw based on vesting schedule.
 ```typescript
 function getAvailableVestingLiquidity(
   vestingData: VestingState,
-  currentPoint: BN
+  currentPoint: BN,
 ): BN;
 ```
 
@@ -3187,10 +3234,10 @@ const vestings = await cpAmm.getAllVestingsByPosition(positionAddress);
 if (vestings.length > 0) {
   const availableLiquidity = getAvailableVestingLiquidity(
     vestings[0].account,
-    new BN(Date.now())
+    new BN(Date.now()),
   );
   console.log(
-    `Available liquidity to withdraw: ${availableLiquidity.toString()}`
+    `Available liquidity to withdraw: ${availableLiquidity.toString()}`,
   );
 }
 ```
@@ -3242,7 +3289,7 @@ Calculates the minimum amount after applying a slippage rate.
 function getAmountWithSlippage(
   amount: BN,
   slippageBps: number,
-  swapMode: SwapMode
+  swapMode: SwapMode,
 ): BN;
 ```
 
@@ -3264,7 +3311,7 @@ const slippageBps = 50; // 0.5% slippage allowance
 const amountWithSlippage = getAmountWithSlippage(
   expectedOutput,
   slippageBps,
-  SwapMode.ExactIn
+  SwapMode.ExactIn,
 );
 console.log(`Amount with slippage: ${amountWithSlippage.toString()}`);
 ```
@@ -3327,7 +3374,7 @@ Converts a sqrt price in Q64 format to a human-readable price.
 function getPriceFromSqrtPrice(
   sqrtPrice: BN,
   tokenADecimal: number,
-  tokenBDecimal: number
+  tokenBDecimal: number,
 ): string;
 ```
 
@@ -3348,7 +3395,7 @@ const poolState = await cpAmm.fetchPoolState(poolAddress);
 const price = getPriceFromSqrtPrice(
   poolState.sqrtPrice,
   6, // USDC has 6 decimals
-  9 // SOL has 9 decimals
+  9, // SOL has 9 decimals
 );
 console.log(`Current price: ${price} USDC per SOL`);
 ```
@@ -3372,7 +3419,7 @@ Converts a human-readable price to a sqrt price in Q64 format.
 function getSqrtPriceFromPrice(
   price: string,
   tokenADecimal: number,
-  tokenBDecimal: number
+  tokenBDecimal: number,
 ): BN;
 ```
 
@@ -3393,7 +3440,7 @@ const price = "0.05"; // 0.05 USDC per SOL
 const sqrtPrice = getSqrtPriceFromPrice(
   price,
   6, // USDC has 6 decimals
-  9 // SOL has 9 decimals
+  9, // SOL has 9 decimals
 );
 console.log(`Sqrt price in Q64 format: ${sqrtPrice.toString()}`);
 ```
@@ -3418,7 +3465,7 @@ Calculates unclaimed fees and rewards for a position.
 ```typescript
 function getUnClaimLpFee(
   poolState: PoolState,
-  positionState: PositionState
+  positionState: PositionState,
 ): {
   feeTokenA: BN;
   feeTokenB: BN;
@@ -3467,7 +3514,7 @@ function getBaseFeeNumerator(
   reductionFactor: BN,
   baseFeeMode: BaseFeeMode,
   currentPoint: BN,
-  activationPoint: BN
+  activationPoint: BN,
 ): BN;
 ```
 
@@ -3506,7 +3553,7 @@ Calculates a dynamic fee component based on market volatility
 function getDynamicFeeNumerator(
   volatilityAccumulator: BN,
   binStep: BN,
-  variableFeeControl: BN
+  variableFeeControl: BN,
 ): BN;
 ```
 
@@ -3634,7 +3681,7 @@ const baseFee = getBaseFeeParams(
     },
   },
   6,
-  ActivationType.Timestamp
+  ActivationType.Timestamp,
 );
 ```
 
@@ -3697,7 +3744,7 @@ const encoded = encodeFeeTimeSchedulerParams(
   100, // 100 periods
   new BN(6), // 6 seconds between periods
   new BN(4900000), // reduction factor
-  BaseFeeMode.FeeTimeSchedulerLinear
+  BaseFeeMode.FeeTimeSchedulerLinear,
 );
 ```
 
@@ -3742,7 +3789,7 @@ const encoded = encodeFeeMarketCapSchedulerParams(
   100, // 1% sqrt price step
   86400, // 24 hours expiration
   new BN(4950000), // reduction factor
-  BaseFeeMode.FeeMarketCapSchedulerLinear
+  BaseFeeMode.FeeMarketCapSchedulerLinear,
 );
 ```
 
@@ -3784,7 +3831,7 @@ const encoded = encodeFeeRateLimiterParams(
   10, // 0.1% fee increment per reference amount
   10, // 10 slots/seconds max duration
   5000, // 50% max fee cap
-  new BN(1000000000) // 1 SOL reference amount
+  new BN(1000000000), // 1 SOL reference amount
 );
 ```
 
@@ -3939,7 +3986,7 @@ interface PodAlignedFeeTimeScheduler {
 // Decode from poolState account
 const poolState = await program.account.pool.fetch(poolAddress);
 const decoded = decodePodAlignedFeeTimeScheduler(
-  Buffer.from(poolState.poolFees.baseFee.data)
+  Buffer.from(poolState.poolFees.baseFee.data),
 );
 console.log(`Current Fee Config: ${decoded.cliffFeeNumerator.toString()}`);
 ```
@@ -3980,7 +4027,7 @@ interface PodAlignedFeeMarketCapScheduler {
 // Decode from poolState account
 const poolState = await program.account.pool.fetch(poolAddress);
 const decoded = decodePodAlignedFeeMarketCapScheduler(
-  Buffer.from(poolState.poolFees.baseFee.data)
+  Buffer.from(poolState.poolFees.baseFee.data),
 );
 console.log(`Expiration Duration: ${decoded.schedulerExpirationDuration}`);
 ```
@@ -4021,7 +4068,7 @@ interface PodAlignedFeeRateLimiter {
 // Decode from poolState account
 const poolState = await program.account.pool.fetch(poolAddress);
 const decoded = decodePodAlignedFeeRateLimiter(
-  Buffer.from(poolState.poolFees.baseFee.data)
+  Buffer.from(poolState.poolFees.baseFee.data),
 );
 console.log(`Reference Amount: ${decoded.referenceAmount.toString()}`);
 ```

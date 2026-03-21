@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.8]
+
+### Added
+
+- Added new `getStaticConfigs` state function to fetch all static config public keys where vault and creator authority are default.
+
 ## damm_v2_sdk [1.3.7] [PR #101](https://github.com/MeteoraAg/damm-v2-sdk/pull/101)
 
 ### Added

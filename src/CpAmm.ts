@@ -847,16 +847,13 @@ export class CpAmm {
    */
   async getStaticConfigs(): Promise<PublicKey[]> {
     const configAccounts = await this._program.account.config.all();
-    const DEFAULT_PUBLIC_KEY = new PublicKey(
-      "11111111111111111111111111111111",
-    );
 
     return configAccounts
       .filter(
         (config) =>
           config.account.configType === 0 &&
-          config.account.vaultConfigKey.equals(DEFAULT_PUBLIC_KEY) &&
-          config.account.poolCreatorAuthority.equals(DEFAULT_PUBLIC_KEY),
+          config.account.vaultConfigKey.equals(PublicKey.default) &&
+          config.account.poolCreatorAuthority.equals(PublicKey.default),
       )
       .map((config) => config.publicKey);
   }

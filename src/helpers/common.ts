@@ -5,7 +5,6 @@ import {
   BaseFee,
   BaseFeeMode,
   DynamicFee,
-  PoolState,
   PoolStatus,
 } from "../types";
 import {
@@ -255,16 +254,62 @@ export function getFeeTimeSchedulerParams(
   };
 }
 
+/**
+ * Computes the sqrtPriceStepBps needed so that the fee schedule is fully
+ * exhausted when spot price reaches a given multiple of the initial price.
+ * @param priceMultiple - Target spot-price multiple (e.g. 1000 for 1000x)
+ * @param numberOfPeriod - Number of fee reduction periods
+ * @returns The sqrtPriceStepBps value to use on-chain
+ */
+export function computeSqrtPriceStepBps(
+  priceMultiple: number,
+  numberOfPeriod: number,
+): number {
+  if (priceMultiple <= 1) {
+    throw new Error("priceMultiple must be greater than 1");
+  }
+  if (numberOfPeriod <= 0) {
+    throw new Error("numberOfPeriod must be greater than 0");
+  }
+  const sqrtPriceStepBps = Math.floor(
+    ((Math.sqrt(priceMultiple) - 1) * BASIS_POINT_MAX) / numberOfPeriod,
+  );
+  if (sqrtPriceStepBps <= 0) {
+    throw new Error(
+      "Computed sqrtPriceStepBps is 0 — increase priceMultiple or decrease numberOfPeriod",
+    );
+  }
+  return sqrtPriceStepBps;
+}
+
+/**
+ * Gets the fee market cap scheduler parameters. Derives sqrtPriceStepBps
+ * automatically from starting/ending market cap so the fee schedule is
+ * fully exhausted when the token grows from startingMarketCap to endingMarketCap.
+ * @param startingBaseFeeBps - Starting (max) fee in basis points
+ * @param endingBaseFeeBps - Ending (min) fee in basis points
+ * @param baseFeeMode - Linear or exponential decay
+ * @param numberOfPeriod - Number of fee reduction periods
+ * @param startingMarketCap - Initial market cap (e.g. 20_000 for $20k)
+ * @param endingMarketCap - Target market cap (e.g. 20_000_000 for $20M)
+ * @param schedulerExpirationDuration - Seconds after which the schedule expires to the ending fee regardless of price
+ * @returns BaseFee with the computed sqrtPriceStepBps encoded
+ */
 export function getFeeMarketCapSchedulerParams(
   startingBaseFeeBps: number,
   endingBaseFeeBps: number,
   baseFeeMode: BaseFeeMode,
   numberOfPeriod: number,
-  sqrtPriceStepBps: number,
+  startingMarketCap: number,
+  endingMarketCap: number,
   schedulerExpirationDuration: number,
 ): BaseFee {
   if (numberOfPeriod <= 0) {
     throw new Error("Total periods must be greater than zero");
+  }
+
+  if (endingMarketCap <= startingMarketCap) {
+    throw new Error("endingMarketCap must be greater than startingMarketCap");
   }
 
   const poolMaxFeeBps = getMaxFeeBps(CURRENT_POOL_VERSION);
@@ -281,15 +326,15 @@ export function getFeeMarketCapSchedulerParams(
     );
   }
 
-  if (
-    numberOfPeriod == 0 ||
-    sqrtPriceStepBps == 0 ||
-    schedulerExpirationDuration == 0
-  ) {
-    throw new Error(
-      "numberOfPeriod, sqrtPriceStepBps, and schedulerExpirationDuration must be greater than zero",
-    );
+  if (schedulerExpirationDuration == 0) {
+    throw new Error("schedulerExpirationDuration must be greater than zero");
   }
+
+  const priceMultiple = endingMarketCap / startingMarketCap;
+  const sqrtPriceStepBps = computeSqrtPriceStepBps(
+    priceMultiple,
+    numberOfPeriod,
+  );
 
   const maxBaseFeeNumerator = bpsToFeeNumerator(startingBaseFeeBps);
   const minBaseFeeNumerator = bpsToFeeNumerator(endingBaseFeeBps);
@@ -450,7 +495,8 @@ export function getBaseFeeParams(
       startingFeeBps: number;
       endingFeeBps: number;
       numberOfPeriod: number;
-      sqrtPriceStepBps: number;
+      startingMarketCap: number;
+      endingMarketCap: number;
       schedulerExpirationDuration: number;
     };
   },
@@ -509,7 +555,8 @@ export function getBaseFeeParams(
         startingFeeBps,
         endingFeeBps,
         numberOfPeriod,
-        sqrtPriceStepBps,
+        startingMarketCap,
+        endingMarketCap,
         schedulerExpirationDuration,
       } = baseFeeParams.feeMarketCapSchedulerParam;
       return getFeeMarketCapSchedulerParams(
@@ -517,7 +564,8 @@ export function getBaseFeeParams(
         endingFeeBps,
         baseFeeParams.baseFeeMode,
         numberOfPeriod,
-        sqrtPriceStepBps,
+        startingMarketCap,
+        endingMarketCap,
         schedulerExpirationDuration,
       );
     }

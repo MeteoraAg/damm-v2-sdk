@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.3.9] [PR #102](https://github.com/MeteoraAg/damm-v2-sdk/pull/102)
+
+### Changed
+
+- Changed `getStaticConfigs` state function to fetch all static config public keys where vault and creator authority are default.
+- Changed `getBaseFeeParams` function to use `startingMarketCap` and `endingMarketCap` instead of `sqrtPriceStepBps`.
+
 ## damm_v2_sdk [1.3.8]
 
 ### Added

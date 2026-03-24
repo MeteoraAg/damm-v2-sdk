@@ -172,7 +172,8 @@ describe("Initialize customizable pool with dynamic config", () => {
               startingFeeBps: 5000,
               endingFeeBps: 100,
               numberOfPeriod: 180,
-              sqrtPriceStepBps: 200,
+              startingMarketCap: 20_000,
+              endingMarketCap: 20_000_000,
               schedulerExpirationDuration: 2592000, // 30 days
             },
           },
@@ -246,7 +247,8 @@ describe("Initialize customizable pool with dynamic config", () => {
               startingFeeBps: 5000,
               endingFeeBps: 100,
               numberOfPeriod: 180,
-              sqrtPriceStepBps: 200,
+              startingMarketCap: 20_000,
+              endingMarketCap: 20_000_000,
               schedulerExpirationDuration: 2592000, // 30 days
             },
           },

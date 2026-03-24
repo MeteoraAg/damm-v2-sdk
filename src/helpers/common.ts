@@ -5,7 +5,6 @@ import {
   BaseFee,
   BaseFeeMode,
   DynamicFee,
-  PoolState,
   PoolStatus,
 } from "../types";
 import {

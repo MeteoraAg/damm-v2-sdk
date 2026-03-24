@@ -1,9 +1,4 @@
-import {
-  clusterApiUrl,
-  Connection,
-  Keypair,
-  PublicKey,
-} from "@solana/web3.js";
+import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import {
   ActivationType,
@@ -181,7 +176,11 @@ const DRY_RUN = true;
   console.log("  Number of Periods:", POOL_CONFIG.numberOfPeriod);
   console.log("  Starting Market Cap:", POOL_CONFIG.startingMarketCap);
   console.log("  Ending Market Cap:", POOL_CONFIG.endingMarketCap);
-  console.log("  Price Multiple:", POOL_CONFIG.endingMarketCap / POOL_CONFIG.startingMarketCap, "x");
+  console.log(
+    "  Price Multiple:",
+    POOL_CONFIG.endingMarketCap / POOL_CONFIG.startingMarketCap,
+    "x",
+  );
   console.log(
     "  Scheduler Expiration:",
     POOL_CONFIG.schedulerExpirationDuration / 86400,

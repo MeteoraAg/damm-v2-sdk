@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Changed `getStaticConfigs` state function to fetch all static config public keys where vault and creator authority are default.
+- Changed `getStaticConfigs` state function to use `PublicKey.default` instead of a hardcoded public key.
 - Changed `getBaseFeeParams` function to use `startingMarketCap` and `endingMarketCap` instead of `sqrtPriceStepBps`.
 
 ## damm_v2_sdk [1.3.8]

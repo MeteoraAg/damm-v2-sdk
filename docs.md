@@ -2675,20 +2675,21 @@ Retrieves static config public keys where:
 **Function**
 
 ```typescript
-async getStaticConfigs(): Promise<PublicKey[]>
+async getStaticConfigs(): Promise<Array<{ publicKey: PublicKey; account: ConfigState }>>
 ```
 
 **Returns**
 
-Array of static config public keys.
+Array of objects containing static config public keys and their states.
 
 **Example**
 
 ```typescript
 const staticConfigs = await cpAmm.getStaticConfigs();
 console.log(`Found ${staticConfigs.length} static configs`);
-staticConfigs.forEach((configKey, i) => {
-  console.log(`Static config ${i}: ${configKey.toString()}`);
+staticConfigs.forEach((config, i) => {
+  console.log(`Static config ${i}: ${config.publicKey.toString()}`);
+  console.log(`- Config key state: ${JSON.stringify(config.account)}`);
 });
 ```
 

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.0]
+
+### Changed
+
+- Added new `getStaticConfigs` state function to return public keys and static config states.
+
 ## damm_v2_sdk [1.3.9] [PR #103](https://github.com/MeteoraAg/damm-v2-sdk/pull/103)
 
 ### Changed

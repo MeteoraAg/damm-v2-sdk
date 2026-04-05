@@ -311,15 +311,15 @@ export function validateFeeRateLimiter(
   // validate max fee (more amount, then more fee)
   const minFeeNumerator = getFeeNumeratorFromIncludedFeeAmount(
     new BN(0),
-    cliffFeeNumerator,
     referenceAmount,
+    cliffFeeNumerator,
     maxFeeBps,
     feeIncrementBps,
   );
   const maxFeeNumeratorFromAmount = getFeeNumeratorFromIncludedFeeAmount(
     U64_MAX,
-    cliffFeeNumerator,
     referenceAmount,
+    cliffFeeNumerator,
     maxFeeBps,
     feeIncrementBps,
   );

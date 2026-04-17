@@ -1,11 +1,12 @@
 /**
- * DLMM 追加流动性
+ * DLMM 追加流动性 — 完整可运行脚本
  *
- * 两种场景：
- *   A. addLiquidityToExistingPosition — 往「已有仓位」追加
- *   B. addLiquidityNewPosition        — 在「已有池子」新开一个仓位并追加
+ * 运行方式：
+ *   npx tsx examples/addDlmmLiquidity.ts
  *
- * 依赖：npm install @meteora-ag/dlmm
+ * 两种场景（在底部 main() 里切换）：
+ *   A. 往「已有仓位」追加
+ *   B. 在「已有池子」新开仓位并添加
  */
 
 import {
@@ -18,8 +19,38 @@ import {
 } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import DLMM, { StrategyType } from "@meteora-ag/dlmm";
+import bs58 from "bs58";
 
-// ─── 工具：发送单笔或多笔交易（SDK 有时返回 Transaction[]）────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// ★ 配置区 — 只需改这里
+// ═══════════════════════════════════════════════════════════════════════════════
+const CONFIG = {
+  rpcUrl: "https://api.mainnet-beta.solana.com", // 换成你的 RPC
+  cluster: "mainnet-beta" as const,              // "mainnet-beta" | "devnet"
+
+  // 钱包私钥（base58 字符串）
+  privateKey: "YOUR_PRIVATE_KEY_BASE58",
+
+  // 池子地址（建池时返回的 pool 字段）
+  poolAddress: "YOUR_LB_PAIR_ADDRESS",
+
+  // ── 场景 A：往已有仓位追加时填这个 ──
+  existingPositionAddress: "YOUR_POSITION_ADDRESS",
+
+  // Token 相关
+  tokenDecimals: 6,
+
+  // 追加数量
+  addTokenAmount: 5_000_000,  // 追加 500万 Token（不含小数位）
+  addSolAmount:   0,          // 追加 SOL，不加就填 0
+
+  // bin 配置（新开仓位时用）
+  binRange:     34,           // 以当前 activeBin 为中心，上下各 34 个 bin
+  strategyType: StrategyType.SpotImbalanced,
+};
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── 发送单笔或多笔交易（SDK 有时返回 Transaction[]）────────────────────────────
 async function sendTxOrList(
   connection: Connection,
   txOrList: Transaction | Transaction[],
@@ -34,176 +65,128 @@ async function sendTxOrList(
     lastSig = await sendAndConfirmTransaction(connection, tx, signers, {
       commitment: "confirmed",
     });
-    console.log(`[DLMM] tx: ${lastSig}`);
+    console.log(`  ✓ tx: ${lastSig}`);
   }
   return lastSig;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 场景 A：往「已有仓位」追加流动性
+// 场景 A — 往「已有仓位」追加流动性
+//
+// 用法：
+//   仓位 bin 范围 = 仓位原有的 lowerBinId ~ upperBinId，不会改变
+//   只传 tokenAmount 则单边加 Token；只传 solAmount 则单边加 SOL
 // ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * 向已有 DLMM 仓位追加流动性
- *
- * @param rpcUrl          RPC URL
- * @param wallet          操作钱包（必须是仓位 owner）
- * @param poolAddress     池子地址（lbPair）
- * @param positionAddress 仓位地址（已有的 position pubkey）
- * @param tokenAmount     追加 Token 数量（不含小数位），传 0 则只加 SOL
- * @param solAmount       追加 SOL 数量，传 0 则只加 Token
- * @param tokenDecimals   Token 小数位，默认 6
- * @param strategyType    流动性分布策略，默认 SpotImbalanced
- *
- * 注意：bin 范围复用仓位已有的 minBinId / maxBinId，保持价格区间不变
- */
-export async function addLiquidityToExistingPosition(
-  rpcUrl: string,
+async function addLiquidityToExistingPosition(
+  connection: Connection,
   wallet: Keypair,
   poolAddress: string,
   positionAddress: string,
-  tokenAmount: number,
-  solAmount: number,
-  tokenDecimals: number = 6,
-  strategyType: StrategyType = StrategyType.SpotImbalanced
-): Promise<{ signature: string; positionAddress: string }> {
-  const connection = new Connection(rpcUrl, "confirmed");
+  tokenAmount: number,    // 不含小数位，例如 5_000_000
+  solAmount: number,      // SOL 数量，例如 0.01；不加就填 0
+  tokenDecimals: number,
+  strategyType: StrategyType
+) {
+  console.log("\n══ 场景 A：追加到已有仓位 ══");
+  console.log(`  池子:   ${poolAddress}`);
+  console.log(`  仓位:   ${positionAddress}`);
+  console.log(`  追加:   Token=${tokenAmount}  SOL=${solAmount}`);
 
-  // ── 1. 加载池子 & 仓位状态 ─────────────────────────────────────────────────
+  // 1. 加载池子
   const dlmmPool = await DLMM.create(connection, new PublicKey(poolAddress), {
-    cluster: "mainnet-beta",
+    cluster: CONFIG.cluster,
   });
 
-  // 查询当前仓位，拿到它的 minBinId / maxBinId
+  // 2. 读取仓位，拿到 bin 范围
   const { userPositions } = await dlmmPool.getPositionsByUserAndLbPair(
     wallet.publicKey
   );
-  const targetPosition = userPositions.find(
+  const target = userPositions.find(
     (p) => p.publicKey.toBase58() === positionAddress
   );
-  if (!targetPosition) {
+  if (!target) {
     throw new Error(
-      `仓位 ${positionAddress} 不存在或不属于当前钱包`
+      `仓位 ${positionAddress} 不存在，或不属于钱包 ${wallet.publicKey.toBase58()}`
     );
   }
 
-  const { lowerBinId, upperBinId } = targetPosition.positionData;
+  const { lowerBinId, upperBinId } = target.positionData;
   const activeBin = await dlmmPool.getActiveBin();
+  console.log(`  bin范围: [${lowerBinId}, ${upperBinId}]  activeBin=${activeBin.binId}  价格=${activeBin.price}`);
 
-  console.log(
-    `[DLMM] 追加到仓位 ${positionAddress}`
-  );
-  console.log(
-    `[DLMM] bin 范围: [${lowerBinId}, ${upperBinId}], 当前 activeBin: ${activeBin.binId}`
-  );
-
-  // ── 2. 构造追加数量 ────────────────────────────────────────────────────────
+  // 3. 构造数量（BN 含小数位）
   const totalXAmount = new BN(tokenAmount).mul(new BN(10 ** tokenDecimals));
   const totalYAmount = new BN(Math.floor(solAmount * LAMPORTS_PER_SOL));
 
-  console.log(
-    `[DLMM] 追加: Token=${tokenAmount}, SOL=${solAmount}`
-  );
-
-  // ── 3. 调用 addLiquidityByStrategy（复用已有仓位，不新建）──────────────────
-  // 区别于 initializePositionAndAddLiquidityByStrategy（那个会新建仓位）
+  // 4. addLiquidityByStrategy — 追加到已有仓位（不新建，不需要 positionKeypair 签名）
   const addLiqTx = await dlmmPool.addLiquidityByStrategy({
     positionPubKey: new PublicKey(positionAddress),
-    user: wallet.publicKey,
+    user:           wallet.publicKey,
     totalXAmount,
     totalYAmount,
     strategy: {
-      maxBinId: upperBinId,
-      minBinId: lowerBinId,
+      maxBinId:     upperBinId,
+      minBinId:     lowerBinId,
       strategyType,
     },
     slippage: 0,
   });
 
-  // ── 4. 发送交易 ────────────────────────────────────────────────────────────
-  const signature = await sendTxOrList(connection, addLiqTx, [wallet]);
-  console.log(`[DLMM] 追加流动性成功: ${signature}`);
-
-  return { signature, positionAddress };
+  // 5. 发送
+  const sig = await sendTxOrList(connection, addLiqTx, [wallet]);
+  console.log(`  ✓ 追加成功! signature: ${sig}`);
+  return sig;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 场景 B：在「已有池子」新开仓位并追加流动性
+// 场景 B — 在「已有池子」新开仓位并添加流动性
+//
+// 用法：
+//   以当前 activeBin 为中心，展开 ±binRange 个 bin 的价格区间
+//   Token 铺在 activeBin 及以上（卖出深度）
+//   SOL   铺在 activeBin 及以下（买入深度）
 // ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * 在已有 DLMM 池子中新建仓位并添加流动性
- *
- * 适用场景：
- *   - 需要不同 bin 范围的第二个仓位
- *   - 原仓位 bin 范围已不覆盖当前价格
- *   - 多钱包共同做市时各自建仓
- *
- * @param rpcUrl        RPC URL
- * @param wallet        操作钱包
- * @param poolAddress   池子地址（lbPair）
- * @param tokenAmount   Token 数量（不含小数位），传 0 则只加 SOL
- * @param solAmount     SOL 数量，传 0 则只加 Token
- * @param tokenDecimals Token 小数位，默认 6
- * @param binRange      在当前 activeBin 上下各延伸多少 bin，默认 34
- *                      若想只加 Token（不含 SOL）：把 minBinId 设为 activeBinId（去掉负向区间）
- * @param strategyType  流动性分布策略，默认 SpotImbalanced
- */
-export async function addLiquidityNewPosition(
-  rpcUrl: string,
+async function addLiquidityNewPosition(
+  connection: Connection,
   wallet: Keypair,
   poolAddress: string,
-  tokenAmount: number,
+  tokenAmount: number,    // 不含小数位
   solAmount: number,
-  tokenDecimals: number = 6,
-  binRange: number = 34,
-  strategyType: StrategyType = StrategyType.SpotImbalanced
-): Promise<{
-  signature: string;
-  positionAddress: string;
-  positionKeypair: Keypair;
-  minBinId: number;
-  maxBinId: number;
-}> {
-  const connection = new Connection(rpcUrl, "confirmed");
+  tokenDecimals: number,
+  binRange: number,
+  strategyType: StrategyType
+) {
+  console.log("\n══ 场景 B：新开仓位并添加流动性 ══");
+  console.log(`  池子:   ${poolAddress}`);
+  console.log(`  添加:   Token=${tokenAmount}  SOL=${solAmount}`);
 
-  // ── 1. 加载池子，拿到当前 activeBin ────────────────────────────────────────
+  // 1. 加载池子 & 获取当前 activeBin
   const dlmmPool = await DLMM.create(connection, new PublicKey(poolAddress), {
-    cluster: "mainnet-beta",
+    cluster: CONFIG.cluster,
   });
   const activeBin = await dlmmPool.getActiveBin();
   const currentBinId = activeBin.binId;
 
-  // bin 范围以「当前价格」为中心展开
   const minBinId = currentBinId - binRange;
   const maxBinId = currentBinId + binRange;
+  console.log(`  activeBin=${currentBinId}  价格=${activeBin.price} SOL/Token`);
+  console.log(`  新仓位 bin范围: [${minBinId}, ${maxBinId}]`);
 
-  console.log(
-    `[DLMM] 池子: ${poolAddress}`
-  );
-  console.log(
-    `[DLMM] activeBin=${currentBinId}, 新仓位 bin 范围: [${minBinId}, ${maxBinId}]`
-  );
-  console.log(
-    `[DLMM] 当前价格: ${activeBin.price} SOL/Token`
-  );
-
-  // ── 2. 构造数量 ────────────────────────────────────────────────────────────
+  // 2. 构造数量
   const totalXAmount = new BN(tokenAmount).mul(new BN(10 ** tokenDecimals));
   const totalYAmount = new BN(Math.floor(solAmount * LAMPORTS_PER_SOL));
 
-  // ── 3. 新建仓位 Keypair ────────────────────────────────────────────────────
+  // 3. 新建仓位 Keypair（新仓位的地址就是这个 publicKey）
   const positionKeypair = Keypair.generate();
+  console.log(`  新仓位地址: ${positionKeypair.publicKey.toBase58()}`);
 
-  console.log(
-    `[DLMM] 新仓位 pubkey: ${positionKeypair.publicKey.toBase58()}`
-  );
-
-  // ── 4. 新建仓位并添加流动性（两步合一）────────────────────────────────────
+  // 4. initializePositionAndAddLiquidityByStrategy
+  //    = 新建仓位 + 存入流动性，两步合一
+  //    注意：positionKeypair 必须参与签名
   const addLiqTx =
     await dlmmPool.initializePositionAndAddLiquidityByStrategy({
       positionPubKey: positionKeypair.publicKey,
-      user: wallet.publicKey,
+      user:           wallet.publicKey,
       totalXAmount,
       totalYAmount,
       strategy: {
@@ -214,15 +197,14 @@ export async function addLiquidityNewPosition(
       slippage: 0,
     });
 
-  // ── 5. 发送（注意：positionKeypair 也需要签名）──────────────────────────────
-  const signature = await sendTxOrList(connection, addLiqTx, [
-    wallet,
-    positionKeypair,
-  ]);
-  console.log(`[DLMM] 新仓位 + 流动性添加成功: ${signature}`);
+  // 5. 发送（signers 包含 wallet + positionKeypair）
+  const sig = await sendTxOrList(connection, addLiqTx, [wallet, positionKeypair]);
+  console.log(`  ✓ 新仓位创建 + 流动性添加成功!`);
+  console.log(`    signature:   ${sig}`);
+  console.log(`    positionAddr: ${positionKeypair.publicKey.toBase58()}`);
 
   return {
-    signature,
+    signature: sig,
     positionAddress: positionKeypair.publicKey.toBase58(),
     positionKeypair,
     minBinId,
@@ -230,67 +212,68 @@ export async function addLiquidityNewPosition(
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// 附：查询仓位信息（调用前可先确认 bin 范围是否合理）
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * 查询钱包在某个池子的所有仓位信息
- */
-export async function getDlmmPositions(
-  rpcUrl: string,
+// ─── 查询仓位（运行前先看看当前有哪些仓位）────────────────────────────────────
+async function printPositions(
+  connection: Connection,
   wallet: Keypair,
   poolAddress: string
 ) {
-  const connection = new Connection(rpcUrl, "confirmed");
   const dlmmPool = await DLMM.create(connection, new PublicKey(poolAddress), {
-    cluster: "mainnet-beta",
+    cluster: CONFIG.cluster,
   });
-
   const { userPositions } = await dlmmPool.getPositionsByUserAndLbPair(
     wallet.publicKey
   );
   const activeBin = await dlmmPool.getActiveBin();
 
-  console.log(`[DLMM] 池子: ${poolAddress}`);
-  console.log(`[DLMM] 当前 activeBin: ${activeBin.binId} (price=${activeBin.price})`);
-  console.log(`[DLMM] 仓位数量: ${userPositions.length}`);
+  console.log(`\n══ 当前仓位列表 ══`);
+  console.log(`  池子:      ${poolAddress}`);
+  console.log(`  activeBin: ${activeBin.binId}  价格=${activeBin.price} SOL/Token`);
+  console.log(`  仓位数量:  ${userPositions.length}`);
 
   for (const pos of userPositions) {
-    const { lowerBinId, upperBinId, totalXAmount, totalYAmount } =
-      pos.positionData;
-    console.log(`  仓位: ${pos.publicKey.toBase58()}`);
-    console.log(
-      `    bin范围: [${lowerBinId}, ${upperBinId}] | Token: ${totalXAmount.toString()} | SOL(lamports): ${totalYAmount.toString()}`
-    );
+    const { lowerBinId, upperBinId, totalXAmount, totalYAmount } = pos.positionData;
+    console.log(`\n  ┌ 仓位: ${pos.publicKey.toBase58()}`);
+    console.log(`  │ bin范围: [${lowerBinId}, ${upperBinId}]`);
+    console.log(`  │ Token(最小单位): ${totalXAmount.toString()}`);
+    console.log(`  └ SOL(lamports):  ${totalYAmount.toString()}`);
   }
-
   return userPositions;
 }
 
-// ─── 示例调用 ─────────────────────────────────────────────────────────────────
-// (async () => {
-//   const wallet = Keypair.fromSecretKey(/* your key */);
-//
-//   // 场景 A：往已有仓位追加
-//   await addLiquidityToExistingPosition(
-//     "https://api.mainnet-beta.solana.com",
-//     wallet,
-//     "池子地址...",
-//     "仓位地址...",
-//     5_000_000, // 追加 500万 Token
-//     0,         // 不追加 SOL
-//     6
-//   );
-//
-//   // 场景 B：在已有池子新开仓位
-//   await addLiquidityNewPosition(
-//     "https://api.mainnet-beta.solana.com",
-//     wallet,
-//     "池子地址...",
-//     5_000_000, // 500万 Token
-//     0.005,     // 0.005 SOL
-//     6,
-//     34         // ±34 bins
-//   );
-// })();
+// ═══════════════════════════════════════════════════════════════════════════════
+// 入口
+// ═══════════════════════════════════════════════════════════════════════════════
+(async () => {
+  const connection = new Connection(CONFIG.rpcUrl, "confirmed");
+  const wallet = Keypair.fromSecretKey(bs58.decode(CONFIG.privateKey));
+  console.log(`钱包: ${wallet.publicKey.toBase58()}`);
+
+  // ── 先查看现有仓位 ──
+  await printPositions(connection, wallet, CONFIG.poolAddress);
+
+  // ── 选择场景 ──────────────────────────────────────────────────────────────
+  // ★ 场景 A：往已有仓位追加（把 existingPositionAddress 填好）
+  await addLiquidityToExistingPosition(
+    connection,
+    wallet,
+    CONFIG.poolAddress,
+    CONFIG.existingPositionAddress,
+    CONFIG.addTokenAmount,
+    CONFIG.addSolAmount,
+    CONFIG.tokenDecimals,
+    CONFIG.strategyType
+  );
+
+  // ★ 场景 B：在已有池子新开仓位（与场景A二选一，注释掉不用的那个）
+  // await addLiquidityNewPosition(
+  //   connection,
+  //   wallet,
+  //   CONFIG.poolAddress,
+  //   CONFIG.addTokenAmount,
+  //   CONFIG.addSolAmount,
+  //   CONFIG.tokenDecimals,
+  //   CONFIG.binRange,
+  //   CONFIG.strategyType
+  // );
+})();

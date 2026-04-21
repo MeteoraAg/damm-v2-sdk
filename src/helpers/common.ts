@@ -284,14 +284,14 @@ export function computeSqrtPriceStepBps(
 
 /**
  * Gets the fee market cap scheduler parameters. Derives sqrtPriceStepBps
- * automatically from starting/ending market cap so the fee schedule is
- * fully exhausted when the token grows from startingMarketCap to endingMarketCap.
+ * automatically from `priceMultiple` so the fee schedule is fully exhausted
+ * when the spot price grows by that multiple from the initial price.
+ *
  * @param startingBaseFeeBps - Starting (max) fee in basis points
  * @param endingBaseFeeBps - Ending (min) fee in basis points
  * @param baseFeeMode - Linear or exponential decay
  * @param numberOfPeriod - Number of fee reduction periods
- * @param startingMarketCap - Initial market cap (e.g. 20_000 for $20k)
- * @param endingMarketCap - Target market cap (e.g. 20_000_000 for $20M)
+ * @param priceMultiple - Target spot-price multiple from the initial price (e.g. 1000 for 1000x). Must be > 1.
  * @param schedulerExpirationDuration - Seconds after which the schedule expires to the ending fee regardless of price
  * @returns BaseFee with the computed sqrtPriceStepBps encoded
  */
@@ -300,16 +300,15 @@ export function getFeeMarketCapSchedulerParams(
   endingBaseFeeBps: number,
   baseFeeMode: BaseFeeMode,
   numberOfPeriod: number,
-  startingMarketCap: number,
-  endingMarketCap: number,
+  priceMultiple: number,
   schedulerExpirationDuration: number,
 ): BaseFee {
   if (numberOfPeriod <= 0) {
     throw new Error("Total periods must be greater than zero");
   }
 
-  if (endingMarketCap <= startingMarketCap) {
-    throw new Error("endingMarketCap must be greater than startingMarketCap");
+  if (priceMultiple <= 1) {
+    throw new Error("priceMultiple must be greater than 1");
   }
 
   const poolMaxFeeBps = getMaxFeeBps(CURRENT_POOL_VERSION);
@@ -330,7 +329,6 @@ export function getFeeMarketCapSchedulerParams(
     throw new Error("schedulerExpirationDuration must be greater than zero");
   }
 
-  const priceMultiple = endingMarketCap / startingMarketCap;
   const sqrtPriceStepBps = computeSqrtPriceStepBps(
     priceMultiple,
     numberOfPeriod,
@@ -495,8 +493,7 @@ export function getBaseFeeParams(
       startingFeeBps: number;
       endingFeeBps: number;
       numberOfPeriod: number;
-      startingMarketCap: number;
-      endingMarketCap: number;
+      priceMultiple: number;
       schedulerExpirationDuration: number;
     };
   },
@@ -555,8 +552,7 @@ export function getBaseFeeParams(
         startingFeeBps,
         endingFeeBps,
         numberOfPeriod,
-        startingMarketCap,
-        endingMarketCap,
+        priceMultiple,
         schedulerExpirationDuration,
       } = baseFeeParams.feeMarketCapSchedulerParam;
       return getFeeMarketCapSchedulerParams(
@@ -564,8 +560,7 @@ export function getBaseFeeParams(
         endingFeeBps,
         baseFeeParams.baseFeeMode,
         numberOfPeriod,
-        startingMarketCap,
-        endingMarketCap,
+        priceMultiple,
         schedulerExpirationDuration,
       );
     }

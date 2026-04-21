@@ -3624,8 +3624,7 @@ getBaseFeeParams(
       startingFeeBps: number;
       endingFeeBps: number;
       numberOfPeriod: number;
-      startingMarketCap: number;
-      endingMarketCap: number;
+      priceMultiple: number;
       schedulerExpirationDuration: number;
     };
   },
@@ -3656,8 +3655,7 @@ baseFeeParams: {
     startingFeeBps: number; // starting fee in basis points
     endingFeeBps: number; // ending fee in basis points
     numberOfPeriod: number; // number of periods
-    startingMarketCap: number; // initial market cap (e.g. 20_000 for $20k)
-    endingMarketCap: number; // target market cap (e.g. 20_000_000 for $20M)
+    priceMultiple: number; // target spot-price multiple from the initial price (e.g. 1000 for 1000x). Must be > 1.
     schedulerExpirationDuration: number; // scheduler expiration duration in seconds
   };
 },
@@ -3679,8 +3677,7 @@ const baseFee = getBaseFeeParams(
       startingFeeBps: 5000,
       endingFeeBps: 100,
       numberOfPeriod: 180,
-      startingMarketCap: 20_000, // $20k initial market cap
-      endingMarketCap: 20_000_000, // $20M target (1000x)
+      priceMultiple: 1000, // 1000x growth in spot price
       schedulerExpirationDuration: 2592000,
     },
   },

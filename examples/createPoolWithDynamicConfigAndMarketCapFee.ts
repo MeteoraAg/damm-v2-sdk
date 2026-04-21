@@ -72,8 +72,7 @@ const DRY_RUN = true;
     startingFeeBps: 5000, // 50% starting fee (anti-sniper)
     endingFeeBps: 100, // 1% ending fee
     numberOfPeriod: 180, // 180 price steps
-    startingMarketCap: 20_000, // $20k initial market cap
-    endingMarketCap: 20_000_000, // $20M target market cap (1000x)
+    priceMultiple: 1000, // 1000x price multiple
     schedulerExpirationDuration: 2592000, // 30 days expiration
     // Dynamic fee on top of base fee
     useDynamicFee: true,
@@ -174,13 +173,7 @@ const DRY_RUN = true;
   console.log("  Starting Fee:", POOL_CONFIG.startingFeeBps / 100, "%");
   console.log("  Ending Fee:", POOL_CONFIG.endingFeeBps / 100, "%");
   console.log("  Number of Periods:", POOL_CONFIG.numberOfPeriod);
-  console.log("  Starting Market Cap:", POOL_CONFIG.startingMarketCap);
-  console.log("  Ending Market Cap:", POOL_CONFIG.endingMarketCap);
-  console.log(
-    "  Price Multiple:",
-    POOL_CONFIG.endingMarketCap / POOL_CONFIG.startingMarketCap,
-    "x",
-  );
+  console.log("  Price Multiple:", POOL_CONFIG.priceMultiple);
   console.log(
     "  Scheduler Expiration:",
     POOL_CONFIG.schedulerExpirationDuration / 86400,
@@ -194,8 +187,7 @@ const DRY_RUN = true;
         startingFeeBps: POOL_CONFIG.startingFeeBps,
         endingFeeBps: POOL_CONFIG.endingFeeBps,
         numberOfPeriod: POOL_CONFIG.numberOfPeriod,
-        startingMarketCap: POOL_CONFIG.startingMarketCap,
-        endingMarketCap: POOL_CONFIG.endingMarketCap,
+        priceMultiple: POOL_CONFIG.priceMultiple,
         schedulerExpirationDuration: POOL_CONFIG.schedulerExpirationDuration,
       },
     },

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.2]
+
+### Changed
+
+- **Breaking:** `getBaseFeeParams`'s `feeMarketCapSchedulerParam` and the underlying `getFeeMarketCapSchedulerParams` now take `priceMultiple` instead of `startingMarketCap` + `endingMarketCap`.
+
 ## damm_v2_sdk [1.4.1]
 
 ### Fixed

@@ -33,7 +33,7 @@
 	},
 	"dependencies": {
 		"@coral-xyz/anchor": "^0.31.0",
-		"@meteora-ag/dlmm": "^1.5.0",
+		"@meteora-ag/dlmm": "^1.9.7",
 		"@solana/spl-token": "^0.4.8",
 		"@solana/web3.js": "^1.95.3",
 		"@types/bn.js": "^5.1.0",

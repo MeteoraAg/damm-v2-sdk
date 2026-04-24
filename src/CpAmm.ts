@@ -126,7 +126,7 @@ import {
   swapQuoteExactOutput,
   swapQuotePartialInput,
 } from "./math";
-import { CP_AMM_PROGRAM_ID } from "./constants";
+import { CP_AMM_PROGRAM_ID, DEAD_LIQUIDITY } from "./constants";
 
 /**
  * CpAmm SDK class to interact with the DAMM-V2
@@ -1601,8 +1601,15 @@ export class CpAmm {
     const postInstruction: TransactionInstruction[] = [];
 
     if (isLockLiquidity) {
+      const configState = await this.fetchConfigState(config);
+      const lockLiquidity =
+        (configState.collectFeeMode as CollectFeeMode) ===
+        CollectFeeMode.Compounding
+          ? liquidityDelta.sub(DEAD_LIQUIDITY)
+          : liquidityDelta;
+
       const permanentLockIx = await this._program.methods
-        .permanentLockPosition(liquidityDelta)
+        .permanentLockPosition(lockLiquidity)
         .accountsPartial({
           position,
           positionNftAccount,
@@ -1720,8 +1727,13 @@ export class CpAmm {
     const postInstruction: TransactionInstruction[] = [];
 
     if (isLockLiquidity) {
+      const lockLiquidity =
+        (collectFeeMode as CollectFeeMode) === CollectFeeMode.Compounding
+          ? liquidityDelta.sub(DEAD_LIQUIDITY)
+          : liquidityDelta;
+
       const permanentLockIx = await this._program.methods
-        .permanentLockPosition(liquidityDelta)
+        .permanentLockPosition(lockLiquidity)
         .accountsPartial({
           position,
           positionNftAccount,
@@ -1846,8 +1858,13 @@ export class CpAmm {
     const postInstruction: TransactionInstruction[] = [];
 
     if (isLockLiquidity) {
+      const lockLiquidity =
+        (collectFeeMode as CollectFeeMode) === CollectFeeMode.Compounding
+          ? liquidityDelta.sub(DEAD_LIQUIDITY)
+          : liquidityDelta;
+
       const permanentLockIx = await this._program.methods
-        .permanentLockPosition(liquidityDelta)
+        .permanentLockPosition(lockLiquidity)
         .accountsPartial({
           position,
           positionNftAccount,

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.3]
+
+### Changed
+
+- Fixed `createPool`, `createCustomPool` and `createCustomPoolWithDynamicConfig` functions to use `collectFeeMode` to determine if liquidity delta should be subtracted by `DEAD_LIQUIDITY`.
+
 ## damm_v2_sdk [1.4.2]
 
 ### Changed

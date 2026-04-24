@@ -1,0 +1,16 @@
+{
+  "name": "dlmm-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "create":     "node createPool.js",
+    "add":        "node addLiquidity.js"
+  },
+  "dependencies": {
+    "@meteora-ag/dlmm": "^1.9.7",
+    "@solana/web3.js":  "^1.95.3",
+    "@solana/spl-token":"^0.4.8",
+    "bn.js":            "^5.2.1",
+    "decimal.js":       "^10.4.2"
+  }
+}

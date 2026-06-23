@@ -109,7 +109,9 @@ describe("Dead liquidity reward (compounding fee mode)", () => {
       TOKEN_PROGRAM_ID,
     );
 
-  async function setupFundedRewardPool(collectFeeMode: CollectFeeMode): Promise<{
+  async function setupFundedRewardPool(
+    collectFeeMode: CollectFeeMode,
+  ): Promise<{
     pool: PublicKey;
     position: PublicKey;
     positionNft: PublicKey;
@@ -206,7 +208,10 @@ describe("Dead liquidity reward (compounding fee mode)", () => {
     await advanceTimeBy(context, REWARD_DURATION + 1);
 
     const rewardVault = afterExit.rewardInfos[REWARD_INDEX].vault;
-    const funderBefore = await getBalance(context.banksClient, funderRewardAta());
+    const funderBefore = await getBalance(
+      context.banksClient,
+      funderRewardAta(),
+    );
 
     const withdrawTx = await ammInstance.withdrawDeadLiquidityReward({
       rewardIndex: REWARD_INDEX,
@@ -229,7 +234,10 @@ describe("Dead liquidity reward (compounding fee mode)", () => {
 
     await advanceTimeBy(context, REWARD_DURATION / 2);
 
-    const funderBefore = await getBalance(context.banksClient, funderRewardAta());
+    const funderBefore = await getBalance(
+      context.banksClient,
+      funderRewardAta(),
+    );
     const withdrawTx = await ammInstance.withdrawDeadLiquidityReward({
       rewardIndex: REWARD_INDEX,
       pool,
@@ -237,7 +245,10 @@ describe("Dead liquidity reward (compounding fee mode)", () => {
     });
     await executeTransaction(context.banksClient, withdrawTx, [funder]);
 
-    const funderAfter = await getBalance(context.banksClient, funderRewardAta());
+    const funderAfter = await getBalance(
+      context.banksClient,
+      funderRewardAta(),
+    );
     expect(funderAfter.gt(funderBefore)).toBe(true);
 
     const checkpoint = (
@@ -288,8 +299,7 @@ async function createPool(
 
   const poolFees: PoolFeesParams = {
     baseFee,
-    compoundingFeeBps:
-      collectFeeMode === CollectFeeMode.Compounding ? 5000 : 0,
+    compoundingFeeBps: collectFeeMode === CollectFeeMode.Compounding ? 5000 : 0,
     padding: 0,
     dynamicFee: null,
   };

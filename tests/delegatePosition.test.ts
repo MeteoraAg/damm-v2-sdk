@@ -60,10 +60,7 @@ async function getBalance(
 }
 
 // expects executeTransaction to throw with a custom program error matching `hexCode`
-async function expectProgramError(
-  fn: () => Promise<void>,
-  hexCode: string,
-) {
+async function expectProgramError(fn: () => Promise<void>, hexCode: string) {
   let threw = false;
   try {
     await fn();
@@ -473,10 +470,7 @@ describe("Delegate Position", () => {
     expect(positionState.delegatePermission).toBe(0);
 
     // InvalidPermission = 6054 = 0x17a6
-    await expectProgramError(
-      () => addLiquidity(delegate, position),
-      "0x17a6",
-    );
+    await expectProgramError(() => addLiquidity(delegate, position), "0x17a6");
   });
 });
 

@@ -8,18 +8,32 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { BN, Program } from "@coral-xyz/anchor";
-import { BanksClient, ProgramTestContext, start } from "solana-bankrun";
+import { BanksClient, Clock, ProgramTestContext, start } from "solana-bankrun";
 import { CP_AMM_PROGRAM_ID, DECIMALS } from "./constants";
 import { createToken, mintTo } from "./token";
-import { ExtensionType } from "@solana/spl-token";
+import {
+  AccountLayout,
+  ExtensionType,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import { createToken2022, mintToToken2022 } from "./token2022";
 import {
+  ActivationType,
+  BaseFeeMode,
+  CollectFeeMode,
+  CpAmm,
   deriveConfigAddress,
   deriveOperatorAddress,
+  getBaseFeeParams,
+  InitializeCustomizeablePoolParams,
+  MAX_SQRT_PRICE,
+  MIN_SQRT_PRICE,
+  PoolFeesParams,
   PoolState,
   PositionState,
 } from "../../src";
 import { CpAmm as CpAmmTypes } from "../../src/idl/cp_amm";
+import { expect } from "vitest";
 
 // bossj3JvwiNK7pvjr149DqdtJxf2gdygbcmEPTkb2F1
 export const LOCAL_ADMIN_KEYPAIR = Keypair.fromSecretKey(
@@ -490,6 +504,130 @@ export async function createOperator(
   }
 
   return operator;
+}
+
+/**
+ * Advances the bankrun clock forward by the given number of seconds.
+ */
+export async function advanceTimeBy(
+  context: ProgramTestContext,
+  seconds: number,
+) {
+  const clock = await context.banksClient.getClock();
+  context.setClock(
+    new Clock(
+      clock.slot,
+      clock.epochStartTimestamp,
+      clock.epoch,
+      clock.leaderScheduleEpoch,
+      clock.unixTimestamp + BigInt(seconds),
+    ),
+  );
+}
+
+/**
+ * Returns the SPL token balance of a token account, or 0 if it does not exist.
+ */
+export async function getBalance(
+  banksClient: BanksClient,
+  ata: PublicKey,
+): Promise<BN> {
+  const account = await banksClient.getAccount(ata);
+  if (!account) return new BN(0);
+  return new BN(AccountLayout.decode(account.data).amount.toString());
+}
+
+/**
+ * Expects `fn` to throw with a custom program error message containing `hexCode`.
+ */
+export async function expectProgramError(
+  fn: () => Promise<void>,
+  hexCode: string,
+) {
+  let threw = false;
+  try {
+    await fn();
+  } catch (err) {
+    threw = true;
+    const message = err instanceof Error ? err.message : String(err);
+    expect(
+      message.includes(hexCode),
+      `expected error ${hexCode} but got: ${message}`,
+    ).toBe(true);
+  }
+  expect(threw, "expected transaction to fail but it succeeded").toBe(true);
+}
+
+/**
+ * Creates a customizable pool with a single full-range position for use in tests.
+ * The compounding fee is enabled automatically when `collectFeeMode` is Compounding.
+ */
+export async function createPool(
+  banksClient: BanksClient,
+  ammInstance: CpAmm,
+  payer: Keypair,
+  creator: Keypair,
+  tokenAMint: PublicKey,
+  tokenBMint: PublicKey,
+  collectFeeMode: CollectFeeMode = CollectFeeMode.BothToken,
+): Promise<{ pool: PublicKey; position: PublicKey; positionNft: PublicKey }> {
+  const baseFee = getBaseFeeParams(
+    {
+      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+      feeTimeSchedulerParam: {
+        startingFeeBps: 2500,
+        endingFeeBps: 2500,
+        numberOfPeriod: 0,
+        totalDuration: 0,
+      },
+    },
+    DECIMALS,
+    ActivationType.Timestamp,
+  );
+
+  const poolFees: PoolFeesParams = {
+    baseFee,
+    compoundingFeeBps: collectFeeMode === CollectFeeMode.Compounding ? 5000 : 0,
+    padding: 0,
+    dynamicFee: null,
+  };
+
+  const positionNft = Keypair.generate();
+  const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+  const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+  const { liquidityDelta, initSqrtPrice } =
+    ammInstance.preparePoolCreationParams({
+      tokenAAmount,
+      tokenBAmount,
+      minSqrtPrice: MIN_SQRT_PRICE,
+      maxSqrtPrice: MAX_SQRT_PRICE,
+      collectFeeMode,
+    });
+
+  const params: InitializeCustomizeablePoolParams = {
+    payer: payer.publicKey,
+    creator: creator.publicKey,
+    positionNft: positionNft.publicKey,
+    tokenAMint,
+    tokenBMint,
+    tokenAAmount,
+    tokenBAmount,
+    sqrtMinPrice: MIN_SQRT_PRICE,
+    sqrtMaxPrice: MAX_SQRT_PRICE,
+    liquidityDelta,
+    initSqrtPrice,
+    poolFees,
+    hasAlphaVault: false,
+    activationType: ActivationType.Timestamp,
+    collectFeeMode,
+    activationPoint: null,
+    tokenAProgram: TOKEN_PROGRAM_ID,
+    tokenBProgram: TOKEN_PROGRAM_ID,
+  };
+
+  const { tx, pool, position } = await ammInstance.createCustomPool(params);
+  await executeTransaction(banksClient, tx, [payer, positionNft]);
+  return { pool, position, positionNft: positionNft.publicKey };
 }
 
 export async function createDynamicConfig(

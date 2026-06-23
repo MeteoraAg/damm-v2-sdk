@@ -1933,7 +1933,19 @@ export class CpAmm {
   }
 
   /**
-   * Builds a transaction to update delegate permission of a position.
+   * Builds a transaction that assigns a delegate to a position and sets its
+   * onchain permissions in a single transaction.
+   *
+   * This performs two actions:
+   * 1. SPL-approves `delegate` on the position NFT account (so the program
+   *    recognizes it as the position's delegate), and
+   * 2. sets the on-chain delegate permission bitmask via the
+   *    `updateDelegatePermission` instruction.
+   *
+   * Both are kept together so the approved delegate and the granted
+   * permissions never drift out of sync. To revoke, pass an empty permission
+   * set (`permission: 0`).
+   *
    * @param {UpdateDelegatePermissionParams} params - Parameters for delegate permission update.
    * @returns Transaction builder.
    */
@@ -1954,6 +1966,8 @@ export class CpAmm {
       })
       .instruction();
 
+    // Amount is 0 because the position NFT is non-fungible: the approve only
+    // needs to register `delegate` as the NFT account's delegate, not move it.
     const transaction = new Transaction()
       .add(
         createApproveInstruction(

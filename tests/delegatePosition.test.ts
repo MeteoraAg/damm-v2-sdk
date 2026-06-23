@@ -1,8 +1,12 @@
-import { BanksClient, Clock, ProgramTestContext } from "solana-bankrun";
+import { ProgramTestContext } from "solana-bankrun";
 import {
+  advanceTimeBy,
   attachBanksClient,
+  createPool,
   createUsersAndFund,
   executeTransaction,
+  expectProgramError,
+  getBalance,
   getPool,
   getPosition,
   setupTestContext,
@@ -11,69 +15,22 @@ import {
 import { getTokenAccount, mintTo } from "./bankrun-utils/token";
 import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import {
-  AccountLayout,
   getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import BN from "bn.js";
 import {
-  ActivationType,
-  BaseFeeMode,
-  CollectFeeMode,
   CpAmm,
   derivePositionAddress,
   derivePositionNftAccount,
   encodeDelegatePermissions,
-  getBaseFeeParams,
   getTokenProgram,
-  InitializeCustomizeablePoolParams,
-  MAX_SQRT_PRICE,
-  MIN_SQRT_PRICE,
-  PoolFeesParams,
   PositionDelegatePermission,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 
 const FULL_AMOUNT = new BN(1_000_000 * 10 ** DECIMALS);
-
-async function advanceTimeBy(context: ProgramTestContext, seconds: number) {
-  const clock = await context.banksClient.getClock();
-  context.setClock(
-    new Clock(
-      clock.slot,
-      clock.epochStartTimestamp,
-      clock.epoch,
-      clock.leaderScheduleEpoch,
-      clock.unixTimestamp + BigInt(seconds),
-    ),
-  );
-}
-
-async function getBalance(
-  banksClient: BanksClient,
-  ata: PublicKey,
-): Promise<BN> {
-  const account = await banksClient.getAccount(ata);
-  if (!account) return new BN(0);
-  return new BN(AccountLayout.decode(account.data).amount.toString());
-}
-
-// expects executeTransaction to throw with a custom program error matching `hexCode`
-async function expectProgramError(fn: () => Promise<void>, hexCode: string) {
-  let threw = false;
-  try {
-    await fn();
-  } catch (err) {
-    threw = true;
-    const message = err instanceof Error ? err.message : String(err);
-    expect(
-      message.includes(hexCode),
-      `expected error ${hexCode} but got: ${message}`,
-    ).toBe(true);
-  }
-  expect(threw, "expected transaction to fail but it succeeded").toBe(true);
-}
 
 describe("Delegate Position", () => {
   let context: ProgramTestContext;
@@ -130,14 +87,14 @@ describe("Delegate Position", () => {
     ammInstance = new CpAmm(connection);
     attachBanksClient(ammInstance._program, context.banksClient);
 
-    pool = await createPool(
+    ({ pool } = await createPool(
       context.banksClient,
       ammInstance,
       payer,
       creator,
       tokenAMint,
       tokenBMint,
-    );
+    ));
 
     // initialize and fund a reward so delegate reward-claim flows can be tested
     const initRewardTx = await ammInstance.initializeReward({
@@ -473,70 +430,3 @@ describe("Delegate Position", () => {
     await expectProgramError(() => addLiquidity(delegate, position), "0x17a6");
   });
 });
-
-async function createPool(
-  banksClient: BanksClient,
-  ammInstance: CpAmm,
-  payer: Keypair,
-  creator: Keypair,
-  tokenAMint: PublicKey,
-  tokenBMint: PublicKey,
-): Promise<PublicKey> {
-  const baseFee = getBaseFeeParams(
-    {
-      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-      feeTimeSchedulerParam: {
-        startingFeeBps: 2500,
-        endingFeeBps: 2500,
-        numberOfPeriod: 0,
-        totalDuration: 0,
-      },
-    },
-    DECIMALS,
-    ActivationType.Timestamp,
-  );
-
-  const poolFees: PoolFeesParams = {
-    baseFee,
-    compoundingFeeBps: 0,
-    padding: 0,
-    dynamicFee: null,
-  };
-
-  const positionNft = Keypair.generate();
-  const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-  const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-  const { liquidityDelta, initSqrtPrice } =
-    ammInstance.preparePoolCreationParams({
-      tokenAAmount,
-      tokenBAmount,
-      minSqrtPrice: MIN_SQRT_PRICE,
-      maxSqrtPrice: MAX_SQRT_PRICE,
-      collectFeeMode: CollectFeeMode.BothToken,
-    });
-
-  const params: InitializeCustomizeablePoolParams = {
-    payer: payer.publicKey,
-    creator: creator.publicKey,
-    positionNft: positionNft.publicKey,
-    tokenAMint,
-    tokenBMint,
-    tokenAAmount,
-    tokenBAmount,
-    sqrtMinPrice: MIN_SQRT_PRICE,
-    sqrtMaxPrice: MAX_SQRT_PRICE,
-    liquidityDelta,
-    initSqrtPrice,
-    poolFees,
-    hasAlphaVault: false,
-    activationType: ActivationType.Timestamp,
-    collectFeeMode: CollectFeeMode.BothToken,
-    activationPoint: null,
-    tokenAProgram: TOKEN_PROGRAM_ID,
-    tokenBProgram: TOKEN_PROGRAM_ID,
-  };
-
-  const { tx, pool } = await ammInstance.createCustomPool(params);
-  await executeTransaction(banksClient, tx, [payer, positionNft]);
-  return pool;
-}

@@ -1,75 +1,33 @@
-import { BanksClient, Clock, ProgramTestContext } from "solana-bankrun";
+import { ProgramTestContext } from "solana-bankrun";
 import {
+  advanceTimeBy,
   attachBanksClient,
+  createPool,
   executeTransaction,
+  expectProgramError,
+  getBalance,
   getPool,
   setupTestContext,
   startTest,
 } from "./bankrun-utils/common";
 import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import {
-  AccountLayout,
   getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import BN from "bn.js";
 import {
-  ActivationType,
-  BaseFeeMode,
   CollectFeeMode,
   CpAmm,
   DEAD_LIQUIDITY,
   derivePositionNftAccount,
-  getBaseFeeParams,
   getTokenProgram,
-  InitializeCustomizeablePoolParams,
-  MAX_SQRT_PRICE,
-  MIN_SQRT_PRICE,
-  PoolFeesParams,
 } from "../src";
-import { DECIMALS } from "./bankrun-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 
 const REWARD_INDEX = 0;
 const REWARD_DURATION = 24 * 60 * 60; // 1 day
 const REWARD_AMOUNT = new BN(REWARD_DURATION * 1000);
-
-async function advanceTimeBy(context: ProgramTestContext, seconds: number) {
-  const clock = await context.banksClient.getClock();
-  context.setClock(
-    new Clock(
-      clock.slot,
-      clock.epochStartTimestamp,
-      clock.epoch,
-      clock.leaderScheduleEpoch,
-      clock.unixTimestamp + BigInt(seconds),
-    ),
-  );
-}
-
-async function getBalance(
-  banksClient: BanksClient,
-  ata: PublicKey,
-): Promise<BN> {
-  const account = await banksClient.getAccount(ata);
-  if (!account) return new BN(0);
-  return new BN(AccountLayout.decode(account.data).amount.toString());
-}
-
-async function expectProgramError(fn: () => Promise<void>, hexCode: string) {
-  let threw = false;
-  try {
-    await fn();
-  } catch (err) {
-    threw = true;
-    const message = err instanceof Error ? err.message : String(err);
-    expect(
-      message.includes(hexCode),
-      `expected error ${hexCode} but got: ${message}`,
-    ).toBe(true);
-  }
-  expect(threw, "expected transaction to fail but it succeeded").toBe(true);
-}
 
 describe("Dead liquidity reward (compounding fee mode)", () => {
   let context: ProgramTestContext;
@@ -273,71 +231,3 @@ describe("Dead liquidity reward (compounding fee mode)", () => {
     }, "0x1781");
   });
 });
-
-async function createPool(
-  banksClient: BanksClient,
-  ammInstance: CpAmm,
-  payer: Keypair,
-  creator: Keypair,
-  tokenAMint: PublicKey,
-  tokenBMint: PublicKey,
-  collectFeeMode: CollectFeeMode,
-): Promise<{ pool: PublicKey; position: PublicKey; positionNft: PublicKey }> {
-  const baseFee = getBaseFeeParams(
-    {
-      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-      feeTimeSchedulerParam: {
-        startingFeeBps: 2500,
-        endingFeeBps: 2500,
-        numberOfPeriod: 0,
-        totalDuration: 0,
-      },
-    },
-    DECIMALS,
-    ActivationType.Timestamp,
-  );
-
-  const poolFees: PoolFeesParams = {
-    baseFee,
-    compoundingFeeBps: collectFeeMode === CollectFeeMode.Compounding ? 5000 : 0,
-    padding: 0,
-    dynamicFee: null,
-  };
-
-  const positionNft = Keypair.generate();
-  const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
-  const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
-  const { liquidityDelta, initSqrtPrice } =
-    ammInstance.preparePoolCreationParams({
-      tokenAAmount,
-      tokenBAmount,
-      minSqrtPrice: MIN_SQRT_PRICE,
-      maxSqrtPrice: MAX_SQRT_PRICE,
-      collectFeeMode,
-    });
-
-  const params: InitializeCustomizeablePoolParams = {
-    payer: payer.publicKey,
-    creator: creator.publicKey,
-    positionNft: positionNft.publicKey,
-    tokenAMint,
-    tokenBMint,
-    tokenAAmount,
-    tokenBAmount,
-    sqrtMinPrice: MIN_SQRT_PRICE,
-    sqrtMaxPrice: MAX_SQRT_PRICE,
-    liquidityDelta,
-    initSqrtPrice,
-    poolFees,
-    hasAlphaVault: false,
-    activationType: ActivationType.Timestamp,
-    collectFeeMode,
-    activationPoint: null,
-    tokenAProgram: TOKEN_PROGRAM_ID,
-    tokenBProgram: TOKEN_PROGRAM_ID,
-  };
-
-  const { tx, pool, position } = await ammInstance.createCustomPool(params);
-  await executeTransaction(banksClient, tx, [payer, positionNft]);
-  return { pool, position, positionNft: positionNft.publicKey };
-}

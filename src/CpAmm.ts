@@ -1,5 +1,9 @@
 import { Program } from "@coral-xyz/anchor";
-import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import {
+  NATIVE_MINT,
+  TOKEN_2022_PROGRAM_ID,
+  createApproveInstruction,
+} from "@solana/spl-token";
 import invariant from "invariant";
 
 import CpAmmIDL from "./idl/cp_amm.json";
@@ -73,6 +77,8 @@ import {
   BaseFeeMode,
   CollectFeeMode,
   DecodedPoolFees,
+  WithdrawDeadLiquidityRewardParams,
+  UpdateDelegatePermissionParams,
 } from "./types";
 import {
   deriveCustomizablePoolAddress,
@@ -255,7 +261,7 @@ export class CpAmm {
         pool,
         position,
         positionNftAccount,
-        owner,
+        signer: owner,
         tokenAAccount,
         tokenBAccount,
         tokenAMint,
@@ -301,7 +307,7 @@ export class CpAmm {
         pool,
         position,
         positionNftAccount,
-        owner,
+        signer: owner,
         tokenAAccount,
         tokenBAccount,
         tokenAMint,
@@ -342,7 +348,7 @@ export class CpAmm {
       .claimPositionFee()
       .accountsPartial({
         poolAuthority,
-        owner,
+        signer: owner,
         pool,
         position,
         positionNftAccount,
@@ -1614,7 +1620,7 @@ export class CpAmm {
           position,
           positionNftAccount,
           pool: pool,
-          owner: creator,
+          signer: creator,
         })
         .instruction();
       postInstruction.push(permanentLockIx);
@@ -1738,7 +1744,7 @@ export class CpAmm {
           position,
           positionNftAccount,
           pool: pool,
-          owner: creator,
+          signer: creator,
         })
         .instruction();
       postInstruction.push(permanentLockIx);
@@ -1869,7 +1875,7 @@ export class CpAmm {
           position,
           positionNftAccount,
           pool: pool,
-          owner: creator,
+          signer: creator,
         })
         .instruction();
       postInstruction.push(permanentLockIx);
@@ -1924,6 +1930,44 @@ export class CpAmm {
   async createPosition(params: CreatePositionParams): TxBuilder {
     const { ix } = await this.buildCreatePositionInstruction(params);
     return new Transaction().add(ix);
+  }
+
+  /**
+   * Builds a transaction to update delegate permission of a position.
+   * @param {UpdateDelegatePermissionParams} params - Parameters for delegate permission update.
+   * @returns Transaction builder.
+   */
+  async updateDelegatePermission(
+    params: UpdateDelegatePermissionParams,
+  ): TxBuilder {
+    const { owner, positionNft, delegate, permission } = params;
+
+    const position = derivePositionAddress(positionNft);
+    const positionNftAccount = derivePositionNftAccount(positionNft);
+
+    const updateDelegatePermissionIx = await this._program.methods
+      .updateDelegatePermission(permission)
+      .accountsPartial({
+        position,
+        positionNftAccount,
+        owner,
+      })
+      .instruction();
+
+    const transaction = new Transaction()
+      .add(
+        createApproveInstruction(
+          positionNftAccount,
+          delegate,
+          owner,
+          0,
+          [],
+          TOKEN_2022_PROGRAM_ID,
+        ),
+      )
+      .add(updateDelegatePermissionIx);
+
+    return transaction;
   }
 
   /**
@@ -2211,7 +2255,7 @@ export class CpAmm {
         pool,
         position,
         positionNftAccount,
-        owner,
+        signer: owner,
         tokenAAccount,
         tokenBAccount,
         tokenAMint,
@@ -2641,7 +2685,7 @@ export class CpAmm {
           pool,
           position,
           positionNftAccount,
-          owner,
+          signer: owner,
         })
         .transaction();
     } else {
@@ -2658,7 +2702,7 @@ export class CpAmm {
           positionNftAccount,
           vesting: vestingAccount,
           pool: pool,
-          owner: owner,
+          signer: owner,
           payer: payer,
           systemProgram: SystemProgram.programId,
         })
@@ -2681,7 +2725,7 @@ export class CpAmm {
         position,
         positionNftAccount,
         pool: pool,
-        owner: owner,
+        signer: owner,
       })
       .transaction();
   }
@@ -3264,6 +3308,51 @@ export class CpAmm {
   }
 
   /**
+   * Builds a transaction to withdraw dead liquidity rewards from a pool.
+   * @param {WithdrawDeadLiquidityRewardParams} params - Parameters for withdrawal.
+   * @returns Transaction builder.
+   */
+  async withdrawDeadLiquidityReward(
+    params: WithdrawDeadLiquidityRewardParams,
+  ): TxBuilder {
+    validateRewardIndex(params.rewardIndex);
+
+    const { rewardIndex, pool, funder } = params;
+    const poolState = await this.fetchPoolState(pool);
+
+    const rewardInfo = poolState.rewardInfos[rewardIndex];
+    const { mint, vault, rewardTokenFlag } = rewardInfo;
+    const tokenProgram = getTokenProgram(rewardTokenFlag);
+
+    const preInstructions: TransactionInstruction[] = [];
+    const postInstructions: TransactionInstruction[] = [];
+    const { ataPubkey: funderTokenAccount, ix: createFunderTokenAccountIx } =
+      await getOrCreateATAInstruction(mint, funder, funder, true, tokenProgram);
+    createFunderTokenAccountIx &&
+      preInstructions.push(createFunderTokenAccountIx);
+
+    if (mint.equals(NATIVE_MINT)) {
+      const closeWrappedSOLIx = await unwrapSOLInstruction(funder);
+      closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
+    }
+
+    return await this._program.methods
+      .withdrawDeadLiquidityReward(rewardIndex)
+      .accountsPartial({
+        pool,
+        rewardVault: vault,
+        rewardMint: mint,
+        poolAuthority: this.poolAuthority,
+        funderTokenAccount,
+        funder: funder,
+        tokenProgram,
+      })
+      .preInstructions(preInstructions)
+      .postInstructions(postInstructions)
+      .transaction();
+  }
+
+  /**
    * Builds a transaction to claim position fee rewards.
    * @param {ClaimPositionFeeParams} params - Parameters for claiming position fee.
    * @returns Transaction builder.
@@ -3454,7 +3543,7 @@ export class CpAmm {
         poolAuthority: this.poolAuthority,
         position,
         userTokenAccount,
-        owner: user,
+        signer: user,
         tokenProgram,
       })
       .preInstructions(preInstructions)

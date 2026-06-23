@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.4]
+
+### Added
+
+- Added `updateDelegatePermission` endpoint to grant or revoke delegate permissions on a position. It SPL-approves the delegate on the position NFT account and sets the on-chain delegate permission bitmask in a single transaction.
+- Added `withdrawDeadLiquidityReward` endpoint to withdraw the reward share attributable to a compounding pool's permanent dead liquidity. Only valid for `CollectFeeMode.Compounding` pools.
+- Added `PositionDelegatePermission` enum and `encodeDelegatePermissions` helper to build the delegate permission bitmask.
+- Added `UpdateDelegatePermissionParams` and `WithdrawDeadLiquidityRewardParams` types.
+
+### Changed
+
+- Bumped the IDL and program fixture: the signer account on position instructions (`addLiquidity`, `removeLiquidity`, `removeAllLiquidity`, `claimPositionFee`, `claimReward`, `lockPosition`, `lockInnerPosition` and `permanentLockPosition`) was renamed from `owner` to `signer` so a delegate can sign. SDK parameter interfaces are unchanged.
+
 ## damm_v2_sdk [1.4.3]
 
 ### Changed

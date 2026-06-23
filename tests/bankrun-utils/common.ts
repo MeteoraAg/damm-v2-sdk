@@ -399,6 +399,38 @@ export async function executeTransaction(
   }
 }
 
+/**
+ * Redirects the anchor program's connection reads to the bankrun BanksClient so that
+ * SDK methods which fetch on-chain accounts internally (e.g. fetchPoolState) work in tests.
+ */
+export function attachBanksClient(
+  program: Program<CpAmmTypes>,
+  banksClient: BanksClient,
+) {
+  const fetchAccountInfo = async (pubkey: PublicKey) => {
+    const account = await banksClient.getAccount(new PublicKey(pubkey));
+    if (!account) return null;
+    return {
+      data: Buffer.from(account.data),
+      owner:
+        account.owner instanceof PublicKey
+          ? account.owner
+          : new PublicKey(account.owner),
+      lamports: Number(account.lamports),
+      executable: account.executable,
+      rentEpoch: Number(account.rentEpoch ?? 0),
+    };
+  };
+
+  const connection = program.provider.connection as any;
+  connection.getAccountInfo = async (pubkey: PublicKey) =>
+    fetchAccountInfo(pubkey);
+  connection.getAccountInfoAndContext = async (pubkey: PublicKey) => ({
+    context: { slot: 0 },
+    value: await fetchAccountInfo(pubkey),
+  });
+}
+
 export async function getPool(
   banksClient: BanksClient,
   program: Program<CpAmmTypes>,

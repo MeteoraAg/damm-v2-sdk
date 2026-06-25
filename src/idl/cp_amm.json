@@ -2,7 +2,7 @@
   "address": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
   "metadata": {
     "name": "cp_amm",
-    "version": "0.2.0",
+    "version": "0.2.2",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -90,9 +90,9 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
@@ -109,33 +109,7 @@
           ]
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -238,9 +212,9 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
@@ -257,33 +231,7 @@
           ]
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -384,33 +332,7 @@
           ]
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -423,6 +345,79 @@
         },
         {
           "name": "max_amount_b",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim_protocol_fee2",
+      "discriminator": [
+        235,
+        194,
+        54,
+        69,
+        65,
+        10,
+        236,
+        112
+      ],
+      "accounts": [
+        {
+          "name": "receiver_token_account",
+          "docs": [
+            "receiver token account for the claimed token. validated through the protocol_fee program"
+          ],
+          "writable": true
+        },
+        {
+          "name": "token_a_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "token_b_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "token_a_program"
+        },
+        {
+          "name": "token_b_program"
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "token_a_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "token_b_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "pool_authority",
+          "address": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC"
+        },
+        {
+          "name": "signer",
+          "signer": true,
+          "address": "FkU5rQCWQM131skHCpcEbK8P1JrQGsBgqXe55w525SSF"
+        }
+      ],
+      "args": [
+        {
+          "name": "max_amount",
           "type": "u64"
         }
       ]
@@ -476,9 +471,9 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
@@ -486,33 +481,7 @@
           "name": "token_program"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -558,33 +527,7 @@
           "writable": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -618,33 +561,7 @@
           "writable": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -713,33 +630,7 @@
           "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -776,33 +667,7 @@
           "writable": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -866,33 +731,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -966,33 +805,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -1071,33 +884,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -1227,33 +1014,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -1322,33 +1083,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -1525,33 +1260,7 @@
           "name": "token_program"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -1800,33 +1509,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -2080,33 +1763,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -2364,33 +2021,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -2481,33 +2112,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -2558,40 +2163,14 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -2643,9 +2222,9 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
@@ -2659,33 +2238,7 @@
           "address": "11111111111111111111111111111111"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -2733,40 +2286,14 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -2901,9 +2428,9 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
@@ -2920,33 +2447,7 @@
           ]
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3050,9 +2551,9 @@
           ]
         },
         {
-          "name": "owner",
+          "name": "signer",
           "docs": [
-            "owner of position"
+            "Signer"
           ],
           "signer": true
         },
@@ -3069,33 +2570,7 @@
           ]
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3137,33 +2612,7 @@
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3238,33 +2687,7 @@
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3343,33 +2766,7 @@
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3480,33 +2877,7 @@
           "optional": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3621,33 +2992,7 @@
           "optional": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3661,6 +3006,47 @@
               "name": "SwapParameters2"
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "update_delegate_permission",
+      "discriminator": [
+        175,
+        165,
+        56,
+        64,
+        0,
+        251,
+        89,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "position_nft_account",
+          "docs": [
+            "The token account for nft"
+          ]
+        },
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "permission",
+          "type": "u32"
         }
       ]
     },
@@ -3689,33 +3075,7 @@
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3754,33 +3114,7 @@
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3819,33 +3153,7 @@
           "signer": true
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -3859,6 +3167,59 @@
         {
           "name": "new_funder",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "withdraw_dead_liquidity_reward",
+      "discriminator": [
+        121,
+        99,
+        224,
+        91,
+        178,
+        14,
+        22,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "pool_authority",
+          "address": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC"
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "reward_vault",
+          "writable": true
+        },
+        {
+          "name": "reward_mint"
+        },
+        {
+          "name": "funder_token_account",
+          "writable": true
+        },
+        {
+          "name": "funder",
+          "signer": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "event_authority"
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "reward_index",
+          "type": "u8"
         }
       ]
     },
@@ -3902,33 +3263,7 @@
           "name": "token_program"
         },
         {
-          "name": "event_authority",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  95,
-                  95,
-                  101,
-                  118,
-                  101,
-                  110,
-                  116,
-                  95,
-                  97,
-                  117,
-                  116,
-                  104,
-                  111,
-                  114,
-                  105,
-                  116,
-                  121
-                ]
-              }
-            ]
-          }
+          "name": "event_authority"
         },
         {
           "name": "program"
@@ -4149,6 +3484,19 @@
         13,
         25,
         33
+      ]
+    },
+    {
+      "name": "EvtClaimProtocolFee2",
+      "discriminator": [
+        187,
+        133,
+        66,
+        9,
+        205,
+        161,
+        84,
+        13
       ]
     },
     {
@@ -4373,6 +3721,19 @@
       ]
     },
     {
+      "name": "EvtUpdateDelegatePermission",
+      "discriminator": [
+        66,
+        188,
+        75,
+        151,
+        150,
+        232,
+        87,
+        93
+      ]
+    },
+    {
       "name": "EvtUpdatePoolFees",
       "discriminator": [
         76,
@@ -4409,6 +3770,19 @@
         115,
         246,
         146
+      ]
+    },
+    {
+      "name": "EvtWithdrawDeadLiquidityReward",
+      "discriminator": [
+        228,
+        66,
+        150,
+        195,
+        42,
+        62,
+        163,
+        13
       ]
     },
     {
@@ -4765,6 +4139,21 @@
       "code": 6067,
       "name": "InvalidCompoundingFeeBps",
       "msg": "Invalid compounding fee bps"
+    },
+    {
+      "code": 6068,
+      "name": "InvalidClaimProtocolFeeAccounts",
+      "msg": "Invalid claim protocol fee accounts"
+    },
+    {
+      "code": 6069,
+      "name": "TransferFeeExcludedAmountIsZero",
+      "msg": "Transfer fee excluded amount is zero"
+    },
+    {
+      "code": 6070,
+      "name": "DelegatedAmountNonZero",
+      "msg": "Delegated amount is not zero"
     }
   ],
   "types": [
@@ -5322,6 +4711,30 @@
           },
           {
             "name": "token_b_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EvtClaimProtocolFee2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "receiver_token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
             "type": "u64"
           }
         ]
@@ -6030,6 +5443,32 @@
       }
     },
     {
+      "name": "EvtUpdateDelegatePermission",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "permission",
+            "type": "u32"
+          },
+          {
+            "name": "delegate",
+            "type": {
+              "option": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "EvtUpdatePoolFees",
       "type": {
         "kind": "struct",
@@ -6097,6 +5536,26 @@
           {
             "name": "new_funder",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EvtWithdrawDeadLiquidityReward",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
           }
         ]
       }
@@ -7093,11 +6552,23 @@
             }
           },
           {
+            "name": "delegate_permission",
+            "docs": [
+              "delegate permission bitmask (paired with SPL token Approve)"
+            ],
+            "type": "u32"
+          },
+          {
             "name": "padding",
             "docs": [
               "padding for future usage"
             ],
-            "type": "u128"
+            "type": {
+              "array": [
+                "u8",
+                12
+              ]
+            }
           }
         ]
       }
@@ -7190,16 +6661,11 @@
             }
           },
           {
-            "name": "_padding_1",
+            "name": "dead_liquidity_reward_checkpoint",
             "docs": [
-              "Padding to ensure `reward_rate: u128` is 16-byte aligned"
+              "Cumulative dead-liquidity reward (Compounding Pool only)"
             ],
-            "type": {
-              "array": [
-                "u8",
-                8
-              ]
-            }
+            "type": "u64"
           },
           {
             "name": "mint",
@@ -7735,6 +7201,17 @@
                   "name": "DynamicFeeParameters"
                 }
               }
+            }
+          },
+          {
+            "name": "compounding_fee_bps",
+            "docs": [
+              "Compounding fee update mode:",
+              "- None: skip compounding fee update",
+              "- Some: update compounding_fee_bps; pool must use CollectFeeMode::Compounding"
+            ],
+            "type": {
+              "option": "u16"
             }
           }
         ]

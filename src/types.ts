@@ -81,6 +81,17 @@ export enum SwapMode {
   ExactOut,
 }
 
+export enum PositionDelegatePermission {
+  AddLiquidity = 0,
+  RemoveLiquidity = 1,
+  RemoveLiquidityToOwner = 2,
+  ClaimPositionFee = 3,
+  ClaimPositionFeeToOwner = 4,
+  ClaimReward = 5,
+  ClaimRewardToOwner = 6,
+  LockPosition = 7,
+}
+
 export type FeeMode = {
   feesOnInput: boolean;
   feesOnTokenA: boolean;
@@ -268,6 +279,13 @@ export type CreatePositionParams = {
   payer: PublicKey;
   pool: PublicKey;
   positionNft: PublicKey;
+};
+
+export type UpdateDelegatePermissionParams = {
+  owner: PublicKey;
+  positionNft: PublicKey;
+  delegate: PublicKey;
+  permission: number;
 };
 
 export type AddLiquidityParams = {
@@ -692,6 +710,12 @@ export type FundRewardParams = {
 };
 
 export type WithdrawIneligibleRewardParams = {
+  rewardIndex: number;
+  pool: PublicKey;
+  funder: PublicKey;
+};
+
+export type WithdrawDeadLiquidityRewardParams = {
   rewardIndex: number;
   pool: PublicKey;
   funder: PublicKey;

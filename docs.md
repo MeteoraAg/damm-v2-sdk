@@ -7,6 +7,7 @@
   - [createCustomPool](#createcustompool)
   - [createCustomPoolWithDynamicConfig](#createcustompoolwithdynamicconfig)
   - [createPosition](#createposition)
+  - [updateDelegatePermission](#updatedelegatepermission)
   - [getLiquidityDelta](#getliquiditydelta)
   - [getQuote](#getquote)
   - [getQuote2](#getquote2)
@@ -32,6 +33,7 @@
   - [fundReward](#fundreward)
   - [claimReward](#claimreward)
   - [withdrawIneligibleReward](#withdrawineligiblereward)
+  - [withdrawDeadLiquidityReward](#withdrawdeadliquidityreward)
   - [closePosition](#closeposition)
   - [splitPosition](#splitposition)
   - [splitPosition2](#splitposition2)
@@ -483,6 +485,78 @@ const result = await wallet.sendTransaction(tx, connection);
 - The `positionNft` should be a new mint that doesn't already have a position
 - Creating a position doesn't automatically add liquidity
 - After creating a position, use `addLiquidity` to provide tokens
+
+---
+
+### updateDelegatePermission
+
+Grants or revokes a delegate's permissions on a position. The delegate can then perform the permitted actions (add/remove liquidity, claim fees, claim rewards, lock) on the owner's behalf.
+
+**Function**
+
+```typescript
+async updateDelegatePermission(params: UpdateDelegatePermissionParams): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface UpdateDelegatePermissionParams {
+  owner: PublicKey; // The owner of the position
+  positionNft: PublicKey; // The position NFT mint
+  delegate: PublicKey; // The delegate to grant/revoke permissions for
+  permission: number; // The permission bitmask (build with encodeDelegatePermissions)
+}
+
+enum PositionDelegatePermission {
+  AddLiquidity = 0,
+  RemoveLiquidity = 1,
+  RemoveLiquidityToOwner = 2,
+  ClaimPositionFee = 3,
+  ClaimPositionFeeToOwner = 4,
+  ClaimReward = 5,
+  ClaimRewardToOwner = 6,
+  LockPosition = 7,
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+import { encodeDelegatePermissions, PositionDelegatePermission } from "@meteora-ag/cp-amm-sdk";
+
+// Grant the delegate add/remove liquidity and claim reward permissions
+const updateDelegatePermissionTx = await cpAmm.updateDelegatePermission({
+  owner: wallet.publicKey,
+  positionNft: positionNftMint,
+  delegate: delegateAddress,
+  permission: encodeDelegatePermissions([
+    PositionDelegatePermission.AddLiquidity,
+    PositionDelegatePermission.RemoveLiquidity,
+    PositionDelegatePermission.ClaimReward,
+  ]),
+});
+
+// Revoke all permissions by passing an empty permission set
+const revokeTx = await cpAmm.updateDelegatePermission({
+  owner: wallet.publicKey,
+  positionNft: positionNftMint,
+  delegate: delegateAddress,
+  permission: encodeDelegatePermissions([]),
+});
+```
+
+**Notes**
+
+- Only the position owner can call this function.
+- The transaction SPL-approves the `delegate` on the position NFT account and sets the on-chain permission bitmask, so both are kept in sync.
+- Build the `permission` bitmask with `encodeDelegatePermissions`, which OR-combines the `PositionDelegatePermission` flags.
+- The `*ToOwner` variants restrict the delegate to sending the withdrawn tokens/fees/rewards to the owner's token accounts rather than the delegate's.
+- Pass an empty permission set to revoke the delegate.
 
 ---
 
@@ -2119,6 +2193,49 @@ const withdrawIneligibleRewardTx = await cpAmm.withdrawIneligibleReward({
 - Only the pool creator can withdraw ineligible rewards
 - The rewardIndex parameter specifies which reward token to withdraw
 - The funder parameter specifies the address to withdraw to
+
+---
+
+### withdrawDeadLiquidityReward
+
+Withdraws the reward share attributable to a compounding pool's permanent dead liquidity. Compounding pools always retain a fixed `DEAD_LIQUIDITY` amount that can never be removed, so the rewards that accrue to that share are returned to the funder via this endpoint.
+
+**Function**
+
+```typescript
+async withdrawDeadLiquidityReward(params: WithdrawDeadLiquidityRewardParams): TxBuilder
+```
+
+**Parameters**
+
+```typescript
+interface WithdrawDeadLiquidityRewardParams {
+  rewardIndex: number; // Index of the reward to withdraw
+  pool: PublicKey; // The pool address
+  funder: PublicKey; // The funder address to withdraw to
+}
+```
+
+**Returns**
+
+A transaction builder (`TxBuilder`) that can be used to build, sign, and send the transaction.
+
+**Example**
+
+```typescript
+const withdrawDeadLiquidityRewardTx = await cpAmm.withdrawDeadLiquidityReward({
+  rewardIndex: 0,
+  pool: poolAddress,
+  funder: wallet.publicKey,
+});
+```
+
+**Notes**
+
+- Only valid for pools created with `CollectFeeMode.Compounding`; calling it on other pools fails with `InvalidCollectFeeMode`.
+- The `funder` must be the reward's configured funder, and receives the recovered tokens.
+- Can be called mid-campaign or after the campaign ends; it advances the reward's `deadLiquidityRewardCheckpoint` so the same accrued amount is not withdrawn twice.
+- The SDK fetches the pool state internally to resolve the reward vault, mint and token program.
 
 ---
 

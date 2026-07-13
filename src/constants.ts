@@ -55,3 +55,8 @@ export const DEAD_LIQUIDITY = new BN(100).shln(SCALE_OFFSET); // 100 << 64, matc
 export const NUM_REWARDS = 2;
 export const MIN_REWARD_DURATION = 86_400; // 1 day in seconds
 export const MAX_REWARD_DURATION = 31_536_000; // 1 year in seconds
+
+// Byte offsets inside the Pool account, used for getProgramAccounts memcmp filters.
+// Layout: 8-byte anchor discriminator + 160-byte `poolFees` struct, then the token mints.
+export const POOL_TOKEN_A_MINT_OFFSET = 168;
+export const POOL_TOKEN_B_MINT_OFFSET = 200;

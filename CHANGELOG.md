@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.5]
+
+### Added
+
+- Added `getPositionsByUserAndTokenMint` endpoint to fetch a user's positions in pools that contain a given token mint on either side of the pair. Resolves the user's positions first and filters by their pools' mints, so it never scans the program's pool accounts.
+- Added `fetchPoolStatesByTokenBMint` endpoint, the tokenB-side counterpart of `fetchPoolStatesByTokenAMint`.
+- Added `fetchPoolStatesByTokenMint` endpoint to fetch pools containing a mint on either side of the pair (both memcmp scans in parallel, deduplicated).
+- Added `POOL_TOKEN_A_MINT_OFFSET` and `POOL_TOKEN_B_MINT_OFFSET` constants for the Pool account memcmp filters, verified against the program in tests.
+
 ## damm_v2_sdk [1.4.4]
 
 ### Added

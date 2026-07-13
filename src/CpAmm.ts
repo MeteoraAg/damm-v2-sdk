@@ -132,7 +132,12 @@ import {
   swapQuoteExactOutput,
   swapQuotePartialInput,
 } from "./math";
-import { CP_AMM_PROGRAM_ID, DEAD_LIQUIDITY } from "./constants";
+import {
+  CP_AMM_PROGRAM_ID,
+  DEAD_LIQUIDITY,
+  POOL_TOKEN_A_MINT_OFFSET,
+  POOL_TOKEN_B_MINT_OFFSET,
+} from "./constants";
 
 /**
  * CpAmm SDK class to interact with the DAMM-V2
@@ -735,9 +740,46 @@ export class CpAmm {
   async fetchPoolStatesByTokenAMint(
     tokenAMint: PublicKey,
   ): Promise<Array<{ publicKey: PublicKey; account: PoolState }>> {
-    const filters = offsetBasedFilter(tokenAMint, 168);
+    const filters = offsetBasedFilter(tokenAMint, POOL_TOKEN_A_MINT_OFFSET);
     const pools = await this._program.account.pool.all(filters);
     return pools;
+  }
+
+  /**
+   * Fetches all Pool states by tokenBMint.
+   * @param tokenBMint - Public key of the tokenB mint.
+   * @returns Array of matched pool accounts and their state.
+   */
+  async fetchPoolStatesByTokenBMint(
+    tokenBMint: PublicKey,
+  ): Promise<Array<{ publicKey: PublicKey; account: PoolState }>> {
+    const filters = offsetBasedFilter(tokenBMint, POOL_TOKEN_B_MINT_OFFSET);
+    const pools = await this._program.account.pool.all(filters);
+    return pools;
+  }
+
+  /**
+   * Fetches all Pool states that contain the given mint on either side of the pair
+   * (tokenAMint or tokenBMint).
+   * @param tokenMint - Public key of the token mint.
+   * @returns Array of matched pool accounts and their state.
+   */
+  async fetchPoolStatesByTokenMint(
+    tokenMint: PublicKey,
+  ): Promise<Array<{ publicKey: PublicKey; account: PoolState }>> {
+    const [poolsByTokenA, poolsByTokenB] = await Promise.all([
+      this.fetchPoolStatesByTokenAMint(tokenMint),
+      this.fetchPoolStatesByTokenBMint(tokenMint),
+    ]);
+
+    // a pool can never have the same mint on both sides
+    const seen = new Set<string>();
+    return [...poolsByTokenA, ...poolsByTokenB].filter((pool) => {
+      const key = pool.publicKey.toBase58();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   async fetchPoolFees(pool: PublicKey): Promise<DecodedPoolFees | null> {
@@ -982,6 +1024,73 @@ export class CpAmm {
     });
 
     return positionResult;
+  }
+
+  /**
+   * Gets all positions of a user in pools that contain the given token mint on either side of
+   * the pair. Resolves the user's positions first and then filters by their pools' mints, so it
+   * never scans the program's pool accounts.
+   * @param user - Public key of the user.
+   * @param tokenMint - Public key of the token mint.
+   * @returns Array of user positions (sorted by liquidity, descending) with their pool and state.
+   */
+  async getPositionsByUserAndTokenMint(
+    user: PublicKey,
+    tokenMint: PublicKey,
+  ): Promise<
+    Array<{
+      positionNftAccount: PublicKey;
+      position: PublicKey;
+      positionState: PositionState;
+      pool: PublicKey;
+      poolState: PoolState;
+    }>
+  > {
+    const userPositions = await this.getPositionsByUser(user);
+    if (userPositions.length === 0) {
+      return [];
+    }
+
+    const uniquePools: PublicKey[] = [];
+    const seenPools = new Set<string>();
+    for (const { positionState } of userPositions) {
+      const poolKey = positionState.pool.toBase58();
+      if (!seenPools.has(poolKey)) {
+        seenPools.add(poolKey);
+        uniquePools.push(positionState.pool);
+      }
+    }
+
+    const poolStates =
+      await this._program.account.pool.fetchMultiple(uniquePools);
+
+    const matchedPools = new Map<string, PoolState>();
+    uniquePools.forEach((pool, index) => {
+      const poolState = poolStates[index];
+      if (!poolState) return;
+      if (
+        poolState.tokenAMint.equals(tokenMint) ||
+        poolState.tokenBMint.equals(tokenMint)
+      ) {
+        matchedPools.set(pool.toBase58(), poolState);
+      }
+    });
+
+    // keeps getPositionsByUser's liquidity-descending order
+    return userPositions
+      .map((userPosition) => {
+        const poolState = matchedPools.get(
+          userPosition.positionState.pool.toBase58(),
+        );
+        if (!poolState) return null;
+
+        return {
+          ...userPosition,
+          pool: userPosition.positionState.pool,
+          poolState,
+        };
+      })
+      .filter(Boolean);
   }
 
   /**

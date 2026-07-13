@@ -42,6 +42,8 @@
   - [fetchConfigState](#fetchconfigstate)
   - [fetchPoolState](#fetchpoolstate)
   - [fetchPoolStatesByTokenAMint](#fetchpoolstatesbytokenamint)
+  - [fetchPoolStatesByTokenBMint](#fetchpoolstatesbytokenbmint)
+  - [fetchPoolStatesByTokenMint](#fetchpoolstatesbytokenmint)
   - [fetchPoolFees](#fetchpoolfees)
   - [fetchPositionState](#fetchpositionstate)
   - [getMultipleConfigs](#getmultipleconfigs)
@@ -54,6 +56,7 @@
   - [getAllPositionsByPool](#getallpositionsbypool)
   - [getUserPositionByPool](#getuserpositionbypool)
   - [getPositionsByUser](#getpositionsbyuser)
+  - [getPositionsByUserAndTokenMint](#getpositionsbyuserandtokenmint)
   - [getAllVestingsByPosition](#getallvestingsbyposition)
   - [isLockedPosition](#islockedposition)
   - [isPermanentLockedPosition](#ispermanentlockedposition)
@@ -2575,6 +2578,70 @@ poolStates.forEach((pool, i) => {
 
 ---
 
+### fetchPoolStatesByTokenBMint
+
+Fetches all Pool states by tokenBMint.
+
+**Function**
+
+```typescript
+async fetchPoolStatesByTokenBMint(tokenBMint: PublicKey): Promise<Array<{ publicKey: PublicKey; account: PoolState }>>
+```
+
+**Parameters**
+
+- `tokenBMint`: Public key of the tokenB mint.
+
+**Returns**
+
+Array of matched pool accounts and their state.
+
+**Example**
+
+```typescript
+const poolStates = await cpAmm.fetchPoolStatesByTokenBMint(tokenBMint);
+console.log(`Found ${poolStates.length} pools`);
+```
+
+**Notes**
+
+- Returns an empty array if no pools are found for the given tokenBMint
+- Contains all essential information about the pool including pool address, prices, liquidity, and fees
+
+---
+
+### fetchPoolStatesByTokenMint
+
+Fetches all Pool states that contain the given mint on either side of the pair (tokenAMint or tokenBMint).
+
+**Function**
+
+```typescript
+async fetchPoolStatesByTokenMint(tokenMint: PublicKey): Promise<Array<{ publicKey: PublicKey; account: PoolState }>>
+```
+
+**Parameters**
+
+- `tokenMint`: Public key of the token mint.
+
+**Returns**
+
+Array of matched pool accounts and their state, deduplicated across both sides.
+
+**Example**
+
+```typescript
+const poolStates = await cpAmm.fetchPoolStatesByTokenMint(tokenMint);
+console.log(`Found ${poolStates.length} pools containing the mint`);
+```
+
+**Notes**
+
+- Runs two `getProgramAccounts` scans (one per pool side) in parallel
+- Returns an empty array if no pools contain the given mint
+
+---
+
 ### fetchPoolFees
 
 Fetches and decodes the pool fee configuration for a given pool. Automatically determines the base fee mode and returns the decoded fee parameters.
@@ -2950,6 +3017,43 @@ console.log(`User has ${userPositions.length} total positions`);
 
 - Positions are sorted by total liquidity in descending order
 - Returns position NFT accounts, position addresses, and full position states
+
+---
+
+### getPositionsByUserAndTokenMint
+
+Gets all positions of a user in pools that contain the given token mint on either side of the pair. Resolves the user's positions first and then filters by their pools' mints, so it never scans the program's pool accounts.
+
+**Function**
+
+```typescript
+async getPositionsByUserAndTokenMint(user: PublicKey, tokenMint: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState; pool: PublicKey; poolState: PoolState }>>
+```
+
+**Parameters**
+
+- `user`: Public key of the user.
+- `tokenMint`: Public key of the token mint.
+
+**Returns**
+
+Array of user positions (sorted by total liquidity, descending) with the pool address and pool state attached.
+
+**Example**
+
+```typescript
+const positions = await cpAmm.getPositionsByUserAndTokenMint(user, tokenMint);
+positions.forEach(({ position, pool, poolState }) => {
+  console.log(`Position ${position.toString()} in pool ${pool.toString()}`);
+  console.log(`- Pair: ${poolState.tokenAMint.toString()} / ${poolState.tokenBMint.toString()}`);
+});
+```
+
+**Notes**
+
+- Returns an empty array if the user has no positions in pools containing the mint
+- Preserves the liquidity-descending order of `getPositionsByUser`
+- Cheaper than pool-side scans: only the user's token accounts and their positions' pools are fetched
 
 ---
 

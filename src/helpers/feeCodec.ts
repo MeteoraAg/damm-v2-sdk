@@ -144,6 +144,28 @@ export function decodeFeeRateLimiterParams(data: Buffer): BorshFeeRateLimiter {
   };
 }
 
+/**
+ * Reads `base_fee_mode` from pod-aligned pool/config fee bytes.
+ * In pod layout, `cliff_fee_numerator` is a u64, so the mode byte is at offset 8.
+ */
+export function getBaseFeeModeFromPodAlignedData(
+  data: Buffer | number[],
+): BaseFeeMode {
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  return buf.readUInt8(8) as BaseFeeMode;
+}
+
+/**
+ * Reads `base_fee_mode` from Borsh-encoded base fee parameters.
+ * Borsh layouts store the mode as the last byte.
+ */
+export function getBaseFeeModeFromBorshData(
+  data: Buffer | number[],
+): BaseFeeMode {
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(data);
+  return buf.readUInt8(buf.length - 1) as BaseFeeMode;
+}
+
 export function decodePodAlignedFeeRateLimiter(
   data: Buffer,
 ): PodAlignedFeeRateLimiter {

@@ -8,7 +8,7 @@ export type CpAmm = {
   address: "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG";
   metadata: {
     name: "cpAmm";
-    version: "0.2.2";
+    version: "0.2.3";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -166,83 +166,6 @@ export type CpAmm = {
         },
       ];
       args: [];
-    },
-    {
-      name: "claimProtocolFee";
-      discriminator: [165, 228, 133, 48, 99, 249, 255, 33];
-      accounts: [
-        {
-          name: "poolAuthority";
-          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
-        },
-        {
-          name: "pool";
-          writable: true;
-        },
-        {
-          name: "tokenAVault";
-          docs: ["The vault token account for input token"];
-          writable: true;
-          relations: ["pool"];
-        },
-        {
-          name: "tokenBVault";
-          docs: ["The vault token account for output token"];
-          writable: true;
-          relations: ["pool"];
-        },
-        {
-          name: "tokenAMint";
-          docs: ["The mint of token a"];
-          relations: ["pool"];
-        },
-        {
-          name: "tokenBMint";
-          docs: ["The mint of token b"];
-          relations: ["pool"];
-        },
-        {
-          name: "tokenAAccount";
-          writable: true;
-        },
-        {
-          name: "tokenBAccount";
-          writable: true;
-        },
-        {
-          name: "operator";
-          docs: ["Claim fee operator"];
-        },
-        {
-          name: "signer";
-          docs: ["operator"];
-          signer: true;
-        },
-        {
-          name: "tokenAProgram";
-          docs: ["Token a program"];
-        },
-        {
-          name: "tokenBProgram";
-          docs: ["Token b program"];
-        },
-        {
-          name: "eventAuthority";
-        },
-        {
-          name: "program";
-        },
-      ];
-      args: [
-        {
-          name: "maxAmountA";
-          type: "u64";
-        },
-        {
-          name: "maxAmountB";
-          type: "u64";
-        },
-      ];
     },
     {
       name: "claimProtocolFee2";
@@ -2415,54 +2338,6 @@ export type CpAmm = {
         },
       ];
     },
-    {
-      name: "zapProtocolFee";
-      discriminator: [213, 155, 187, 34, 56, 182, 91, 240];
-      accounts: [
-        {
-          name: "poolAuthority";
-          address: "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC";
-        },
-        {
-          name: "pool";
-          writable: true;
-        },
-        {
-          name: "tokenVault";
-          writable: true;
-        },
-        {
-          name: "tokenMint";
-        },
-        {
-          name: "receiverToken";
-          writable: true;
-        },
-        {
-          name: "operator";
-          docs: ["zap claim fee operator"];
-        },
-        {
-          name: "signer";
-          docs: ["operator"];
-          signer: true;
-        },
-        {
-          name: "tokenProgram";
-          docs: ["Token program"];
-        },
-        {
-          name: "sysvarInstructions";
-          address: "Sysvar1nstructions1111111111111111111111111";
-        },
-      ];
-      args: [
-        {
-          name: "maxAmount";
-          type: "u64";
-        },
-      ];
-    },
   ];
   accounts: [
     {
@@ -2506,10 +2381,6 @@ export type CpAmm = {
     {
       name: "evtClaimPositionFee";
       discriminator: [198, 182, 183, 52, 97, 12, 49, 56];
-    },
-    {
-      name: "evtClaimProtocolFee";
-      discriminator: [186, 244, 75, 251, 188, 13, 25, 33];
     },
     {
       name: "evtClaimProtocolFee2";
@@ -2963,6 +2834,11 @@ export type CpAmm = {
       code: 6070;
       name: "delegatedAmountNonZero";
       msg: "Delegated amount is not zero";
+    },
+    {
+      code: 6071;
+      name: "deprecatedBaseFeeMode";
+      msg: "Deprecated base fee mode";
     },
   ];
   types: [
@@ -3452,26 +3328,6 @@ export type CpAmm = {
           },
           {
             name: "feeBClaimed";
-            type: "u64";
-          },
-        ];
-      };
-    },
-    {
-      name: "evtClaimProtocolFee";
-      type: {
-        kind: "struct";
-        fields: [
-          {
-            name: "pool";
-            type: "pubkey";
-          },
-          {
-            name: "tokenAAmount";
-            type: "u64";
-          },
-          {
-            name: "tokenBAmount";
             type: "u64";
           },
         ];
@@ -4684,8 +4540,15 @@ export type CpAmm = {
             type: "u64";
           },
           {
+            name: "deadLiquidityFeeCheckpoint";
+            docs: ["Cumulative dead-liquidity fee (Compounding Pool only)"];
+            type: "u64";
+          },
+          {
             name: "padding2";
-            type: "u128";
+            type: {
+              array: ["u8", 8];
+            };
           },
           {
             name: "sqrtMinPrice";

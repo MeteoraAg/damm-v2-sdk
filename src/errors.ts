@@ -105,6 +105,16 @@ export class InvalidBaseFeeModeError extends Error {
   }
 }
 
+export class DeprecatedBaseFeeModeError extends Error {
+  constructor(message?: string) {
+    super(
+      message ??
+        "BaseFeeMode.RateLimiter is deprecated. New configs and pools cannot use RateLimiter. Existing RateLimiter pools are still supported for swaps and quotes.",
+    );
+    this.name = "DeprecatedBaseFeeModeError";
+  }
+}
+
 export class InvalidPoolVersionError extends Error {
   constructor(message?: string) {
     super(message ?? "Invalid pool version");

@@ -11,7 +11,6 @@ import BN from "bn.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
-  ActivationType,
   AddLiquidityParams,
   BaseFeeMode,
   CollectFeeMode,
@@ -54,19 +53,15 @@ describe("Compounding liquidity", () => {
   });
 
   it("Full flow: create pool, add liquidity, swap, remove all liquidity", async () => {
-    const baseFee = getBaseFeeParams(
-      {
-        baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-        feeTimeSchedulerParam: {
-          startingFeeBps: 2500,
-          endingFeeBps: 2500,
-          numberOfPeriod: 0,
-          totalDuration: 0,
-        },
+    const baseFee = getBaseFeeParams({
+      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+      feeTimeSchedulerParam: {
+        startingFeeBps: 2500,
+        endingFeeBps: 2500,
+        numberOfPeriod: 0,
+        totalDuration: 0,
       },
-      6,
-      ActivationType.Timestamp,
-    );
+    });
 
     const poolFees: PoolFeesParams = {
       baseFee,

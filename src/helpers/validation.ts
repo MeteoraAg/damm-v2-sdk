@@ -45,6 +45,7 @@ import {
   InvalidDynamicFeeParametersError,
   InvalidFeeError,
   InvalidFeeMarketCapSchedulerError,
+  DeprecatedBaseFeeModeError,
   InvalidFeeRateLimiterError,
   InvalidFeeTimeSchedulerError,
   InvalidMinimumLiquidityError,
@@ -57,6 +58,7 @@ import {
   SameTokenMintsError,
 } from "../errors";
 import { PublicKey } from "@solana/web3.js";
+import { getBaseFeeModeFromBorshData } from "./feeCodec";
 
 /**
  * Validate fee scheduler parameters
@@ -520,6 +522,18 @@ export function validateDynamicFee(dynamicFee: DynamicFee): void {
 }
 
 /**
+ * Rejects deprecated base fee modes for new configs and new pools.
+ * Existing RateLimiter pools remain valid for swaps, quotes, and fee updates.
+ */
+export function assertBaseFeeModeAllowedForNewPool(
+  baseFeeMode: BaseFeeMode,
+): void {
+  if (baseFeeMode === BaseFeeMode.RateLimiter) {
+    throw new DeprecatedBaseFeeModeError();
+  }
+}
+
+/**
  * Validates all pool fee parameters (compounding fee, base fee, and dynamic fee).
  * Mirrors the on-chain PoolFeeParameters::validate().
  * @param poolFees - The pool fees parameters.
@@ -535,6 +549,10 @@ export function validatePoolFees(
   feeVersion: number = CURRENT_POOL_VERSION,
 ): void {
   validateCompoundingFee(collectFeeMode, poolFees.compoundingFeeBps);
+
+  assertBaseFeeModeAllowedForNewPool(
+    getBaseFeeModeFromBorshData(poolFees.baseFee.data),
+  );
 
   const baseFeeHandler = getBaseFeeHandlerFromBorshData(poolFees.baseFee.data);
   baseFeeHandler.validate(collectFeeMode, activationType, feeVersion);

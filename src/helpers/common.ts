@@ -7,6 +7,7 @@ import {
   DynamicFee,
   PoolStatus,
 } from "../types";
+import { DeprecatedBaseFeeModeError } from "../errors";
 import {
   BASIS_POINT_MAX,
   BIN_STEP_BPS_DEFAULT,
@@ -364,16 +365,10 @@ export function getFeeMarketCapSchedulerParams(
 }
 
 /**
- * Gets the rate limiter parameters
- * @param baseFeeBps - The base fee in basis points
- * @param feeIncrementBps - The fee increment in basis points
- * @param referenceAmount - The reference amount
- * @param maxLimiterDuration - The max limiter duration
- * @param maxFeeBps - The max fee in basis points
- * @param tokenBDecimal - The token B decimal
- * @param activationType - The activation type
- * @param poolVersion - The pool version
- * @returns The rate limiter parameters
+ * Encodes rate limiter parameters.
+ *
+ * RateLimiter is deprecated for new configs and new pools. Keep this helper
+ * for existing RateLimiter pools (quotes, swaps, and operator fee fixes).
  */
 export function getRateLimiterParams(
   baseFeeBps: number,
@@ -468,38 +463,31 @@ export function getRateLimiterParams(
 /**
  * Gets the base fee parameters
  * @param baseFeeParams - The base fee parameters
- * @param tokenBDecimal - The token B decimal
- * @param activationType - The activation type
- * @param poolVersion - The pool version
  * @returns The base fee parameters
  */
-export function getBaseFeeParams(
-  baseFeeParams: {
-    baseFeeMode: BaseFeeMode;
-    rateLimiterParam?: {
-      baseFeeBps: number;
-      feeIncrementBps: number;
-      referenceAmount: number;
-      maxLimiterDuration: number;
-      maxFeeBps: number;
-    };
-    feeTimeSchedulerParam?: {
-      startingFeeBps: number;
-      endingFeeBps: number;
-      numberOfPeriod: number;
-      totalDuration: number;
-    };
-    feeMarketCapSchedulerParam?: {
-      startingFeeBps: number;
-      endingFeeBps: number;
-      numberOfPeriod: number;
-      priceMultiple: number;
-      schedulerExpirationDuration: number;
-    };
-  },
-  tokenBDecimal: number,
-  activationType: ActivationType,
-): BaseFee {
+export function getBaseFeeParams(baseFeeParams: {
+  baseFeeMode: BaseFeeMode;
+  rateLimiterParam?: {
+    baseFeeBps: number;
+    feeIncrementBps: number;
+    referenceAmount: number;
+    maxLimiterDuration: number;
+    maxFeeBps: number;
+  };
+  feeTimeSchedulerParam?: {
+    startingFeeBps: number;
+    endingFeeBps: number;
+    numberOfPeriod: number;
+    totalDuration: number;
+  };
+  feeMarketCapSchedulerParam?: {
+    startingFeeBps: number;
+    endingFeeBps: number;
+    numberOfPeriod: number;
+    priceMultiple: number;
+    schedulerExpirationDuration: number;
+  };
+}): BaseFee {
   switch (baseFeeParams.baseFeeMode) {
     case BaseFeeMode.FeeTimeSchedulerLinear:
     case BaseFeeMode.FeeTimeSchedulerExponential: {
@@ -519,27 +507,7 @@ export function getBaseFeeParams(
       );
     }
     case BaseFeeMode.RateLimiter: {
-      if (!baseFeeParams.rateLimiterParam) {
-        throw new Error(
-          "Rate limiter parameters are required for RateLimiter mode",
-        );
-      }
-      const {
-        baseFeeBps,
-        feeIncrementBps,
-        referenceAmount,
-        maxLimiterDuration,
-        maxFeeBps,
-      } = baseFeeParams.rateLimiterParam;
-      return getRateLimiterParams(
-        baseFeeBps,
-        feeIncrementBps,
-        referenceAmount,
-        maxLimiterDuration,
-        maxFeeBps,
-        tokenBDecimal,
-        activationType,
-      );
+      throw new DeprecatedBaseFeeModeError();
     }
     case BaseFeeMode.FeeMarketCapSchedulerLinear:
     case BaseFeeMode.FeeMarketCapSchedulerExponential: {

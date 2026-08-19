@@ -25,17 +25,8 @@ export enum BaseFeeMode {
   FeeTimeSchedulerLinear,
   // fee = cliff_fee_numerator * (1-reduction_factor/BASIS_POINT_MAX)^passed_period
   FeeTimeSchedulerExponential,
-  // if input_amount <= reference_amount, then fee = input_amount * cliff_fee_numerator
-  // if input_amount > reference_amount:
-  // input_amount = reference_amount + (a * reference_amount + b)
-  // a = (inputAmount - referenceAmount) / referenceAmount
-  // b = (inputAmount - referenceAmount) % referenceAmount
-  // c = cliff_fee_numerator
-  // d = a - max_index
-  // if a < max_index:
-  // fee = x0 * c + x0 * (c + i) + .... + x0 * (c + i*a) + b * (c + i * (a+1))
-  // if a >= max_index:
-  // fee = x0 * (c + c*max_index + i*max_index*(max_index+1)/2) + (d * x0 + b) * MAX_FEE
+  // Deprecated. Existing pools are still supported for swaps and quotes.
+  // New configs and new pools cannot use RateLimiter.
   RateLimiter,
   // fee = cliff_fee_numerator - passed_period * reduction_factor
   // passed_period = changed_price / sqrt_price_step_bps

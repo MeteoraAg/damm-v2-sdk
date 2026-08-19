@@ -290,9 +290,7 @@ const baseFeeParams = getBaseFeeParams(
       numberOfPeriod: 50,
       totalDuration: 300,
     },
-  },
-  9,
-  ActivationType.Timestamp,
+  }
 );
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
@@ -408,9 +406,7 @@ const baseFeeParams = getBaseFeeParams(
       numberOfPeriod: 50,
       totalDuration: 300,
     },
-  },
-  9,
-  ActivationType.Timestamp,
+  }
 );
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
@@ -3849,8 +3845,7 @@ getBaseFeeParams(
       schedulerExpirationDuration: number;
     };
   },
-  tokenBDecimal: number,
-  activationType: ActivationType): BaseFee
+): BaseFee
 ```
 
 **Parameters**
@@ -3879,9 +3874,7 @@ baseFeeParams: {
     priceMultiple: number; // target spot-price multiple from the initial price (e.g. 1000 for 1000x). Must be > 1.
     schedulerExpirationDuration: number; // scheduler expiration duration in seconds
   };
-},
-tokenBDecimal: number, // token B decimal
-activationType: ActivationType // activation type
+}
 ```
 
 **Returns**
@@ -3901,9 +3894,7 @@ const baseFee = getBaseFeeParams(
       priceMultiple: 1000, // 1000x growth in spot price
       schedulerExpirationDuration: 2592000,
     },
-  },
-  6,
-  ActivationType.Timestamp,
+  }
 );
 ```
 

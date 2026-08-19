@@ -14,7 +14,6 @@ import {
 } from "@solana/spl-token";
 
 import {
-  ActivationType,
   BaseFeeMode,
   CollectFeeMode,
   CpAmm,
@@ -74,21 +73,15 @@ describe("Split Position", () => {
       });
 
       it("Should successfully split position between poolCreator and user", async () => {
-        const tokenBDecimal = 9;
-        const activationType = ActivationType.Timestamp;
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-            feeTimeSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              totalDuration: 180,
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,
@@ -250,21 +243,15 @@ describe("Split Position", () => {
       });
 
       it("Should successfully split position between poolCreator and user with Token 2022", async () => {
-        const tokenBDecimal = 9;
-        const activationType = ActivationType.Timestamp;
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-            feeTimeSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              totalDuration: 180,
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,

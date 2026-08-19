@@ -109,6 +109,8 @@ import {
   decodePodAlignedFeeRateLimiter,
   decodePodAlignedFeeTimeScheduler,
   decodePodAlignedFeeMarketCapScheduler,
+  getBaseFeeModeFromPodAlignedData,
+  assertBaseFeeModeAllowedForNewPool,
   validateCustomizablePoolParams,
   validateCreatePoolParams,
   validateAddLiquidityParams,
@@ -1691,6 +1693,11 @@ export class CpAmm {
       tokenBAmount,
     });
 
+    const configState = await this.fetchConfigState(config);
+    assertBaseFeeModeAllowedForNewPool(
+      getBaseFeeModeFromPodAlignedData(configState.poolFees.baseFee.data),
+    );
+
     const pool = derivePoolAddress(config, tokenAMint, tokenBMint);
     const {
       position,
@@ -1716,7 +1723,6 @@ export class CpAmm {
     const postInstruction: TransactionInstruction[] = [];
 
     if (isLockLiquidity) {
-      const configState = await this.fetchConfigState(config);
       const lockLiquidity =
         (configState.collectFeeMode as CollectFeeMode) ===
         CollectFeeMode.Compounding

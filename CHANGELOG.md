@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.6]
+
+### Changed
+
+- Synced the IDL and bankrun program fixture to cp_amm 0.2.3.
+- **Breaking:** `getBaseFeeParams` no longer takes `tokenBDecimal` or `activationType`. Those arguments were only used to encode RateLimiter params, which this helper now rejects.
+
+### Deprecated
+
+- Deprecated `BaseFeeMode.RateLimiter` for new configs and new pools. `getBaseFeeParams`, `validatePoolFees`, `createCustomPool`, `createCustomPoolWithDynamicConfig`, and `createPool` reject RateLimiter. Existing RateLimiter pools still quote and swap. `getRateLimiterParams` and the rate-limiter encode/decode helpers remain for those pools.
+
 ## damm_v2_sdk [1.4.5]
 
 ### Added

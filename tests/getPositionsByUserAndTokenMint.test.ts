@@ -84,19 +84,15 @@ describe("getPositionsByUserAndTokenMint", () => {
     tokenAMint: PublicKey,
     tokenBMint: PublicKey,
   ): Promise<{ pool: PublicKey; position: PublicKey; nftMint: PublicKey }> => {
-    const baseFee = getBaseFeeParams(
-      {
-        baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-        feeTimeSchedulerParam: {
-          startingFeeBps: 5000,
-          endingFeeBps: 100,
-          numberOfPeriod: 180,
-          totalDuration: 180,
-        },
+    const baseFee = getBaseFeeParams({
+      baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+      feeTimeSchedulerParam: {
+        startingFeeBps: 5000,
+        endingFeeBps: 100,
+        numberOfPeriod: 180,
+        totalDuration: 180,
       },
-      6,
-      ActivationType.Timestamp,
-    );
+    });
 
     const poolFees: PoolFeesParams = {
       baseFee,

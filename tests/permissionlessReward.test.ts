@@ -15,7 +15,6 @@ import BN from "bn.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
-  ActivationType,
   BaseFeeMode,
   CollectFeeMode,
   CpAmm,
@@ -107,19 +106,15 @@ async function createPool(
   collectFeeMode: CollectFeeMode,
   compoundingFeeBps: number,
 ): Promise<{ pool: PublicKey; position: PublicKey }> {
-  const baseFee = getBaseFeeParams(
-    {
-      baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-      feeTimeSchedulerParam: {
-        startingFeeBps: 5000,
-        endingFeeBps: 100,
-        numberOfPeriod: 180,
-        totalDuration: 180,
-      },
+  const baseFee = getBaseFeeParams({
+    baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+    feeTimeSchedulerParam: {
+      startingFeeBps: 5000,
+      endingFeeBps: 100,
+      numberOfPeriod: 180,
+      totalDuration: 180,
     },
-    6,
-    ActivationType.Timestamp,
-  );
+  });
 
   const poolFees: PoolFeesParams = {
     baseFee,

@@ -12,20 +12,16 @@ import {
 describe("Deprecated BaseFeeMode.RateLimiter", () => {
   it("getBaseFeeParams rejects RateLimiter for new pools", () => {
     expect(() =>
-      getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.RateLimiter,
-          rateLimiterParam: {
-            baseFeeBps: 100,
-            feeIncrementBps: 10,
-            referenceAmount: 1,
-            maxLimiterDuration: 10,
-            maxFeeBps: 5000,
-          },
+      getBaseFeeParams({
+        baseFeeMode: BaseFeeMode.RateLimiter,
+        rateLimiterParam: {
+          baseFeeBps: 100,
+          feeIncrementBps: 10,
+          referenceAmount: 1,
+          maxLimiterDuration: 10,
+          maxFeeBps: 5000,
         },
-        9,
-        ActivationType.Timestamp,
-      ),
+      }),
     ).toThrow(DeprecatedBaseFeeModeError);
   });
 
@@ -70,19 +66,15 @@ describe("Deprecated BaseFeeMode.RateLimiter", () => {
   });
 
   it("does not affect other base fee modes", () => {
-    const baseFee = getBaseFeeParams(
-      {
-        baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-        feeTimeSchedulerParam: {
-          startingFeeBps: 2500,
-          endingFeeBps: 2500,
-          numberOfPeriod: 0,
-          totalDuration: 0,
-        },
+    const baseFee = getBaseFeeParams({
+      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+      feeTimeSchedulerParam: {
+        startingFeeBps: 2500,
+        endingFeeBps: 2500,
+        numberOfPeriod: 0,
+        totalDuration: 0,
       },
-      6,
-      ActivationType.Timestamp,
-    );
+    });
 
     expect(() =>
       validatePoolFees(

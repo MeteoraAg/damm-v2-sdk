@@ -13,7 +13,6 @@ import {
 } from "@solana/spl-token";
 import { DECIMALS } from "./bankrun-utils";
 import {
-  ActivationType,
   BaseFeeMode,
   CollectFeeMode,
   CpAmm,
@@ -68,19 +67,15 @@ describe("Create position", () => {
         const connection = new Connection(clusterApiUrl("devnet"));
         ammInstance = new CpAmm(connection);
 
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-            feeTimeSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              totalDuration: 180,
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,
@@ -182,19 +177,15 @@ describe("Create position", () => {
         const connection = new Connection(clusterApiUrl("devnet"));
         ammInstance = new CpAmm(connection);
 
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-            feeTimeSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              totalDuration: 180,
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,

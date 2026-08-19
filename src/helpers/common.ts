@@ -463,38 +463,31 @@ export function getRateLimiterParams(
 /**
  * Gets the base fee parameters
  * @param baseFeeParams - The base fee parameters
- * @param tokenBDecimal - The token B decimal
- * @param activationType - The activation type
- * @param poolVersion - The pool version
  * @returns The base fee parameters
  */
-export function getBaseFeeParams(
-  baseFeeParams: {
-    baseFeeMode: BaseFeeMode;
-    rateLimiterParam?: {
-      baseFeeBps: number;
-      feeIncrementBps: number;
-      referenceAmount: number;
-      maxLimiterDuration: number;
-      maxFeeBps: number;
-    };
-    feeTimeSchedulerParam?: {
-      startingFeeBps: number;
-      endingFeeBps: number;
-      numberOfPeriod: number;
-      totalDuration: number;
-    };
-    feeMarketCapSchedulerParam?: {
-      startingFeeBps: number;
-      endingFeeBps: number;
-      numberOfPeriod: number;
-      priceMultiple: number;
-      schedulerExpirationDuration: number;
-    };
-  },
-  tokenBDecimal: number,
-  activationType: ActivationType,
-): BaseFee {
+export function getBaseFeeParams(baseFeeParams: {
+  baseFeeMode: BaseFeeMode;
+  rateLimiterParam?: {
+    baseFeeBps: number;
+    feeIncrementBps: number;
+    referenceAmount: number;
+    maxLimiterDuration: number;
+    maxFeeBps: number;
+  };
+  feeTimeSchedulerParam?: {
+    startingFeeBps: number;
+    endingFeeBps: number;
+    numberOfPeriod: number;
+    totalDuration: number;
+  };
+  feeMarketCapSchedulerParam?: {
+    startingFeeBps: number;
+    endingFeeBps: number;
+    numberOfPeriod: number;
+    priceMultiple: number;
+    schedulerExpirationDuration: number;
+  };
+}): BaseFee {
   switch (baseFeeParams.baseFeeMode) {
     case BaseFeeMode.FeeTimeSchedulerLinear:
     case BaseFeeMode.FeeTimeSchedulerExponential: {

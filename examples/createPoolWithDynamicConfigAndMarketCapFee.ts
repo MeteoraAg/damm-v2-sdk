@@ -180,20 +180,16 @@ const DRY_RUN = true;
     "days",
   );
 
-  const baseFeeParams = getBaseFeeParams(
-    {
-      baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerExponential,
-      feeMarketCapSchedulerParam: {
-        startingFeeBps: POOL_CONFIG.startingFeeBps,
-        endingFeeBps: POOL_CONFIG.endingFeeBps,
-        numberOfPeriod: POOL_CONFIG.numberOfPeriod,
-        priceMultiple: POOL_CONFIG.priceMultiple,
-        schedulerExpirationDuration: POOL_CONFIG.schedulerExpirationDuration,
-      },
+  const baseFeeParams = getBaseFeeParams({
+    baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerExponential,
+    feeMarketCapSchedulerParam: {
+      startingFeeBps: POOL_CONFIG.startingFeeBps,
+      endingFeeBps: POOL_CONFIG.endingFeeBps,
+      numberOfPeriod: POOL_CONFIG.numberOfPeriod,
+      priceMultiple: POOL_CONFIG.priceMultiple,
+      schedulerExpirationDuration: POOL_CONFIG.schedulerExpirationDuration,
     },
-    POOL_CONFIG.tokenBDecimals,
-    ActivationType.Timestamp,
-  );
+  });
 
   // Optional: Add dynamic fee on top
   const dynamicFeeParams = POOL_CONFIG.useDynamicFee

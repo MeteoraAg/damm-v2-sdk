@@ -24,7 +24,6 @@ import {
 } from "@solana/spl-token";
 
 import {
-  ActivationType,
   BaseFeeMode,
   CollectFeeMode,
   CpAmm,
@@ -92,19 +91,15 @@ describe("Initialize customizable pool with dynamic config", () => {
       });
 
       it("Initialize customizeable pool with spl token", async () => {
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-            feeTimeSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              totalDuration: 180,
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,
@@ -165,20 +160,16 @@ describe("Initialize customizable pool with dynamic config", () => {
       });
 
       it("Initialize customizeable pool with FeeMarketCapSchedulerLinear", async () => {
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
-            feeMarketCapSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              priceMultiple: 1000, // e.g. $20k → $20M market cap
-              schedulerExpirationDuration: 2592000, // 30 days
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
+          feeMarketCapSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            priceMultiple: 1000, // e.g. $20k → $20M market cap
+            schedulerExpirationDuration: 2592000, // 30 days
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,
@@ -239,20 +230,16 @@ describe("Initialize customizable pool with dynamic config", () => {
       });
 
       it("Initialize customizeable pool with FeeMarketCapSchedulerExponential", async () => {
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerExponential,
-            feeMarketCapSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              priceMultiple: 1000, // e.g. $20k → $20M market cap
-              schedulerExpirationDuration: 2592000, // 30 days
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerExponential,
+          feeMarketCapSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            priceMultiple: 1000, // e.g. $20k → $20M market cap
+            schedulerExpirationDuration: 2592000, // 30 days
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,
@@ -359,19 +346,15 @@ describe("Initialize customizable pool with dynamic config", () => {
       });
 
       it("Initialize customizeable pool with spl token", async () => {
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-            feeTimeSchedulerParam: {
-              startingFeeBps: 5000,
-              endingFeeBps: 100,
-              numberOfPeriod: 180,
-              totalDuration: 180,
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 5000,
+            endingFeeBps: 100,
+            numberOfPeriod: 180,
+            totalDuration: 180,
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,

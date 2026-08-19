@@ -10,7 +10,6 @@ import BN from "bn.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
-  ActivationType,
   AddLiquidityParams,
   BaseFeeMode,
   CollectFeeMode,
@@ -37,19 +36,15 @@ async function createPoolWithLiquidity(
   collectFeeMode: CollectFeeMode,
   compoundingFeeBps: number,
 ): Promise<{ pool: PublicKey; position: PublicKey; positionNft: Keypair }> {
-  const baseFee = getBaseFeeParams(
-    {
-      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-      feeTimeSchedulerParam: {
-        startingFeeBps: 2500,
-        endingFeeBps: 2500,
-        numberOfPeriod: 0,
-        totalDuration: 0,
-      },
+  const baseFee = getBaseFeeParams({
+    baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+    feeTimeSchedulerParam: {
+      startingFeeBps: 2500,
+      endingFeeBps: 2500,
+      numberOfPeriod: 0,
+      totalDuration: 0,
     },
-    6,
-    ActivationType.Timestamp,
-  );
+  });
 
   const poolFees: PoolFeesParams = {
     baseFee,

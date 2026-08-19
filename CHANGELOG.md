@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Synced the IDL and bankrun program fixture to cp_amm 0.2.3.
+- **Breaking:** `getBaseFeeParams` no longer takes `tokenBDecimal` or `activationType`. Those arguments were only used to encode RateLimiter params, which this helper now rejects.
 
 ### Deprecated
 

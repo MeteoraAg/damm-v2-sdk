@@ -10,7 +10,6 @@ import BN from "bn.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 import {
-  ActivationType,
   AddLiquidityParams,
   BaseFeeMode,
   CollectFeeMode,
@@ -66,19 +65,15 @@ describe("getQuote", () => {
         const connection = new Connection(clusterApiUrl("devnet"));
         ammInstance = new CpAmm(connection);
 
-        const baseFee = getBaseFeeParams(
-          {
-            baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-            feeTimeSchedulerParam: {
-              startingFeeBps: 2500,
-              endingFeeBps: 2500,
-              numberOfPeriod: 0,
-              totalDuration: 0,
-            },
+        const baseFee = getBaseFeeParams({
+          baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+          feeTimeSchedulerParam: {
+            startingFeeBps: 2500,
+            endingFeeBps: 2500,
+            numberOfPeriod: 0,
+            totalDuration: 0,
           },
-          6,
-          ActivationType.Timestamp,
-        );
+        });
 
         const poolFees: PoolFeesParams = {
           baseFee,
@@ -289,19 +284,15 @@ describe("getQuote", () => {
       const connection = new Connection(clusterApiUrl("devnet"));
       ammInstance = new CpAmm(connection);
 
-      const baseFee = getBaseFeeParams(
-        {
-          baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-          feeTimeSchedulerParam: {
-            startingFeeBps: 2500,
-            endingFeeBps: 2500,
-            numberOfPeriod: 0,
-            totalDuration: 0,
-          },
+      const baseFee = getBaseFeeParams({
+        baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+        feeTimeSchedulerParam: {
+          startingFeeBps: 2500,
+          endingFeeBps: 2500,
+          numberOfPeriod: 0,
+          totalDuration: 0,
         },
-        6,
-        ActivationType.Timestamp,
-      );
+      });
 
       const poolFees: PoolFeesParams = {
         baseFee,

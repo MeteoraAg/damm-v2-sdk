@@ -571,19 +571,15 @@ export async function createPool(
   tokenBMint: PublicKey,
   collectFeeMode: CollectFeeMode = CollectFeeMode.BothToken,
 ): Promise<{ pool: PublicKey; position: PublicKey; positionNft: PublicKey }> {
-  const baseFee = getBaseFeeParams(
-    {
-      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
-      feeTimeSchedulerParam: {
-        startingFeeBps: 2500,
-        endingFeeBps: 2500,
-        numberOfPeriod: 0,
-        totalDuration: 0,
-      },
+  const baseFee = getBaseFeeParams({
+    baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+    feeTimeSchedulerParam: {
+      startingFeeBps: 2500,
+      endingFeeBps: 2500,
+      numberOfPeriod: 0,
+      totalDuration: 0,
     },
-    DECIMALS,
-    ActivationType.Timestamp,
-  );
+  });
 
   const poolFees: PoolFeesParams = {
     baseFee,

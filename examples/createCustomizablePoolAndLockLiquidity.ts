@@ -88,19 +88,15 @@ import {
     tokenAInfo,
   });
 
-  const baseFeeParams = getBaseFeeParams(
-    {
-      baseFeeMode: POOL_CONFIG.baseFeeMode,
-      feeTimeSchedulerParam: {
-        startingFeeBps: POOL_CONFIG.startingFeeBps,
-        endingFeeBps: POOL_CONFIG.endingFeeBps,
-        numberOfPeriod: POOL_CONFIG.numberOfPeriod,
-        totalDuration: POOL_CONFIG.totalDuration,
-      },
+  const baseFeeParams = getBaseFeeParams({
+    baseFeeMode: POOL_CONFIG.baseFeeMode,
+    feeTimeSchedulerParam: {
+      startingFeeBps: POOL_CONFIG.startingFeeBps,
+      endingFeeBps: POOL_CONFIG.endingFeeBps,
+      numberOfPeriod: POOL_CONFIG.numberOfPeriod,
+      totalDuration: POOL_CONFIG.totalDuration,
     },
-    POOL_CONFIG.tokenBDecimals,
-    ActivationType.Timestamp,
-  );
+  });
   const dynamicFeeParams = POOL_CONFIG.useDynamicFee
     ? getDynamicFeeParams(POOL_CONFIG.endingFeeBps)
     : null;

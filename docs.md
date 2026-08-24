@@ -1413,6 +1413,7 @@ interface RemoveAllLiquidityAndClosePositionParams {
   tokenBAmountThreshold: BN; // Minimum acceptable token B amount (slippage protection)
   currentPoint: BN; // Current timestamp or slot number for vesting calculations
   vestings?: Array<{ account: PublicKey; vestingState: VestingState }>; // Optional vesting accounts
+  isSkipReward?: boolean; // Skip transferring rewards when a reward vault is frozen (forfeits those rewards)
 }
 ```
 
@@ -1449,7 +1450,8 @@ const tx = await cpAmm.removeAllLiquidityAndClosePosition({
 - This combines multiple operations in a single transaction:
   1. Claims any accumulated fees
   2. Removes all liquidity
-  3. Closes the position and returns the rent
+  3. Claims pending rewards from initialized reward slots
+  4. Closes the position and returns the rent
 - The position must be completely unlocked
 - The function will throw an error if the position has any locked liquidity
 - This is more gas-efficient than doing these operations separately
@@ -1484,6 +1486,7 @@ interface MergePositionParams {
   tokenBAmountRemoveLiquidityThreshold: BN; // Minimum token B amount for remove liquidity
   currentPoint: BN; // Current timestamp or slot number for vesting calculations
   positionBVestings?: Array<{ account: PublicKey; vestingState: VestingState }>; // Optional vesting accounts for position B
+  isSkipReward?: boolean; // Skip transferring rewards when a reward vault is frozen (forfeits those rewards)
 }
 ```
 
@@ -1525,8 +1528,9 @@ const tx = await cpAmm.mergePosition({
 - This function combines multiple operations:
   1. Claims any accumulated fees from the source position
   2. Removes all liquidity from the source position
-  3. Adds the liquidity to the target position
-  4. Closes the source position
+  3. Claims pending rewards of the source position from initialized reward slots
+  4. Adds the liquidity to the target position
+  5. Closes the source position
 - Both positions must be owned by the same wallet
 - The source position must be completely unlocked
 - This is more gas-efficient than performing these operations separately

@@ -441,7 +441,7 @@ export class CpAmm {
   }
 
   /**
-   * Helper function that builds instructions to claim fees, remove liquidity, and close a position
+   * Helper function that builds instructions to claim fees, remove liquidity, claim rewards, and close a position
    * @param {BuildLiquidatePositionInstructionParams} params - Parameters for liquidating a position
    * @returns {Promise<TransactionInstruction[]>} Array of instructions
    * @private
@@ -459,6 +459,7 @@ export class CpAmm {
       tokenBAccount,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
+      isSkipReward,
     } = params;
 
     const { nftMint: positionNftMint, pool } = positionState;
@@ -509,7 +510,61 @@ export class CpAmm {
         tokenBProgram,
       });
     instructions.push(removeAllLiquidityInstruction);
-    // 3. close position
+
+    // 3. claim rewards from every initialized reward slot
+    for (
+      let rewardIndex = 0;
+      rewardIndex < poolState.rewardInfos.length;
+      rewardIndex++
+    ) {
+      const rewardInfo = poolState.rewardInfos[rewardIndex];
+      if (!rewardInfo.initialized) {
+        continue;
+      }
+
+      // skip the claim when the reward slot can never yield anything again
+      const positionReward = positionState.rewardInfos[rewardIndex];
+      const rewardFullySettled = rewardInfo.rewardDurationEnd.lte(
+        rewardInfo.lastUpdateTime,
+      );
+      const nothingToClaim =
+        positionReward.rewardPendings.isZero() &&
+        Buffer.from(positionReward.rewardPerTokenCheckpoint).equals(
+          Buffer.from(rewardInfo.rewardPerTokenStored),
+        );
+      if (rewardFullySettled && nothingToClaim) {
+        continue;
+      }
+
+      const rewardTokenProgram = getTokenProgram(rewardInfo.rewardTokenFlag);
+      const { ataPubkey: userRewardAccount, ix: createRewardAtaIx } =
+        await getOrCreateATAInstruction(
+          rewardInfo.mint,
+          owner,
+          owner,
+          true,
+          rewardTokenProgram,
+        );
+      createRewardAtaIx && instructions.push(createRewardAtaIx);
+
+      const claimRewardInstruction = await this._program.methods
+        .claimReward(rewardIndex, isSkipReward ? 1 : 0)
+        .accountsPartial({
+          pool,
+          positionNftAccount,
+          rewardVault: rewardInfo.vault,
+          rewardMint: rewardInfo.mint,
+          poolAuthority: this.poolAuthority,
+          position,
+          userTokenAccount: userRewardAccount,
+          signer: owner,
+          tokenProgram: rewardTokenProgram,
+        })
+        .instruction();
+      instructions.push(claimRewardInstruction);
+    }
+
+    // 4. close position
     const closePositionInstruction = await this.buildClosePositionInstruction({
       owner,
       poolAuthority: this.poolAuthority,
@@ -2896,7 +2951,8 @@ export class CpAmm {
    * This combines several operations in a single transaction:
    * 1. Claims any accumulated fees
    * 2. Removes all liquidity
-   * 3. Closes the position
+   * 3. Claims pending rewards from initialized reward slots
+   * 4. Closes the position
    *
    * @param {RemoveAllLiquidityAndClosePositionParams} params - Combined parameters
    * @returns {TxBuilder} Transaction builder with all required instructions
@@ -2915,6 +2971,7 @@ export class CpAmm {
       tokenBAmountThreshold,
       vestings,
       currentPoint,
+      isSkipReward,
     } = params;
 
     const { pool } = positionState;
@@ -2947,11 +3004,17 @@ export class CpAmm {
       tokenBProgram,
     });
 
+    const initializedRewardMints = poolState.rewardInfos
+      .filter((rewardInfo) => rewardInfo.initialized)
+      .map((rewardInfo) => rewardInfo.mint.toBase58());
+
     const postInstructions: TransactionInstruction[] = [];
     if (
-      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58(),
-      )
+      [
+        tokenAMint.toBase58(),
+        tokenBMint.toBase58(),
+        ...initializedRewardMints,
+      ].includes(NATIVE_MINT.toBase58())
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
       closeWrappedSOLIx && postInstructions.push(closeWrappedSOLIx);
@@ -2990,6 +3053,7 @@ export class CpAmm {
         tokenBAccount,
         tokenAAmountThreshold,
         tokenBAmountThreshold,
+        isSkipReward,
       });
 
     transaction.add(...liquidatePositionInstructions);
@@ -3006,8 +3070,9 @@ export class CpAmm {
    * This process:
    * 1. Claims fees from the source position
    * 2. Removes all liquidity from the source position
-   * 3. Adds that liquidity to the target position
-   * 4. Closes the source position
+   * 3. Claims pending rewards of the source position from initialized reward slots
+   * 4. Adds that liquidity to the target position
+   * 5. Closes the source position
    *
    * @param {MergePositionParams} params - Parameters for merging positions
    * @returns {TxBuilder} Transaction builder with all required instructions
@@ -3028,6 +3093,7 @@ export class CpAmm {
       tokenBAmountRemoveLiquidityThreshold,
       positionBVestings,
       currentPoint,
+      isSkipReward,
     } = params;
 
     const { canUnlock, reason } = this.canUnlockPosition(
@@ -3121,9 +3187,9 @@ export class CpAmm {
       sqrtMinPrice: poolState.sqrtMinPrice,
       sqrtPrice: poolState.sqrtPrice,
       collectFeeMode,
-      tokenAAmount: poolState.tokenAAmount,
-      tokenBAmount: poolState.tokenBAmount,
-      liquidity: poolState.liquidity,
+      tokenAAmount: poolState.tokenAAmount.sub(tokenAWithdrawAmount),
+      tokenBAmount: poolState.tokenBAmount.sub(tokenBWithdrawAmount),
+      liquidity: poolState.liquidity.sub(positionBLiquidityDelta),
     });
 
     const transaction = new Transaction();
@@ -3132,7 +3198,7 @@ export class CpAmm {
       transaction.add(...preInstructions);
     }
 
-    // 2. claim fee, remove liquidity and close position
+    // 2. claim fee, remove liquidity, claim rewards and close position
     const liquidatePositionInstructions =
       await this.buildLiquidatePositionInstruction({
         owner,
@@ -3144,6 +3210,7 @@ export class CpAmm {
         tokenBAccount,
         tokenAAmountThreshold: tokenAAmountRemoveLiquidityThreshold,
         tokenBAmountThreshold: tokenBAmountRemoveLiquidityThreshold,
+        isSkipReward,
       });
 
     transaction.add(...liquidatePositionInstructions);
@@ -3169,10 +3236,16 @@ export class CpAmm {
 
     transaction.add(addLiquidityInstruction);
 
+    const initializedRewardMints = poolState.rewardInfos
+      .filter((rewardInfo) => rewardInfo.initialized)
+      .map((rewardInfo) => rewardInfo.mint.toBase58());
+
     if (
-      [tokenAMint.toBase58(), tokenBMint.toBase58()].includes(
-        NATIVE_MINT.toBase58(),
-      )
+      [
+        tokenAMint.toBase58(),
+        tokenBMint.toBase58(),
+        ...initializedRewardMints,
+      ].includes(NATIVE_MINT.toBase58())
     ) {
       const closeWrappedSOLIx = await unwrapSOLInstruction(owner);
       closeWrappedSOLIx && transaction.add(closeWrappedSOLIx);

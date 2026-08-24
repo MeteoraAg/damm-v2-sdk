@@ -386,6 +386,7 @@ export type BuildLiquidatePositionInstructionParams = {
   tokenBAccount: PublicKey;
   tokenAAmountThreshold: BN;
   tokenBAmountThreshold: BN;
+  isSkipReward?: boolean;
 };
 
 export type BuildRemoveAllLiquidityInstructionParams = {
@@ -427,6 +428,7 @@ export type RemoveAllLiquidityAndClosePositionParams = {
     vestingState: VestingState;
   }>;
   currentPoint: BN;
+  isSkipReward?: boolean;
 };
 
 export type MergePositionParams = {
@@ -446,6 +448,7 @@ export type MergePositionParams = {
     vestingState: VestingState;
   }>;
   currentPoint: BN;
+  isSkipReward?: boolean;
 };
 
 export type GetQuoteParams = {

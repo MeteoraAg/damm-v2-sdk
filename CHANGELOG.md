@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.7]
+
+### Fixed
+
+- Fixed `mergePosition` and `removeAllLiquidityAndClosePosition` failing on-chain with `PositionIsNotEmpty` when the pool has an initialized reward slot. `remove_all_liquidity` updates the position's reward checkpoints inside the transaction, which can leave pending rewards even when the fetched position showed none, and `close_position` requires all pending rewards to be zero. Both endpoints now claim rewards from every initialized reward slot (creating the owner's reward token account idempotently) between removing liquidity and closing the position, and unwrap wSOL when a reward mint is native SOL.
+
 ## damm_v2_sdk [1.4.6]
 
 ### Changed

@@ -3169,9 +3169,9 @@ export class CpAmm {
       sqrtMinPrice: poolState.sqrtMinPrice,
       sqrtPrice: poolState.sqrtPrice,
       collectFeeMode,
-      tokenAAmount: poolState.tokenAAmount,
-      tokenBAmount: poolState.tokenBAmount,
-      liquidity: poolState.liquidity,
+      tokenAAmount: poolState.tokenAAmount.sub(tokenAWithdrawAmount),
+      tokenBAmount: poolState.tokenBAmount.sub(tokenBWithdrawAmount),
+      liquidity: poolState.liquidity.sub(positionBLiquidityDelta),
     });
 
     const transaction = new Transaction();

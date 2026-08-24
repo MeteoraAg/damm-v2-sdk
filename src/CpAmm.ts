@@ -510,10 +510,7 @@ export class CpAmm {
       });
     instructions.push(removeAllLiquidityInstruction);
 
-    // 3. claim rewards from every initialized reward slot.
-    // removeAllLiquidity updates the position's reward checkpoints on-chain,
-    // which can leave reward_pendings > 0 even if it was 0 when the position
-    // was fetched. closePosition requires pending rewards to be zero.
+    // 3. claim rewards from every initialized reward slot
     for (
       let rewardIndex = 0;
       rewardIndex < poolState.rewardInfos.length;

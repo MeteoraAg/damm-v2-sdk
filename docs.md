@@ -1413,6 +1413,7 @@ interface RemoveAllLiquidityAndClosePositionParams {
   tokenBAmountThreshold: BN; // Minimum acceptable token B amount (slippage protection)
   currentPoint: BN; // Current timestamp or slot number for vesting calculations
   vestings?: Array<{ account: PublicKey; vestingState: VestingState }>; // Optional vesting accounts
+  isSkipReward?: boolean; // Skip transferring rewards when a reward vault is frozen (forfeits those rewards)
 }
 ```
 
@@ -1485,6 +1486,7 @@ interface MergePositionParams {
   tokenBAmountRemoveLiquidityThreshold: BN; // Minimum token B amount for remove liquidity
   currentPoint: BN; // Current timestamp or slot number for vesting calculations
   positionBVestings?: Array<{ account: PublicKey; vestingState: VestingState }>; // Optional vesting accounts for position B
+  isSkipReward?: boolean; // Skip transferring rewards when a reward vault is frozen (forfeits those rewards)
 }
 ```
 

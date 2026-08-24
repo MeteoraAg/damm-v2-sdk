@@ -459,6 +459,7 @@ export class CpAmm {
       tokenBAccount,
       tokenAAmountThreshold,
       tokenBAmountThreshold,
+      isSkipReward,
     } = params;
 
     const { nftMint: positionNftMint, pool } = positionState;
@@ -521,6 +522,20 @@ export class CpAmm {
         continue;
       }
 
+      // skip the claim when the reward slot can never yield anything again
+      const positionReward = positionState.rewardInfos[rewardIndex];
+      const rewardFullySettled = rewardInfo.rewardDurationEnd.lte(
+        rewardInfo.lastUpdateTime,
+      );
+      const nothingToClaim =
+        positionReward.rewardPendings.isZero() &&
+        Buffer.from(positionReward.rewardPerTokenCheckpoint).equals(
+          Buffer.from(rewardInfo.rewardPerTokenStored),
+        );
+      if (rewardFullySettled && nothingToClaim) {
+        continue;
+      }
+
       const rewardTokenProgram = getTokenProgram(rewardInfo.rewardTokenFlag);
       const { ataPubkey: userRewardAccount, ix: createRewardAtaIx } =
         await getOrCreateATAInstruction(
@@ -533,7 +548,7 @@ export class CpAmm {
       createRewardAtaIx && instructions.push(createRewardAtaIx);
 
       const claimRewardInstruction = await this._program.methods
-        .claimReward(rewardIndex, 0)
+        .claimReward(rewardIndex, isSkipReward ? 1 : 0)
         .accountsPartial({
           pool,
           positionNftAccount,
@@ -2956,6 +2971,7 @@ export class CpAmm {
       tokenBAmountThreshold,
       vestings,
       currentPoint,
+      isSkipReward,
     } = params;
 
     const { pool } = positionState;
@@ -3037,6 +3053,7 @@ export class CpAmm {
         tokenBAccount,
         tokenAAmountThreshold,
         tokenBAmountThreshold,
+        isSkipReward,
       });
 
     transaction.add(...liquidatePositionInstructions);
@@ -3076,6 +3093,7 @@ export class CpAmm {
       tokenBAmountRemoveLiquidityThreshold,
       positionBVestings,
       currentPoint,
+      isSkipReward,
     } = params;
 
     const { canUnlock, reason } = this.canUnlockPosition(
@@ -3192,6 +3210,7 @@ export class CpAmm {
         tokenBAccount,
         tokenAAmountThreshold: tokenAAmountRemoveLiquidityThreshold,
         tokenBAmountThreshold: tokenBAmountRemoveLiquidityThreshold,
+        isSkipReward,
       });
 
     transaction.add(...liquidatePositionInstructions);

@@ -1,6 +1,6 @@
 # Meteora Constant Product AMM SDK (DAMM V2 SDK)
 
-A TypeScript SDK and Anchor examples for interacting with the DAMM V2 on Meteora
+A TypeScript SDK and Anchor integrations for interacting with the DAMM V2 on Meteora
 
 ## Overview
 
@@ -8,7 +8,7 @@ This SDK provides a set of tools and methods to interact with the [Meteora DAMM-
 
 For detailed technical documentation, please refer to the [DAMM-V2 SDK Documentation](https://github.com/MeteoraAg/damm-v2-sdk/blob/main/docs.md).
 
-For Anchor examples, please refer to [Anchor examples](./examples/anchor/README.md).
+For Anchor integrations, please refer to [Anchor integrations](https://github.com/MeteoraAg/damm-v2-sdk/blob/main/examples/anchor/README.md).
 
 ## Installation
 

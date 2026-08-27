@@ -1,12 +1,14 @@
 # Meteora Constant Product AMM SDK (DAMM V2 SDK)
 
-A TypeScript SDK for interacting with the DAMM V2 on Meteora
+A TypeScript SDK and Anchor examples for interacting with the DAMM V2 on Meteora
 
 ## Overview
 
 This SDK provides a set of tools and methods to interact with the [Meteora DAMM-V2](https://github.com/MeteoraAg/damm-v2). It simplifies common operations like creating pools, managing positions, adding/removing liquidity, swapping tokens, and claiming rewards.
 
 For detailed technical documentation, please refer to the [DAMM-V2 SDK Documentation](https://github.com/MeteoraAg/damm-v2-sdk/blob/main/docs.md).
+
+For Anchor examples, please refer to [Anchor examples](./examples/anchor/README.md).
 
 ## Installation
 

@@ -22,14 +22,10 @@ describe("cpi_example_damm_v2", () => {
 
   // instance of the CpAmm SDK
   const cpAmm = new CpAmm(connection);
+  const poolAuthority = new PublicKey("HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC");
 
   const mintA = new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"); // USDC
   const mintB = new PublicKey("So11111111111111111111111111111111111111112"); // wrapped SOL
-
-  console.log(mintA.toBase58());
-
-  // pool authority: https://docs.meteora.ag/developer-guide/guides/damm-v2/overview
-  const poolAuthority = new PublicKey("HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC");
 
   it("swap2 CPI", async () => {
     const pools = await cpAmm.fetchPoolStatesByTokenAMint(mintA);
@@ -41,7 +37,7 @@ describe("cpi_example_damm_v2", () => {
     // Allows the program to log important actions like swaps, deposits, withdrawals, etc.
     const [eventAuthorityPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("__event_authority")],
-      cpAmm._program.programId
+      cpAmm._program.programId,
     );
 
     // User's Associated Token Account (ATA) for token A.
@@ -51,9 +47,9 @@ describe("cpi_example_damm_v2", () => {
     // User's Associated Token Account (ATA) for token B.
     const mintBata = await getOrCreateAssociatedTokenAccount(
       connection,
-      wallet.payer,
+      wallet.payer as anchor.web3.Keypair,
       mintB,
-      wallet.publicKey
+      wallet.publicKey,
     );
 
     const amountIn = new BN(0.2 * 10 ** 6); // 0.2 USDC

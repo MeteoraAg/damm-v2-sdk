@@ -15,7 +15,8 @@
     "@meteora-ag/vault-sdk": "^2.3.1",
     "@solana/kit": "^5.1.0",
     "@solana/spl-token": "^0.4.14",
-    "@solana/web3.js": "^1.98.4"
+    "@solana/web3.js": "^1.98.4",
+    "dotenv": "^17.4.2"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",

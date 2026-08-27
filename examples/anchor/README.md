@@ -1,4 +1,4 @@
-# cpi-example-damm-v2
+# Anchor CPI example Meteora DAMM v2
 
 Anchor + TypeScript test project that initializes a Meteora DAMM v2 pool and performs a swap (`swap2`) via CPI on **Solana devnet/mainnet**.
 
@@ -6,7 +6,7 @@ Anchor + TypeScript test project that initializes a Meteora DAMM v2 pool and per
 
 - Program name: `cpi_example_damm_v2`
 - CPI instructions supported: `initialize_pool`, `swap2` (more coming soon)
-- Program ID (devnet): `FEa6XcabmRuJtMpQSfKqvf1YKD2Y4V1ndt1YyR38gV6`
+- Program ID (devnet): `6dmzSdwfRSwtkgbeBSnToBLLB4KwCM2fAVrQ2WxUcU3L`
 - Program ID (mainnet): your deployed program ID
 
 ## Prerequisites

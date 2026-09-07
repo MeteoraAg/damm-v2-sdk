@@ -174,7 +174,7 @@ const createPoolTx = await cpAmm.createPool({
 - If using native SOL, it will be automatically wrapped to wSOL
 - Token-2022 wrapped SOL (`NATIVE_MINT_2022`) is not supported. Use SPL wrapped SOL (`NATIVE_MINT`)
 - The `config` parameter should be a valid configuration account
-- Private configs may set `ConfigPermission.CreatePoolWithoutMintValidation` to skip token-badge mint checks. Token-2022 wrapped SOL is still rejected
+- Private configs may set `ConfigPermission.CreatePoolWithoutMintValidation` to skip both the permissionless Token-2022 extension check and the token-badge check. Token-2022 wrapped SOL is still rejected
 - Pool creation automatically creates an initial position
 - Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
 

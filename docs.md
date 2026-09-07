@@ -172,7 +172,9 @@ const createPoolTx = await cpAmm.createPool({
 
 - Both token amounts must be greater than zero
 - If using native SOL, it will be automatically wrapped to wSOL
+- Token-2022 wrapped SOL (`NATIVE_MINT_2022`) is not supported. Use SPL wrapped SOL (`NATIVE_MINT`)
 - The `config` parameter should be a valid configuration account
+- Private configs may set `ConfigPermission.CreatePoolWithoutMintValidation` to skip both the permissionless Token-2022 extension check and the token-badge check. Token-2022 wrapped SOL is still rejected
 - Pool creation automatically creates an initial position
 - Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
 
@@ -326,6 +328,7 @@ const { tx, pool, position } = await cpAmm.createCustomPool({
 
 - Use this function instead of `createPool` when you need custom fee structures
 - Use `preparePoolCreationParams` to calculate proper `initSqrtPrice` and `liquidityDelta`
+- Token-2022 wrapped SOL (`NATIVE_MINT_2022`) is not supported. Use SPL wrapped SOL (`NATIVE_MINT`)
 
 ---
 
@@ -439,6 +442,13 @@ const { tx, pool, position } = await cpAmm.createCustomPoolWithDynamicConfig({
   tokenBProgram: TOKEN_PROGRAM_ID,
 });
 ```
+
+**Notes**
+
+- Token-2022 wrapped SOL (`NATIVE_MINT_2022`) is not supported. Use SPL wrapped SOL (`NATIVE_MINT`)
+- Private configs may set `ConfigPermission.CreatePoolWithoutMintValidation` to skip token-badge mint checks. Token-2022 wrapped SOL is still rejected
+
+---
 
 ### createPosition
 
@@ -1898,6 +1908,7 @@ const initializeRewardTx = await cpAmm.initializeReward({
 - The creator is the account that is the creator of the pool
 - The reward mint program is the program that will mint the reward
 - Pool creators can only initialize rewards for `rewardIndex` = 0. `rewardIndex` = 1 is a permissioned reward initialization for admins only.
+- Token-2022 wrapped SOL (`NATIVE_MINT_2022`) is not supported as a reward mint. Use SPL wrapped SOL (`NATIVE_MINT`)
 
 ---
 
@@ -1955,6 +1966,7 @@ const initializeAndFundRewardTx = await cpAmm.initializeAndFundReward({
 - The reward mint program is the program that will mint the reward
 - Pool creators can only initialize rewards for `rewardIndex` = 0. `rewardIndex` = 1 is a permissioned reward initialization for admins only.
 - The carryForward parameter specifies whether to carry forward the reward
+- Token-2022 wrapped SOL (`NATIVE_MINT_2022`) is not supported as a reward mint. Use SPL wrapped SOL (`NATIVE_MINT`)
 
 ---
 
@@ -2506,6 +2518,7 @@ console.log(configState);
 **Notes**
 
 - Throws an error if the config account does not exist
+- `configState.permission` is a bitmask. The only flag is `ConfigPermission.CreatePoolWithoutMintValidation` (bit 0). Check it with `isConfigPermissionAllow(configState.permission, ConfigPermission.CreatePoolWithoutMintValidation)`
 
 ---
 

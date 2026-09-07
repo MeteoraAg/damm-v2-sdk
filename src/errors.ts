@@ -164,6 +164,16 @@ export class SameTokenMintsError extends Error {
   }
 }
 
+export class UnsupportedNativeMintToken2022Error extends Error {
+  constructor(message?: string) {
+    super(
+      message ??
+        "Token-2022 wrapped SOL is not supported. Use SPL wrapped SOL (NATIVE_MINT) instead.",
+    );
+    this.name = "UnsupportedNativeMintToken2022Error";
+  }
+}
+
 export class InvalidParametersError extends Error {
   constructor(message?: string) {
     super(message ?? "Invalid parameters");

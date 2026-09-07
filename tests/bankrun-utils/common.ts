@@ -635,7 +635,10 @@ export async function createDynamicConfig(
 ): Promise<PublicKey> {
   const config = deriveConfigAddress(index);
   const transaction = await program.methods
-    .createDynamicConfig(index, { poolCreatorAuthority })
+    .createDynamicConfig(index, {
+      poolCreatorAuthority,
+      permission: new BN(0),
+    })
     .accountsPartial({
       config,
       operator: deriveOperatorAddress(admin.publicKey),

@@ -56,8 +56,10 @@ import {
   InvalidSplitPositionParametersError,
   InvalidVestingInfoError,
   SameTokenMintsError,
+  UnsupportedNativeMintToken2022Error,
 } from "../errors";
 import { PublicKey } from "@solana/web3.js";
+import { NATIVE_MINT_2022 } from "@solana/spl-token";
 import { getBaseFeeModeFromBorshData } from "./feeCodec";
 
 /**
@@ -630,6 +632,7 @@ export function validateCustomizablePoolParams(params: {
  * @param tokenAMint - Token A mint address.
  * @param tokenBMint - Token B mint address.
  * @throws SameTokenMintsError if the mints are identical.
+ * @throws UnsupportedNativeMintToken2022Error if either mint is Token-2022 wrapped SOL.
  */
 export function validateTokenMints(
   tokenAMint: PublicKey,
@@ -637,6 +640,18 @@ export function validateTokenMints(
 ): void {
   if (tokenAMint.equals(tokenBMint)) {
     throw new SameTokenMintsError();
+  }
+
+  validateNotNativeMintToken2022(tokenAMint);
+  validateNotNativeMintToken2022(tokenBMint);
+}
+
+/**
+ * Rejects Token-2022 wrapped SOL. On-chain this check cannot be skipped.
+ */
+export function validateNotNativeMintToken2022(mint: PublicKey): void {
+  if (mint.equals(NATIVE_MINT_2022)) {
+    throw new UnsupportedNativeMintToken2022Error();
   }
 }
 

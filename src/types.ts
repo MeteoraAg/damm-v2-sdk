@@ -83,6 +83,11 @@ export enum PositionDelegatePermission {
   LockPosition = 7,
 }
 
+export enum ConfigPermission {
+  // Skip is_permissionless_supported_mint and token badge checks when initializing a pool with this config.
+  CreatePoolWithoutMintValidation = 0,
+}
+
 export type FeeMode = {
   feesOnInput: boolean;
   feesOnTokenA: boolean;

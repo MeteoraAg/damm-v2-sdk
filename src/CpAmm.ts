@@ -120,6 +120,7 @@ import {
   validateLockPositionParams,
   validateRewardIndex,
   validateRewardDuration,
+  validateNotNativeMintToken2022,
 } from "./helpers";
 import BN, { min, max } from "bn.js";
 import Decimal from "decimal.js";
@@ -3262,6 +3263,7 @@ export class CpAmm {
   async initializeReward(params: InitializeRewardParams): TxBuilder {
     validateRewardIndex(params.rewardIndex);
     validateRewardDuration(params.rewardDuration);
+    validateNotNativeMintToken2022(params.rewardMint);
 
     const {
       rewardIndex,

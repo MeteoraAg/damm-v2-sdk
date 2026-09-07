@@ -2,7 +2,7 @@
   "address": "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG",
   "metadata": {
     "name": "cp_amm",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
@@ -3973,6 +3973,11 @@
       "code": 6071,
       "name": "DeprecatedBaseFeeMode",
       "msg": "Deprecated base fee mode"
+    },
+    {
+      "code": 6072,
+      "name": "InvalidConfigPermission",
+      "msg": "Invalid config permission"
     }
   ],
   "types": [
@@ -4261,15 +4266,21 @@
             "type": "u128"
           },
           {
+            "name": "permission",
+            "docs": [
+              "config permission bitmask"
+            ],
+            "type": "u128"
+          },
+          {
             "name": "_padding_1",
             "docs": [
-              "Fee curve point",
               "Padding for further use"
             ],
             "type": {
               "array": [
                 "u64",
-                10
+                8
               ]
             }
           }
@@ -4316,6 +4327,10 @@
           {
             "name": "pool_creator_authority",
             "type": "pubkey"
+          },
+          {
+            "name": "permission",
+            "type": "u128"
           }
         ]
       }
@@ -4667,6 +4682,10 @@
           {
             "name": "config",
             "type": "pubkey"
+          },
+          {
+            "name": "permission",
+            "type": "u128"
           }
         ]
       }
@@ -4690,6 +4709,10 @@
           {
             "name": "index",
             "type": "u64"
+          },
+          {
+            "name": "permission",
+            "type": "u128"
           }
         ]
       }
@@ -6855,6 +6878,10 @@
           {
             "name": "collect_fee_mode",
             "type": "u8"
+          },
+          {
+            "name": "permission",
+            "type": "u128"
           }
         ]
       }

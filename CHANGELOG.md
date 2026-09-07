@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.8]
+
+### Changed
+
+- Synced the IDL and bankrun program fixture to cp_amm 0.2.4.
+- `ConfigState.permission` is a u128 bitmask. Use `isConfigPermissionAllow` with `ConfigPermission.CreatePoolWithoutMintValidation` (bit 0) to detect configs that skip permissionless mint and token-badge checks. Token-2022 wrapped SOL is still rejected.
+
+### Added
+
+- Added `ConfigPermission` enum and `isConfigPermissionAllow` helper to read the config permission bitmask.
+- `createPool`, `createCustomPool`, `createCustomPoolWithDynamicConfig`, and `initializeReward` reject Token-2022 wrapped SOL (`NATIVE_MINT_2022`) before sending a transaction.
+
 ## damm_v2_sdk [1.4.7]
 
 ### Fixed

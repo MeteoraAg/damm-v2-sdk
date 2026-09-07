@@ -8,7 +8,7 @@ export type CpAmm = {
   address: "cpamdpZCGKUy5JxQXB4dcpGPiikHawvSWAd6mEn1sGG";
   metadata: {
     name: "cpAmm";
-    version: "0.2.3";
+    version: "0.2.4";
     spec: "0.1.0";
     description: "Created with Anchor";
   };
@@ -2840,6 +2840,11 @@ export type CpAmm = {
       name: "deprecatedBaseFeeMode";
       msg: "Deprecated base fee mode";
     },
+    {
+      code: 6072;
+      name: "invalidConfigPermission";
+      msg: "Invalid config permission";
+    },
   ];
   types: [
     {
@@ -3094,10 +3099,15 @@ export type CpAmm = {
             type: "u128";
           },
           {
+            name: "permission";
+            docs: ["config permission bitmask"];
+            type: "u128";
+          },
+          {
             name: "padding1";
-            docs: ["Fee curve point", "Padding for further use"];
+            docs: ["Padding for further use"];
             type: {
-              array: ["u64", 10];
+              array: ["u64", 8];
             };
           },
         ];
@@ -3143,6 +3153,10 @@ export type CpAmm = {
           {
             name: "poolCreatorAuthority";
             type: "pubkey";
+          },
+          {
+            name: "permission";
+            type: "u128";
           },
         ];
       };
@@ -3478,6 +3492,10 @@ export type CpAmm = {
             name: "config";
             type: "pubkey";
           },
+          {
+            name: "permission";
+            type: "u128";
+          },
         ];
       };
     },
@@ -3498,6 +3516,10 @@ export type CpAmm = {
           {
             name: "index";
             type: "u64";
+          },
+          {
+            name: "permission";
+            type: "u128";
           },
         ];
       };
@@ -5446,6 +5468,10 @@ export type CpAmm = {
           {
             name: "collectFeeMode";
             type: "u8";
+          },
+          {
+            name: "permission";
+            type: "u128";
           },
         ];
       };

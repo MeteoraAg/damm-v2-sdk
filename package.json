@@ -12,8 +12,10 @@
 		"type": "git",
 		"url": "git+https://github.com/MeteoraAg/damm-v2-sdk.git"
 	},
+	"license": "MIT",
 	"files": [
-		"dist/**"
+		"dist/**",
+		"LICENSE"
 	],
 	"scripts": {
 		"lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",

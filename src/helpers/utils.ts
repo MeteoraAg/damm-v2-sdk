@@ -142,6 +142,10 @@ export const getPriceChange = (
 /**
  * Converts a sqrt price to a price
  * (sqrtPrice)^2 * 10 ** (base_decimal - quote_decimal) / 2^128
+ *
+ * The result is quote-natural per base-natural (unscaled). Convert with
+ * {@link TokenScale.scalePrice} only when displaying a wallet-visible price.
+ *
  * @param sqrtPrice - The sqrt price
  * @param tokenADecimal - The token A decimal
  * @param tokenBDecimal - The token B decimal
@@ -164,6 +168,11 @@ export const getPriceFromSqrtPrice = (
 /**
  * Converts a price to a sqrt price
  * sqrt(price / 10^(tokenADecimal - tokenBDecimal)) * 2^64
+ *
+ * `price` must be quote-natural per base-natural. If the caller has a
+ * wallet-visible ScaledUiAmount price, convert it with
+ * {@link TokenScale.unscalePrice} first. Do not scale inside this helper.
+ *
  * @param price - The price
  * @param tokenADecimal - The token A decimal
  * @param tokenBDecimal - The token B decimal

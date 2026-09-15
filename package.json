@@ -1,6 +1,6 @@
 {
 	"name": "@meteora-ag/cp-amm-sdk",
-	"version": "1.4.8",
+	"version": "1.4.9",
 	"packageManager": "pnpm@10.15.0",
 	"description": "SDK for DAMM v2",
 	"main": "./dist/index.js",
@@ -26,6 +26,7 @@
 	},
 	"devDependencies": {
 		"@types/invariant": "^2.2.35",
+		"@types/node": "^26.5.1",
 		"prettier": "^3.7.4",
 		"solana-bankrun": "^0.4.0",
 		"ts-node": "^10.9.2",

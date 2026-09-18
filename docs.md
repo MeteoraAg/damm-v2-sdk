@@ -74,6 +74,8 @@
   - [getPriceImpact](#getpriceimpact)
   - [getPriceFromSqrtPrice](#getpricefromsqrtprice)
   - [getSqrtPriceFromPrice](#getsqrtpricefromprice)
+  - [getScaledUiAmountMultiplier](#getscaleduiamountmultiplier)
+  - [TokenScale](#tokenscale)
   - [getUnClaimLpFee](#getunclaimlpfee)
   - [getBaseFeeNumerator](#getbasefeenumerator)
   - [getDynamicFeeNumerator](#getdynamicfeenumerator)
@@ -3686,6 +3688,82 @@ console.log(`Sqrt price in Q64 format: ${sqrtPrice.toString()}`);
 - Formula: `sqrt(price / 10^(tokenADecimal - tokenBDecimal)) << 64`
 - Useful when creating pools with a specific initial price
 - Can be used to define price boundaries for concentrated liquidity positions
+- `price` is quote-natural per base-natural. If the UI shows a ScaledUiAmount price, convert with `TokenScale.unscalePrice` first. Do not scale inside this helper.
+
+---
+
+### getScaledUiAmountMultiplier
+
+Reads the effective Token-2022 ScaledUiAmount multiplier from an unpacked mint.
+
+These helpers are **display-only**. The program transfers raw amounts and stores per-raw sqrt prices. Do not use them inside create, swap, deposit, or withdraw math.
+
+**Function**
+
+```typescript
+function getScaledUiAmountMultiplier(
+  mint: Mint,
+  unixTimestamp: number,
+): Decimal;
+```
+
+**Parameters**
+
+- `mint`: Unpacked mint whose TLV data is searched for `ScaledUiAmountConfig`
+- `unixTimestamp`: On-chain unix timestamp, used to resolve a scheduled multiplier switch
+
+**Returns**
+
+The effective multiplier, or `1` when the mint has no ScaledUiAmount extension.
+
+**Throws**
+
+`InvalidScaledUiAmountMultiplierError` if the effective multiplier is zero, negative, or not finite.
+
+---
+
+### TokenScale
+
+The ScaledUiAmount multipliers of both mints of a pair, and the conversions that apply them.
+
+An amount is scaled by the multiplier of the mint that the amount belongs to. A price is quote per base, so it is scaled by `quoteMultiplier / baseMultiplier`.
+
+```typescript
+class TokenScale {
+  static default(): TokenScale;
+  static fromMints(
+    baseMint: Mint,
+    quoteMint: Mint,
+    unixTimestamp: number,
+  ): TokenScale;
+  static fromMultipliers(
+    baseMultiplier: Decimal.Value,
+    quoteMultiplier: Decimal.Value,
+  ): TokenScale;
+
+  scalePrice(price: Decimal): Decimal;
+  unscalePrice(price: Decimal): Decimal;
+  scalePriceString(price: string): string;
+  unscalePriceString(price: string): string;
+  scaleAmount(amount: BN | Decimal, isBaseToken: boolean): Decimal;
+  unscaleAmount(amount: BN | Decimal, isBaseToken: boolean): Decimal;
+}
+```
+
+**Example**
+
+```typescript
+const tokenScale = TokenScale.fromMints(baseMint, quoteMint, unixTimestamp);
+const displayPrice = tokenScale.scalePrice(
+  getPriceFromSqrtPrice(pool.sqrtPrice, tokenADecimal, tokenBDecimal),
+);
+const rawPrice = tokenScale.unscalePriceString(walletVisiblePrice);
+const sqrtPrice = getSqrtPriceFromPrice(
+  rawPrice,
+  tokenADecimal,
+  tokenBDecimal,
+);
+```
 
 ---
 

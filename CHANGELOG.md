@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.9]
+
+### Added
+
+- Added display-only Token-2022 ScaledUiAmount helpers: `getScaledUiAmountMultiplier` and `TokenScale` (`fromMints`, `fromMultipliers`, `scalePrice` / `unscalePrice`, `scaleAmount` / `unscaleAmount`). Create, swap, deposit, and withdraw math stay on raw amounts and per-raw sqrt prices. An invalid multiplier (not finite or ≤ 0) throws `InvalidScaledUiAmountMultiplierError`.
+
 ## damm_v2_sdk [1.4.8]
 
 ### Changed

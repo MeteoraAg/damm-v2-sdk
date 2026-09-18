@@ -3,6 +3,7 @@ export * from "./computeUnits";
 export * from "./utils";
 export * from "./accountFilters";
 export * from "./token2022";
+export * from "./scaledUiAmount";
 export * from "./vestings";
 export * from "./validation";
 export * from "./common";

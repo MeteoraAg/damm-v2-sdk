@@ -44,3 +44,9 @@ pnpm test
 ## Faucets
 
 https://faucet.raccoons.dev/
+
+## License
+
+This SDK is released under the [MIT License](./LICENSE).
+
+The on-chain DAMM v2 program is licensed separately and is not covered by this MIT license.

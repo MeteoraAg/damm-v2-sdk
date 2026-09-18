@@ -208,3 +208,10 @@ export class InvalidRewardDurationError extends Error {
     this.name = "InvalidRewardDurationError";
   }
 }
+
+export class InvalidScaledUiAmountMultiplierError extends Error {
+  constructor(message?: string) {
+    super(message ?? "Invalid ScaledUiAmount multiplier");
+    this.name = "InvalidScaledUiAmountMultiplierError";
+  }
+}

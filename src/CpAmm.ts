@@ -1250,7 +1250,7 @@ export class CpAmm {
    * Computes the liquidity delta based on the provided token amounts and sqrt price
    *
    * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation
-   * @returns {Promise<BN>} - The computed liquidity delta in Q64 value.
+   * @returns {BN} - The computed liquidity delta in Q64 value.
    */
   getLiquidityDelta(params: LiquidityDeltaParams): BN {
     const {
@@ -1263,10 +1263,32 @@ export class CpAmm {
       tokenAAmount,
       tokenBAmount,
       liquidity,
+      tokenAInfo,
+      tokenBInfo,
     } = params;
 
+    const actualAmountAIn = tokenAInfo
+      ? maxAmountTokenA.sub(
+          calculateTransferFeeIncludedAmount(
+            maxAmountTokenA,
+            tokenAInfo.mint,
+            tokenAInfo.currentEpoch,
+          ).transferFee,
+        )
+      : maxAmountTokenA;
+
+    const actualAmountBIn = tokenBInfo
+      ? maxAmountTokenB.sub(
+          calculateTransferFeeIncludedAmount(
+            maxAmountTokenB,
+            tokenBInfo.mint,
+            tokenBInfo.currentEpoch,
+          ).transferFee,
+        )
+      : maxAmountTokenB;
+
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
-      maxAmountTokenA,
+      actualAmountAIn,
       sqrtPrice,
       sqrtMaxPrice,
       collectFeeMode,
@@ -1275,7 +1297,7 @@ export class CpAmm {
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
-      maxAmountTokenB,
+      actualAmountBIn,
       sqrtMinPrice,
       sqrtPrice,
       collectFeeMode,

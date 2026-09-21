@@ -591,6 +591,8 @@ interface LiquidityDeltaParams {
   sqrtMinPrice: BN; // Minimum sqrt price for the range
   sqrtPrice: BN; // Current sqrt price
   collectFeeMode: CollectFeeMode; // How fees are collected (BothToken, OnlyB, or Compounding)
+  tokenAInfo?: { mint: Mint; currentEpoch: number }; // Token info for Token2022 transfer fee calculations
+  tokenBInfo?: { mint: Mint; currentEpoch: number }; // Token info for Token2022 transfer fee calculations
 }
 ```
 

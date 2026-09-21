@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.10]
+
+### Fixed
+
+- `getLiquidityDelta` applies Token-2022 transfer fees on `maxAmountTokenA` / `maxAmountTokenB` when `tokenAInfo` / `tokenBInfo` are passed, matching `preparePoolCreationParams`.
+
 ## damm_v2_sdk [1.4.9]
 
 ### Added

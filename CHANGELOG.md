@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.4.10]
+
+### Fixed
+
+- `getLiquidityDelta`, `preparePoolCreationParams`, and `preparePoolCreationSingleSide` net Token-2022 deposits with `calculateTransferFeeExcludedAmount`. `mergePosition` nets the withdraw and the redeposit when `tokenAInfo` / `tokenBInfo` are passed.
+
 ## damm_v2_sdk [1.4.9]
 
 ### Added

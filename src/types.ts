@@ -454,6 +454,14 @@ export type MergePositionParams = {
   }>;
   currentPoint: BN;
   isSkipReward?: boolean;
+  tokenAInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
+  tokenBInfo?: {
+    mint: Mint;
+    currentEpoch: number;
+  };
 };
 
 export type GetQuoteParams = {

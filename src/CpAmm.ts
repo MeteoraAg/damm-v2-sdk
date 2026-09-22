@@ -1250,7 +1250,7 @@ export class CpAmm {
    * Computes the liquidity delta based on the provided token amounts and sqrt price
    *
    * @param {LiquidityDeltaParams} params - The parameters for liquidity calculation
-   * @returns {Promise<BN>} - The computed liquidity delta in Q64 value.
+   * @returns {BN} - The computed liquidity delta in Q64 value.
    */
   getLiquidityDelta(params: LiquidityDeltaParams): BN {
     const {
@@ -1263,10 +1263,28 @@ export class CpAmm {
       tokenAAmount,
       tokenBAmount,
       liquidity,
+      tokenAInfo,
+      tokenBInfo,
     } = params;
 
+    const actualAmountAIn = tokenAInfo
+      ? calculateTransferFeeExcludedAmount(
+          maxAmountTokenA,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
+      : maxAmountTokenA;
+
+    const actualAmountBIn = tokenBInfo
+      ? calculateTransferFeeExcludedAmount(
+          maxAmountTokenB,
+          tokenBInfo.mint,
+          tokenBInfo.currentEpoch,
+        ).amount
+      : maxAmountTokenB;
+
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
-      maxAmountTokenA,
+      actualAmountAIn,
       sqrtPrice,
       sqrtMaxPrice,
       collectFeeMode,
@@ -1275,7 +1293,7 @@ export class CpAmm {
     );
 
     const liquidityDeltaFromAmountB = getLiquidityDeltaFromAmountB(
-      maxAmountTokenB,
+      actualAmountBIn,
       sqrtMinPrice,
       sqrtPrice,
       collectFeeMode,
@@ -1623,13 +1641,11 @@ export class CpAmm {
     }
 
     const actualAmountIn = tokenAInfo
-      ? tokenAAmount.sub(
-          calculateTransferFeeIncludedAmount(
-            tokenAAmount,
-            tokenAInfo.mint,
-            tokenAInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          tokenAAmount,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
       : tokenAAmount;
 
     const liquidityDelta = getLiquidityDeltaFromAmountA(
@@ -1666,23 +1682,19 @@ export class CpAmm {
     }
 
     const actualAmountAIn = tokenAInfo
-      ? tokenAAmount.sub(
-          calculateTransferFeeIncludedAmount(
-            tokenAAmount,
-            tokenAInfo.mint,
-            tokenAInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          tokenAAmount,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
       : tokenAAmount;
 
     const actualAmountBIn = tokenBInfo
-      ? tokenBAmount.sub(
-          calculateTransferFeeIncludedAmount(
-            tokenBAmount,
-            tokenBInfo.mint,
-            tokenBInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          tokenBAmount,
+          tokenBInfo.mint,
+          tokenBInfo.currentEpoch,
+        ).amount
       : tokenBAmount;
 
     const initSqrtPrice = calculateInitSqrtPrice(
@@ -3095,6 +3107,8 @@ export class CpAmm {
       positionBVestings,
       currentPoint,
       isSkipReward,
+      tokenAInfo,
+      tokenBInfo,
     } = params;
 
     const { canUnlock, reason } = this.canUnlockPosition(
@@ -3181,13 +3195,31 @@ export class CpAmm {
       poolState.liquidity,
     );
 
+    const tokenAReceivedAmount = tokenAInfo
+      ? calculateTransferFeeExcludedAmount(
+          tokenAWithdrawAmount,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
+      : tokenAWithdrawAmount;
+
+    const tokenBReceivedAmount = tokenBInfo
+      ? calculateTransferFeeExcludedAmount(
+          tokenBWithdrawAmount,
+          tokenBInfo.mint,
+          tokenBInfo.currentEpoch,
+        ).amount
+      : tokenBWithdrawAmount;
+
     const newLiquidityDelta = this.getLiquidityDelta({
-      maxAmountTokenA: tokenAWithdrawAmount,
-      maxAmountTokenB: tokenBWithdrawAmount,
+      maxAmountTokenA: tokenAReceivedAmount,
+      maxAmountTokenB: tokenBReceivedAmount,
       sqrtMaxPrice: poolState.sqrtMaxPrice,
       sqrtMinPrice: poolState.sqrtMinPrice,
       sqrtPrice: poolState.sqrtPrice,
       collectFeeMode,
+      tokenAInfo,
+      tokenBInfo,
       tokenAAmount: poolState.tokenAAmount.sub(tokenAWithdrawAmount),
       tokenBAmount: poolState.tokenBAmount.sub(tokenBWithdrawAmount),
       liquidity: poolState.liquidity.sub(positionBLiquidityDelta),

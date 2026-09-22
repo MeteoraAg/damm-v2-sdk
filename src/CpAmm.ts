@@ -1268,23 +1268,19 @@ export class CpAmm {
     } = params;
 
     const actualAmountAIn = tokenAInfo
-      ? maxAmountTokenA.sub(
-          calculateTransferFeeIncludedAmount(
-            maxAmountTokenA,
-            tokenAInfo.mint,
-            tokenAInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          maxAmountTokenA,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
       : maxAmountTokenA;
 
     const actualAmountBIn = tokenBInfo
-      ? maxAmountTokenB.sub(
-          calculateTransferFeeIncludedAmount(
-            maxAmountTokenB,
-            tokenBInfo.mint,
-            tokenBInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          maxAmountTokenB,
+          tokenBInfo.mint,
+          tokenBInfo.currentEpoch,
+        ).amount
       : maxAmountTokenB;
 
     const liquidityDeltaFromAmountA = getLiquidityDeltaFromAmountA(
@@ -1645,13 +1641,11 @@ export class CpAmm {
     }
 
     const actualAmountIn = tokenAInfo
-      ? tokenAAmount.sub(
-          calculateTransferFeeIncludedAmount(
-            tokenAAmount,
-            tokenAInfo.mint,
-            tokenAInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          tokenAAmount,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
       : tokenAAmount;
 
     const liquidityDelta = getLiquidityDeltaFromAmountA(
@@ -1688,23 +1682,19 @@ export class CpAmm {
     }
 
     const actualAmountAIn = tokenAInfo
-      ? tokenAAmount.sub(
-          calculateTransferFeeIncludedAmount(
-            tokenAAmount,
-            tokenAInfo.mint,
-            tokenAInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          tokenAAmount,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
       : tokenAAmount;
 
     const actualAmountBIn = tokenBInfo
-      ? tokenBAmount.sub(
-          calculateTransferFeeIncludedAmount(
-            tokenBAmount,
-            tokenBInfo.mint,
-            tokenBInfo.currentEpoch,
-          ).transferFee,
-        )
+      ? calculateTransferFeeExcludedAmount(
+          tokenBAmount,
+          tokenBInfo.mint,
+          tokenBInfo.currentEpoch,
+        ).amount
       : tokenBAmount;
 
     const initSqrtPrice = calculateInitSqrtPrice(
@@ -3117,6 +3107,8 @@ export class CpAmm {
       positionBVestings,
       currentPoint,
       isSkipReward,
+      tokenAInfo,
+      tokenBInfo,
     } = params;
 
     const { canUnlock, reason } = this.canUnlockPosition(
@@ -3203,13 +3195,31 @@ export class CpAmm {
       poolState.liquidity,
     );
 
+    const tokenAReceivedAmount = tokenAInfo
+      ? calculateTransferFeeExcludedAmount(
+          tokenAWithdrawAmount,
+          tokenAInfo.mint,
+          tokenAInfo.currentEpoch,
+        ).amount
+      : tokenAWithdrawAmount;
+
+    const tokenBReceivedAmount = tokenBInfo
+      ? calculateTransferFeeExcludedAmount(
+          tokenBWithdrawAmount,
+          tokenBInfo.mint,
+          tokenBInfo.currentEpoch,
+        ).amount
+      : tokenBWithdrawAmount;
+
     const newLiquidityDelta = this.getLiquidityDelta({
-      maxAmountTokenA: tokenAWithdrawAmount,
-      maxAmountTokenB: tokenBWithdrawAmount,
+      maxAmountTokenA: tokenAReceivedAmount,
+      maxAmountTokenB: tokenBReceivedAmount,
       sqrtMaxPrice: poolState.sqrtMaxPrice,
       sqrtMinPrice: poolState.sqrtMinPrice,
       sqrtPrice: poolState.sqrtPrice,
       collectFeeMode,
+      tokenAInfo,
+      tokenBInfo,
       tokenAAmount: poolState.tokenAAmount.sub(tokenAWithdrawAmount),
       tokenBAmount: poolState.tokenBAmount.sub(tokenBWithdrawAmount),
       liquidity: poolState.liquidity.sub(positionBLiquidityDelta),

@@ -578,7 +578,7 @@ Calculates the liquidity delta based on the provided token amounts and price ran
 **Function**
 
 ```typescript
-async getLiquidityDelta(params: LiquidityDeltaParams): Promise<BN>
+getLiquidityDelta(params: LiquidityDeltaParams): BN
 ```
 
 **Parameters**
@@ -1501,6 +1501,8 @@ interface MergePositionParams {
   currentPoint: BN; // Current timestamp or slot number for vesting calculations
   positionBVestings?: Array<{ account: PublicKey; vestingState: VestingState }>; // Optional vesting accounts for position B
   isSkipReward?: boolean; // Skip transferring rewards when a reward vault is frozen (forfeits those rewards)
+  tokenAInfo?: { mint: Mint; currentEpoch: number }; // Token info for Token2022 transfer fee calculations
+  tokenBInfo?: { mint: Mint; currentEpoch: number }; // Token info for Token2022 transfer fee calculations
 }
 ```
 

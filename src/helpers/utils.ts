@@ -1,7 +1,22 @@
 import { BN } from "@coral-xyz/anchor";
-import { BASIS_POINT_MAX, LIQUIDITY_SCALE } from "../constants";
+import {
+  BASIS_POINT_MAX,
+  DEAD_LIQUIDITY,
+  LIQUIDITY_SCALE,
+  TOTAL_REWARD_SCALE,
+  U128_MAX,
+  U64_MAX,
+} from "../constants";
+import { MathOverflowError } from "../errors";
+import { validateRewardIndex } from "./validation";
 import Decimal from "decimal.js";
-import { PoolState, PositionState, RewardInfo, SwapMode } from "../types";
+import {
+  CollectFeeMode,
+  PoolState,
+  PositionState,
+  RewardInfo,
+  SwapMode,
+} from "../types";
 
 /**
  * It takes an amount and a slippage rate, and returns the maximum amount that can be received with
@@ -196,6 +211,66 @@ export const getSqrtPriceFromPrice = (
   return new BN(sqrtValueQ64.floor().toFixed());
 };
 
+export const U256_MODULUS = new BN(1).shln(256);
+export const U64_MODULUS = new BN(1).shln(64);
+
+export function readU256Le(bytes: ArrayLike<number>): BN {
+  return new BN(Buffer.from(bytes).reverse());
+}
+
+export function wrappingAddU256(value: BN, delta: BN): BN {
+  return value.add(delta).umod(U256_MODULUS);
+}
+
+export function wrappingSubU256(value: BN, checkpoint: BN): BN {
+  return value.sub(checkpoint).umod(U256_MODULUS);
+}
+
+export function calculatePositionFeeOrReward(
+  positionLiquidity: BN,
+  tokenPerLiquidityDelta: BN,
+  offset: number,
+): BN {
+  const shifted = positionLiquidity.mul(tokenPerLiquidityDelta).shrn(offset);
+  return shifted.gt(U64_MAX) ? U64_MAX : shifted;
+}
+
+export function saturatingAddU64(pending: BN, amount: BN): BN {
+  const sum = pending.add(amount);
+  return sum.gt(U64_MAX) ? U64_MAX : sum;
+}
+
+export function wrappingSubU64(value: BN, checkpoint: BN): BN {
+  return value.sub(checkpoint).umod(U64_MODULUS);
+}
+
+export function mulShr256WrappingU64(x: BN, y: BN, offset: number): BN {
+  return x.mul(y).shrn(offset).umod(U64_MODULUS);
+}
+
+export function positionLiquidity(positionState: PositionState): BN {
+  return positionState.unlockedLiquidity
+    .add(positionState.vestedLiquidity)
+    .add(positionState.permanentLockedLiquidity);
+}
+
+export function pendingPositionReward(
+  positionState: PositionState,
+  rewardIndex: number,
+  rewardPerTokenStored: BN,
+): BN {
+  const userRewardInfo = positionState.rewardInfos[rewardIndex];
+  const accrued = calculatePositionFeeOrReward(
+    positionLiquidity(positionState),
+    wrappingSubU256(
+      rewardPerTokenStored,
+      readU256Le(userRewardInfo.rewardPerTokenCheckpoint),
+    ),
+    TOTAL_REWARD_SCALE,
+  );
+  return saturatingAddU64(userRewardInfo.rewardPendings, accrued);
+}
+
 // fee = totalLiquidity * feePerTokenStore
 // precision: (totalLiquidity * feePerTokenStore) >> 128
 /**
@@ -204,11 +279,13 @@ export const getSqrtPriceFromPrice = (
  * precision: (totalLiquidity * feePerTokenStore) >> 128
  * @param poolState - The pool state
  * @param positionState - The position state
+ * @param currentTime - Slot or timestamp used to project reward accrual. Omit it to use the stored accumulator.
  * @returns The unclaimed reward
  */
 export const getUnClaimLpFee = (
   poolState: PoolState,
   positionState: PositionState,
+  currentTime?: BN,
 ): {
   feeTokenA: BN;
   feeTokenB: BN;
@@ -218,55 +295,110 @@ export const getUnClaimLpFee = (
     .add(positionState.vestedLiquidity)
     .add(positionState.permanentLockedLiquidity);
 
-  const feeAPerTokenStored = new BN(
-    Buffer.from(poolState.feeAPerLiquidity).reverse(),
-  ).sub(new BN(Buffer.from(positionState.feeAPerTokenCheckpoint).reverse()));
+  const feeAPerTokenStored = wrappingSubU256(
+    readU256Le(poolState.feeAPerLiquidity),
+    readU256Le(positionState.feeAPerTokenCheckpoint),
+  );
 
-  const feeBPerTokenStored = new BN(
-    Buffer.from(poolState.feeBPerLiquidity).reverse(),
-  ).sub(new BN(Buffer.from(positionState.feeBPerTokenCheckpoint).reverse()));
+  const feeBPerTokenStored = wrappingSubU256(
+    readU256Le(poolState.feeBPerLiquidity),
+    readU256Le(positionState.feeBPerTokenCheckpoint),
+  );
 
-  const feeA = totalPositionLiquidity
-    .mul(feeAPerTokenStored)
-    .shrn(LIQUIDITY_SCALE);
-  const feeB = totalPositionLiquidity
-    .mul(feeBPerTokenStored)
-    .shrn(LIQUIDITY_SCALE);
+  const feeA = calculatePositionFeeOrReward(
+    totalPositionLiquidity,
+    feeAPerTokenStored,
+    LIQUIDITY_SCALE,
+  );
+  const feeB = calculatePositionFeeOrReward(
+    totalPositionLiquidity,
+    feeBPerTokenStored,
+    LIQUIDITY_SCALE,
+  );
 
   return {
-    feeTokenA: positionState.feeAPending.add(feeA),
-    feeTokenB: positionState.feeBPending.add(feeB),
-    rewards:
-      positionState.rewardInfos.length > 0
-        ? positionState.rewardInfos.map((item) => item.rewardPendings)
-        : [],
+    feeTokenA: saturatingAddU64(positionState.feeAPending, feeA),
+    feeTokenB: saturatingAddU64(positionState.feeBPending, feeB),
+    rewards: positionState.rewardInfos.map((_, rewardIndex) =>
+      quotePositionReward(poolState, positionState, rewardIndex, currentTime),
+    ),
   };
 };
 
+function quotePositionReward(
+  poolState: PoolState,
+  positionState: PositionState,
+  rewardIndex: number,
+  currentTime?: BN,
+): BN {
+  const userRewardInfo = positionState.rewardInfos[rewardIndex];
+  const poolReward = poolState.rewardInfos[rewardIndex];
+  if (!poolReward?.initialized) {
+    return userRewardInfo.rewardPendings;
+  }
+
+  const rewardPerTokenStored = currentTime
+    ? getRewardPerTokenStore(poolReward, poolState.liquidity, currentTime)
+    : readU256Le(poolReward.rewardPerTokenStored);
+
+  return pendingPositionReward(
+    positionState,
+    rewardIndex,
+    rewardPerTokenStored,
+  );
+}
+
 // update reward_per_token_store
 // refer this implementation in program: https://github.com/MeteoraAg/damm-v2/blob/689a3264484799d833c505523f4ff4e4990690aa/programs/cp-amm/src/state/pool.rs#L315
+function elapsedRewardSeconds(poolReward: RewardInfo, currentTime: BN): BN {
+  const lastTimeRewardApplicable = BN.min(
+    currentTime,
+    poolReward.rewardDurationEnd,
+  );
+  const timePeriod = lastTimeRewardApplicable.sub(poolReward.lastUpdateTime);
+  if (timePeriod.isNeg()) {
+    throw new MathOverflowError();
+  }
+  return timePeriod;
+}
+
+function rewardPerTokenDelta(
+  poolReward: RewardInfo,
+  poolLiquidity: BN,
+  currentTime: BN,
+): BN {
+  const timePeriod = elapsedRewardSeconds(poolReward, currentTime);
+  if (poolLiquidity.isZero()) {
+    const emptySeconds =
+      poolReward.cumulativeSecondsWithEmptyLiquidityReward.add(timePeriod);
+    if (emptySeconds.gt(U64_MAX)) {
+      throw new MathOverflowError();
+    }
+    return new BN(0);
+  }
+
+  const currentTotalReward = timePeriod.mul(poolReward.rewardRate);
+  if (currentTotalReward.gt(U128_MAX)) {
+    throw new MathOverflowError();
+  }
+
+  return currentTotalReward.shln(LIQUIDITY_SCALE).div(poolLiquidity);
+}
+
 function getRewardPerTokenStore(
   poolReward: RewardInfo,
   poolLiquidity: BN,
   currentTime: BN,
 ): BN {
-  if (poolLiquidity.eq(new BN(0))) {
-    return new BN(0);
+  const stored = readU256Le(poolReward.rewardPerTokenStored);
+  if (!poolReward.initialized) {
+    return stored;
   }
-  const lastTimeRewardApplicable = BN.min(
-    currentTime,
-    poolReward.rewardDurationEnd,
+
+  return wrappingAddU256(
+    stored,
+    rewardPerTokenDelta(poolReward, poolLiquidity, currentTime),
   );
-
-  const timePeriod = lastTimeRewardApplicable.sub(poolReward.lastUpdateTime);
-  const currentTotalReward = timePeriod.mul(poolReward.rewardRate);
-  const rewardPerTokenStore = currentTotalReward.shln(128).div(poolLiquidity);
-
-  const totalRewardPerTokenStore = new BN(
-    Buffer.from(poolReward.rewardPerTokenStored).reverse(),
-  ).add(rewardPerTokenStore);
-
-  return totalRewardPerTokenStore;
 }
 
 function getRewardPerPeriod(
@@ -274,14 +406,14 @@ function getRewardPerPeriod(
   currentTime: BN,
   periodTime: BN,
 ): BN {
-  const timeRewardAppicable = currentTime.add(periodTime);
-  // cap max period in reward duration end
-  const period =
-    timeRewardAppicable <= poolReward.rewardDurationEnd
-      ? periodTime
-      : poolReward.rewardDurationEnd.sub(currentTime);
-  // reward_rate = amount / periodTime
+  const timeRewardApplicable = currentTime.add(periodTime);
+  const period = timeRewardApplicable.lte(poolReward.rewardDurationEnd)
+    ? periodTime
+    : poolReward.rewardDurationEnd.sub(currentTime);
   const rewardPerPeriod = poolReward.rewardRate.mul(period);
+  if (rewardPerPeriod.gt(U128_MAX)) {
+    throw new MathOverflowError();
+  }
 
   return rewardPerPeriod;
 }
@@ -308,9 +440,9 @@ export function getRewardInfo(
   // calculate current reward distributed to user reward.
   const totalRewardDistributed = rewardPerTokenStore
     .mul(poolState.liquidity)
-    .shrn(192);
+    .shrn(TOTAL_REWARD_SCALE);
 
-  if (poolReward.rewardDurationEnd <= currentTime) {
+  if (poolReward.rewardDurationEnd.lte(currentTime)) {
     return {
       rewardPerPeriod: new BN(0),
       rewardBalance: new BN(0),
@@ -325,19 +457,14 @@ export function getRewardInfo(
   );
 
   const remainTime = poolReward.rewardDurationEnd.sub(currentTime);
-  const rewardBalance = poolReward.rewardRate.mul(remainTime).shrn(64);
-
-  if (poolState.liquidity.eq(new BN(0))) {
-    return {
-      rewardPerPeriod,
-      rewardBalance,
-      totalRewardDistributed: new BN(0),
-    };
+  const rewardBalance = poolReward.rewardRate.mul(remainTime);
+  if (rewardBalance.gt(U128_MAX)) {
+    throw new MathOverflowError();
   }
 
   return {
     rewardPerPeriod: rewardPerPeriod.shrn(64),
-    rewardBalance,
+    rewardBalance: rewardBalance.shrn(64),
     totalRewardDistributed,
   };
 }
@@ -351,35 +478,32 @@ export function getUserRewardPending(
   currentTime: BN,
   periodTime: BN,
 ): { userRewardPerPeriod: BN; userPendingReward: BN } {
-  if (poolState.liquidity.eq(new BN(0))) {
-    return {
-      userRewardPerPeriod: new BN(0),
-      userPendingReward: new BN(0),
-    };
-  }
   const poolReward = poolState.rewardInfos[rewardIndex];
   const userRewardInfo = positionState.rewardInfos[rewardIndex];
+  if (!poolReward?.initialized) {
+    return {
+      userPendingReward: userRewardInfo.rewardPendings,
+      userRewardPerPeriod: new BN(0),
+    };
+  }
 
   const rewardPerTokenStore = getRewardPerTokenStore(
     poolReward,
     poolState.liquidity,
     currentTime,
   );
-
-  const totalPositionLiquidity = positionState.unlockedLiquidity
-    .add(positionState.vestedLiquidity)
-    .add(positionState.permanentLockedLiquidity);
-
-  const userRewardPerTokenCheckPoint = new BN(
-    Buffer.from(userRewardInfo.rewardPerTokenCheckpoint).reverse(),
+  const userPendingReward = pendingPositionReward(
+    positionState,
+    rewardIndex,
+    rewardPerTokenStore,
   );
-  const newReward = totalPositionLiquidity
-    .mul(rewardPerTokenStore.sub(userRewardPerTokenCheckPoint))
-    .shrn(192);
 
-  if (poolReward.rewardDurationEnd <= currentTime) {
+  if (
+    poolState.liquidity.isZero() ||
+    poolReward.rewardDurationEnd.lte(currentTime)
+  ) {
     return {
-      userPendingReward: userRewardInfo.rewardPendings.add(newReward),
+      userPendingReward,
       userRewardPerPeriod: new BN(0),
     };
   }
@@ -389,16 +513,54 @@ export function getUserRewardPending(
     currentTime,
     periodTime,
   );
-
   const rewardPerTokenStorePerPeriod = rewardPerPeriod
-    .shln(128)
+    .shln(LIQUIDITY_SCALE)
     .div(poolState.liquidity);
-  const userRewardPerPeriod = totalPositionLiquidity
-    .mul(rewardPerTokenStorePerPeriod)
-    .shrn(192);
 
   return {
-    userPendingReward: userRewardInfo.rewardPendings.add(newReward),
-    userRewardPerPeriod: userRewardPerPeriod,
+    userPendingReward,
+    userRewardPerPeriod: calculatePositionFeeOrReward(
+      positionLiquidity(positionState),
+      rewardPerTokenStorePerPeriod,
+      TOTAL_REWARD_SCALE,
+    ),
   };
+}
+
+/**
+ * Reward owed to a compounding pool's permanent dead liquidity.
+ * Projects the reward accumulator to `currentTime` before reading the checkpoint.
+ * @param poolState - The pool state
+ * @param rewardIndex - The reward slot
+ * @param currentTime - Slot or timestamp
+ * @returns The withdrawable dead-liquidity reward
+ */
+export function getDeadLiquidityReward(
+  poolState: PoolState,
+  rewardIndex: number,
+  currentTime: BN,
+): BN {
+  validateRewardIndex(rewardIndex);
+
+  if (poolState.collectFeeMode !== CollectFeeMode.Compounding) {
+    return new BN(0);
+  }
+
+  const poolReward = poolState.rewardInfos[rewardIndex];
+  if (!poolReward?.initialized) {
+    return new BN(0);
+  }
+
+  const rewardPerTokenStored = getRewardPerTokenStore(
+    poolReward,
+    poolState.liquidity,
+    currentTime,
+  );
+  const checkpoint = mulShr256WrappingU64(
+    DEAD_LIQUIDITY,
+    rewardPerTokenStored,
+    TOTAL_REWARD_SCALE,
+  );
+
+  return wrappingSubU64(checkpoint, poolReward.deadLiquidityRewardCheckpoint);
 }

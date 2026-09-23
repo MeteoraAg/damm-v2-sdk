@@ -471,7 +471,7 @@ export function validateInitialSqrtPrice(
 
 /**
  * Validates the compounding fee BPS based on collect fee mode.
- * - Compounding pools must have compoundingFeeBps > 0 and <= BASIS_POINT_MAX.
+ * - Compounding pools must have 0 <= compoundingFeeBps <= BASIS_POINT_MAX.
  * - Non-compounding pools must have compoundingFeeBps == 0.
  * @param collectFeeMode - The collect fee mode.
  * @param compoundingFeeBps - The compounding fee in basis points.
@@ -482,7 +482,7 @@ export function validateCompoundingFee(
   compoundingFeeBps: number,
 ): void {
   if (collectFeeMode === CollectFeeMode.Compounding) {
-    if (compoundingFeeBps <= 0 || compoundingFeeBps > BASIS_POINT_MAX) {
+    if (compoundingFeeBps < 0 || compoundingFeeBps > BASIS_POINT_MAX) {
       throw new InvalidCompoundingFeeBpsError();
     }
   } else {

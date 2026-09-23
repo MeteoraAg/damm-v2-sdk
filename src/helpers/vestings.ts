@@ -58,8 +58,8 @@ export function getAvailableVestingLiquidity(
     return new BN(0);
   }
 
-  if (periodFrequency.isZero()) {
-    return cliffUnlockLiquidity;
+  if (periodFrequency.isZero() || liquidityPerPeriod.isZero()) {
+    return cliffUnlockLiquidity.sub(totalReleasedLiquidity);
   }
 
   let passedPeriod = new BN(currentPoint).sub(cliffPoint).div(periodFrequency);

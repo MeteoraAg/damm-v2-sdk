@@ -6,6 +6,7 @@ export const CP_AMM_PROGRAM_ID = new PublicKey(
 );
 
 export const LIQUIDITY_SCALE = 128;
+export const TOTAL_REWARD_SCALE = 192;
 export const SCALE_OFFSET = 64;
 export const BASIS_POINT_MAX = 10_000;
 export const FEE_DENOMINATOR = 1_000_000_000;

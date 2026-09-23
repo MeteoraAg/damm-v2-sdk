@@ -3783,6 +3783,7 @@ Calculates unclaimed fees and rewards for a position.
 function getUnClaimLpFee(
   poolState: PoolState,
   positionState: PositionState,
+  currentTime?: BN,
 ): {
   feeTokenA: BN;
   feeTokenB: BN;
@@ -3794,6 +3795,7 @@ function getUnClaimLpFee(
 
 - `poolState`: The current state of the pool
 - `positionState`: The current state of the position
+- `currentTime`: Slot or timestamp used to project reward accrual. Omit it to use the stored reward accumulator.
 
 **Returns**
 

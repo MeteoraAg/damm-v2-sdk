@@ -5,7 +5,9 @@ import {
   LIQUIDITY_SCALE,
   TOTAL_REWARD_SCALE,
   U128_MAX,
+  U256_MODULUS,
   U64_MAX,
+  U64_MODULUS,
 } from "../constants";
 import { MathOverflowError } from "../errors";
 import { validateRewardIndex } from "./validation";
@@ -211,9 +213,6 @@ export const getSqrtPriceFromPrice = (
   return new BN(sqrtValueQ64.floor().toFixed());
 };
 
-export const U256_MODULUS = new BN(1).shln(256);
-export const U64_MODULUS = new BN(1).shln(64);
-
 export function readU256Le(bytes: ArrayLike<number>): BN {
   return new BN(Buffer.from(bytes).reverse());
 }
@@ -291,9 +290,7 @@ export const getUnClaimLpFee = (
   feeTokenB: BN;
   rewards: BN[];
 } => {
-  const totalPositionLiquidity = positionState.unlockedLiquidity
-    .add(positionState.vestedLiquidity)
-    .add(positionState.permanentLockedLiquidity);
+  const totalPositionLiquidity = positionLiquidity(positionState);
 
   const feeAPerTokenStored = wrappingSubU256(
     readU256Le(poolState.feeAPerLiquidity),

@@ -41,6 +41,8 @@ export const MAX_PRICE_CHANGE_BPS_DEFAULT = 1500; // 15%
 
 export const U128_MAX = new BN("340282366920938463463374607431768211455");
 export const U64_MAX = new BN("18446744073709551615");
+export const U64_MODULUS = new BN(1).shln(64);
+export const U256_MODULUS = new BN(1).shln(256);
 export const U24_MAX = 16_777_215;
 export const U16_MAX = 65535;
 

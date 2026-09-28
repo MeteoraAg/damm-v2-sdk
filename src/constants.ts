@@ -6,6 +6,7 @@ export const CP_AMM_PROGRAM_ID = new PublicKey(
 );
 
 export const LIQUIDITY_SCALE = 128;
+export const TOTAL_REWARD_SCALE = 192;
 export const SCALE_OFFSET = 64;
 export const BASIS_POINT_MAX = 10_000;
 export const FEE_DENOMINATOR = 1_000_000_000;
@@ -40,6 +41,8 @@ export const MAX_PRICE_CHANGE_BPS_DEFAULT = 1500; // 15%
 
 export const U128_MAX = new BN("340282366920938463463374607431768211455");
 export const U64_MAX = new BN("18446744073709551615");
+export const U64_MODULUS = new BN(1).shln(64);
+export const U256_MODULUS = new BN(1).shln(256);
 export const U24_MAX = 16_777_215;
 export const U16_MAX = 65535;
 

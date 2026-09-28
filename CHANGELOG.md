@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.5.0]
+
+### Changed
+
+- Synced the IDL and bankrun program fixture to cp_amm 0.2.5.
+- `CollectFeeMode.Compounding` accepts `compoundingFeeBps = 0`. The trading fee stays claimable and is not compounded into the reserve.
+
+### Added
+
+- `getDeadLiquidityReward` quotes the compounding dead-liquidity reward.
+
+### Fixed
+
+- `getUnClaimLpFee`, `getRewardInfo`, and `getUserRewardPending` wrap fee and reward accumulators the same way the program does, and clamp a pending fee or reward at `u64::MAX`.
+- Reward quotes keep the checkpoint delta when pool liquidity is zero. `getUnClaimLpFee` includes that reward accrual, and an optional `currentTime` projects emissions up to the reward end. A reward step whose time and rate do not fit in a u128 throws `MathOverflowError`. `getRewardInfo` returns the emission in raw tokens when pool liquidity is zero.
+- `getAvailableVestingLiquidity` subtracts liquidity already released when `periodFrequency` or `liquidityPerPeriod` is zero.
+
 ## damm_v2_sdk [1.4.10]
 
 ### Fixed

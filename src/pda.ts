@@ -29,6 +29,7 @@ export function derivePoolAuthority(): PublicKey {
     CP_AMM_PROGRAM_ID,
   )[0];
 }
+
 export function deriveConfigAddress(index: BN): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("config"), index.toArrayLike(Buffer, "le", 8)],

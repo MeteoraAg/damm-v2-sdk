@@ -1,6 +1,7 @@
 import { ProgramTestContext } from "solana-bankrun";
 import {
   executeTransaction,
+  getBalance,
   getPool,
   getPosition,
   setupTestContext,
@@ -26,7 +27,7 @@ import {
   SwapParams,
 } from "../src";
 import { DECIMALS, U64_MAX } from "./bankrun-utils";
-import { beforeEach, describe, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 describe("Compounding liquidity", () => {
   let context: ProgramTestContext;
@@ -206,5 +207,116 @@ describe("Compounding liquidity", () => {
     await executeTransaction(context.banksClient, removeAllLiquidityTx, [
       creator,
     ]);
+  });
+
+  it("creates a compounding pool with zero compounding fee bps", async () => {
+    const baseFee = getBaseFeeParams({
+      baseFeeMode: BaseFeeMode.FeeTimeSchedulerLinear,
+      feeTimeSchedulerParam: {
+        startingFeeBps: 2500,
+        endingFeeBps: 2500,
+        numberOfPeriod: 0,
+        totalDuration: 0,
+      },
+    });
+
+    const poolFees: PoolFeesParams = {
+      baseFee,
+      compoundingFeeBps: 0,
+      padding: 0,
+      dynamicFee: null,
+    };
+
+    const positionNft = Keypair.generate();
+    const tokenAAmount = new BN(1000 * 10 ** DECIMALS);
+    const tokenBAmount = new BN(1000 * 10 ** DECIMALS);
+    const { liquidityDelta: initPoolLiquidityDelta, initSqrtPrice } =
+      ammInstance.preparePoolCreationParams({
+        tokenAAmount,
+        tokenBAmount,
+        minSqrtPrice: MIN_SQRT_PRICE,
+        maxSqrtPrice: MAX_SQRT_PRICE,
+        collectFeeMode: CollectFeeMode.Compounding,
+      });
+
+    const { tx: transaction, pool } = await ammInstance.createCustomPool({
+      payer: payer.publicKey,
+      creator: creator.publicKey,
+      positionNft: positionNft.publicKey,
+      tokenAMint: tokenX,
+      tokenBMint: tokenY,
+      tokenAAmount,
+      tokenBAmount,
+      sqrtMinPrice: MIN_SQRT_PRICE,
+      sqrtMaxPrice: MAX_SQRT_PRICE,
+      liquidityDelta: initPoolLiquidityDelta,
+      initSqrtPrice,
+      poolFees,
+      hasAlphaVault: false,
+      activationType: 1,
+      collectFeeMode: CollectFeeMode.Compounding,
+      activationPoint: null,
+      tokenAProgram: TOKEN_PROGRAM_ID,
+      tokenBProgram: TOKEN_PROGRAM_ID,
+    });
+
+    await executeTransaction(context.banksClient, transaction, [
+      payer,
+      positionNft,
+    ]);
+
+    const stateBefore = await getPool(
+      context.banksClient,
+      ammInstance._program,
+      pool,
+    );
+    const vaultBefore = await getBalance(
+      context.banksClient,
+      stateBefore.tokenBVault,
+    );
+
+    const swapTx = await ammInstance.swap({
+      payer: payer.publicKey,
+      pool,
+      inputTokenMint: stateBefore.tokenAMint,
+      outputTokenMint: stateBefore.tokenBMint,
+      amountIn: new BN(100 * 10 ** DECIMALS),
+      minimumAmountOut: new BN(0),
+      tokenAMint: stateBefore.tokenAMint,
+      tokenBMint: stateBefore.tokenBMint,
+      tokenAVault: stateBefore.tokenAVault,
+      tokenBVault: stateBefore.tokenBVault,
+      tokenAProgram: getTokenProgram(stateBefore.tokenAFlag),
+      tokenBProgram: getTokenProgram(stateBefore.tokenBFlag),
+      referralTokenAccount: null,
+      poolState: stateBefore,
+    });
+    await executeTransaction(context.banksClient, swapTx, [payer]);
+
+    const stateAfter = await getPool(
+      context.banksClient,
+      ammInstance._program,
+      pool,
+    );
+    const vaultAfter = await getBalance(
+      context.banksClient,
+      stateAfter.tokenBVault,
+    );
+
+    expect(stateAfter.poolFees.compoundingFeeBps).toBe(0);
+
+    const feeCharged = stateAfter.metrics.totalLpBFee
+      .sub(stateBefore.metrics.totalLpBFee)
+      .add(
+        stateAfter.metrics.totalProtocolBFee.sub(
+          stateBefore.metrics.totalProtocolBFee,
+        ),
+      );
+    expect(feeCharged.gt(new BN(0))).toBe(true);
+
+    const heldOutsideReserve = vaultAfter
+      .sub(vaultBefore)
+      .sub(stateAfter.tokenBAmount.sub(stateBefore.tokenBAmount));
+    expect(heldOutsideReserve.toString()).toBe(feeCharged.toString());
   });
 });

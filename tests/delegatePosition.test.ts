@@ -247,9 +247,13 @@ describe("Delegate Position", () => {
   it("delegate with AddLiquidity permission can add liquidity", async () => {
     const { position, positionNft } = await createUserPosition();
 
-    const tx = await grantPermission(user, position, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.AddLiquidity,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      positionNft,
+      delegate.publicKey,
+      [PositionDelegatePermission.AddLiquidity],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     const before = await getPosition(
@@ -273,9 +277,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    const tx = await grantPermission(user, position, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.RemoveLiquidity,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      positionNft,
+      delegate.publicKey,
+      [PositionDelegatePermission.RemoveLiquidity],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     const before = await getPosition(
@@ -321,9 +329,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    const tx = await grantPermission(user, position, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.ClaimReward,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      positionNft,
+      delegate.publicKey,
+      [PositionDelegatePermission.ClaimReward],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     await advanceTimeBy(context, 60 * 60);
@@ -365,9 +377,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    const tx = await grantPermission(user, position, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.LockPosition,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      positionNft,
+      delegate.publicKey,
+      [PositionDelegatePermission.LockPosition],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     const before = await getPosition(
@@ -418,9 +434,13 @@ describe("Delegate Position", () => {
     await addLiquidity(delegate, position);
 
     // revoke: empty permission set
-    await grantPermission(user, position, positionNft, delegate.publicKey, []).then(
-      (tx) => executeTransaction(context.banksClient, tx, [user]),
-    );
+    await grantPermission(
+      user,
+      position,
+      positionNft,
+      delegate.publicKey,
+      [],
+    ).then((tx) => executeTransaction(context.banksClient, tx, [user]));
 
     const positionState = await getPosition(
       context.banksClient,

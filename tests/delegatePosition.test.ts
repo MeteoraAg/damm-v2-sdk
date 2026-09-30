@@ -41,7 +41,9 @@ function bankrunConnection(
   return {
     getProgramAccounts: async (
       _programId: PublicKey,
-      config?: { filters?: Array<{ memcmp?: { offset: number; bytes: string } }> },
+      config?: {
+        filters?: Array<{ memcmp?: { offset: number; bytes: string } }>;
+      },
     ) => {
       const filters = config?.filters ?? [];
       const accounts = [];
@@ -516,13 +518,9 @@ describe("Delegate Position", () => {
   it("finds positions delegated to 3mpTM845pEnwcwz9J79BphZAxv12xAsSgAe4QfBZosmz", async () => {
     const { position, positionNft, positionNftAccount } =
       await createUserPosition();
-    const tx = await grantPermission(
-      user,
-      position,
-      positionNft,
-      DELEGATE,
-      [PositionDelegatePermission.ClaimPositionFee],
-    );
+    const tx = await grantPermission(user, position, positionNft, DELEGATE, [
+      PositionDelegatePermission.ClaimPositionFee,
+    ]);
     await executeTransaction(context.banksClient, tx, [user]);
 
     const cpAmm = new CpAmm(

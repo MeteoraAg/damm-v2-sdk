@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- `getPositionsByDelegate`, `getDelegatePositionByPool`, and `getPositionsByDelegateAndTokenMint` fetch positions where the wallet is the position NFT delegate.
+- `getPositionsByDelegate`, `getDelegatePositionByPool`, and `getPositionsByDelegateAndTokenMint` fetch positions where the wallet is the position NFT delegate. A position whose `delegatePermission` is 0 is omitted, because revoke clears the bitmask and leaves the SPL delegate in place.
 
 ## damm_v2_sdk [1.5.0]
 

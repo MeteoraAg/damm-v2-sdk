@@ -1203,7 +1203,10 @@ export class CpAmm {
     const positionResult = delegatedPositionAccounts
       .map((account, index) => {
         const positionState = positionStates[index];
-        if (!positionState) return null;
+        // Revoke clears the bitmask and leaves the SPL delegate in place.
+        if (!positionState || positionState.delegatePermission === 0) {
+          return null;
+        }
 
         return {
           positionNftAccount: account.positionNftAccount,

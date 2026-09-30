@@ -512,7 +512,7 @@ async updateDelegatePermission(params: UpdateDelegatePermissionParams): TxBuilde
 
 ```typescript
 interface UpdateDelegatePermissionParams {
-  owner: PublicKey; // The owner of the position
+  owner: PublicKey; // Current owner of positionNftAccount
   position: PublicKey; // The position account
   positionNftAccount: PublicKey; // Token account that currently holds the position NFT
   delegate: PublicKey; // The delegate to grant/revoke permissions for

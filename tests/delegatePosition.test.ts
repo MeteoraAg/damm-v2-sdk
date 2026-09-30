@@ -531,9 +531,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    await grantPermission(user, position, derivePositionNftAccount(positionNft), delegate.publicKey, [
-      PositionDelegatePermission.AddLiquidity,
-    ]).then((tx) => executeTransaction(context.banksClient, tx, [user]));
+    await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.AddLiquidity],
+    ).then((tx) => executeTransaction(context.banksClient, tx, [user]));
 
     // InvalidAuthority = 6053 = 0x17a5
     await expectProgramError(
@@ -545,9 +549,13 @@ describe("Delegate Position", () => {
   it("rejects after the owner revokes the delegate permission", async () => {
     const { position, positionNft } = await createUserPosition();
 
-    await grantPermission(user, position, derivePositionNftAccount(positionNft), delegate.publicKey, [
-      PositionDelegatePermission.AddLiquidity,
-    ]).then((tx) => executeTransaction(context.banksClient, tx, [user]));
+    await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.AddLiquidity],
+    ).then((tx) => executeTransaction(context.banksClient, tx, [user]));
 
     await addLiquidity(delegate, position);
 
@@ -574,9 +582,13 @@ describe("Delegate Position", () => {
   it("finds positions delegated to 3mpTM845pEnwcwz9J79BphZAxv12xAsSgAe4QfBZosmz", async () => {
     const { position, positionNft, positionNftAccount } =
       await createUserPosition();
-    const tx = await grantPermission(user, position, derivePositionNftAccount(positionNft), DELEGATE, [
-      PositionDelegatePermission.ClaimPositionFee,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      DELEGATE,
+      [PositionDelegatePermission.ClaimPositionFee],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     const cpAmm = new CpAmm(

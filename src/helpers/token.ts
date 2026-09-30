@@ -224,3 +224,67 @@ export async function getAllPositionNftAccountByOwner(
 
   return userPositionNftAccount;
 }
+
+/**
+ * Gets all the position NFT accounts by delegate
+ * @param connection - The connection
+ * @param delegate - The delegate
+ * @returns The position NFT accounts by delegate
+ */
+export async function getAllPositionNftAccountByDelegate(
+  connection: Connection,
+  delegate: PublicKey,
+): Promise<
+  Array<{
+    positionNft: PublicKey;
+    positionNftAccount: PublicKey;
+  }>
+> {
+  const filters: GetProgramAccountsFilter[] = [
+    {
+      memcmp: {
+        offset: 76,
+        bytes: delegate.toBase58(),
+      },
+    },
+    {
+      memcmp: {
+        offset: 72,
+        bytes: bs58.encode(Buffer.from([1, 0, 0, 0])),
+      },
+    },
+    {
+      memcmp: {
+        offset: 64,
+        bytes: bs58.encode(Buffer.from([1, 0, 0, 0, 0, 0, 0, 0])), // 1
+      },
+    },
+  ];
+
+  const tokenAccountsRaw = await connection.getProgramAccounts(
+    TOKEN_2022_PROGRAM_ID,
+    {
+      filters,
+    },
+  );
+
+  const delegatedPositionNftAccount: Array<{
+    positionNft: PublicKey;
+    positionNftAccount: PublicKey;
+  }> = [];
+  for (const { account, pubkey } of tokenAccountsRaw) {
+    const tokenAccountData = AccountLayout.decode(account.data);
+    if (
+      tokenAccountData.delegateOption === 1 &&
+      new PublicKey(tokenAccountData.delegate).equals(delegate) &&
+      tokenAccountData.amount.toString() === "1"
+    ) {
+      delegatedPositionNftAccount.push({
+        positionNft: tokenAccountData.mint,
+        positionNftAccount: pubkey,
+      });
+    }
+  }
+
+  return delegatedPositionNftAccount;
+}

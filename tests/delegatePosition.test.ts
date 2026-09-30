@@ -13,9 +13,19 @@ import {
   startTest,
 } from "./bankrun-utils/common";
 import { getTokenAccount, mintTo } from "./bankrun-utils/token";
-import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import {
+  clusterApiUrl,
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+} from "@solana/web3.js";
+import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
+  TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import BN from "bn.js";
@@ -31,6 +41,67 @@ import { DECIMALS, U64_MAX } from "./bankrun-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 
 const FULL_AMOUNT = new BN(1_000_000 * 10 ** DECIMALS);
+const DELEGATE = new PublicKey("3mpTM845pEnwcwz9J79BphZAxv12xAsSgAe4QfBZosmz");
+
+function bankrunConnection(
+  banksClient: ProgramTestContext["banksClient"],
+  nftAccounts: PublicKey[],
+): Connection {
+  return {
+    getProgramAccounts: async (
+      _programId: PublicKey,
+      config?: {
+        filters?: Array<{ memcmp?: { offset: number; bytes: string } }>;
+      },
+    ) => {
+      const filters = config?.filters ?? [];
+      const accounts = [];
+      for (const pubkey of nftAccounts) {
+        const account = await banksClient.getAccount(pubkey);
+        if (!account) continue;
+        const data = Buffer.from(account.data);
+        const matches = filters.every((filter) => {
+          if (!filter.memcmp) return true;
+          const expected = Buffer.from(bs58.decode(filter.memcmp.bytes));
+          return data
+            .subarray(
+              filter.memcmp.offset,
+              filter.memcmp.offset + expected.length,
+            )
+            .equals(expected);
+        });
+        if (!matches) continue;
+        accounts.push({
+          pubkey,
+          account: {
+            data,
+            executable: account.executable,
+            lamports: Number(account.lamports),
+            owner: new PublicKey(account.owner),
+          },
+        });
+      }
+      return accounts;
+    },
+    getMultipleAccountsInfoAndContext: async (publicKeys: PublicKey[]) => {
+      const value = [];
+      for (const publicKey of publicKeys) {
+        const account = await banksClient.getAccount(publicKey);
+        value.push(
+          account
+            ? {
+                ...account,
+                owner: new PublicKey(account.owner),
+                data: Buffer.from(account.data),
+                lamports: Number(account.lamports),
+              }
+            : null,
+        );
+      }
+      return { context: { slot: 0 }, value };
+    },
+  } as unknown as Connection;
+}
 
 describe("Delegate Position", () => {
   let context: ProgramTestContext;
@@ -193,13 +264,15 @@ describe("Delegate Position", () => {
 
   function grantPermission(
     owner: Keypair,
-    positionNft: PublicKey,
+    position: PublicKey,
+    positionNftAccount: PublicKey,
     delegateKey: PublicKey,
     permissions: PositionDelegatePermission[],
   ) {
     return ammInstance.updateDelegatePermission({
       owner: owner.publicKey,
-      positionNft,
+      position,
+      positionNftAccount,
       delegate: delegateKey,
       permission: encodeDelegatePermissions(permissions),
     });
@@ -218,7 +291,8 @@ describe("Delegate Position", () => {
     ];
     const tx = await grantPermission(
       user,
-      positionNft,
+      position,
+      derivePositionNftAccount(positionNft),
       delegate.publicKey,
       permissions,
     );
@@ -241,12 +315,63 @@ describe("Delegate Position", () => {
     expect(nftAccount.delegate.toBase58()).toBe(delegate.publicKey.toBase58());
   });
 
+  it("updateDelegatePermission uses the token account that holds the NFT", async () => {
+    const { position, positionNft, positionNftAccount } =
+      await createUserPosition();
+    const destination = getAssociatedTokenAddressSync(
+      positionNft,
+      user.publicKey,
+      false,
+      TOKEN_2022_PROGRAM_ID,
+    );
+    const transferTx = new Transaction().add(
+      createAssociatedTokenAccountIdempotentInstruction(
+        user.publicKey,
+        destination,
+        user.publicKey,
+        positionNft,
+        TOKEN_2022_PROGRAM_ID,
+      ),
+      createTransferCheckedInstruction(
+        positionNftAccount,
+        positionNft,
+        destination,
+        user.publicKey,
+        1,
+        0,
+        [],
+        TOKEN_2022_PROGRAM_ID,
+      ),
+    );
+    await executeTransaction(context.banksClient, transferTx, [user]);
+
+    const tx = await grantPermission(
+      user,
+      position,
+      destination,
+      delegate.publicKey,
+      [PositionDelegatePermission.ClaimPositionFee],
+    );
+    await executeTransaction(context.banksClient, tx, [user]);
+
+    const moved = await getTokenAccount(context.banksClient, destination);
+    expect(moved.amount.toString()).toBe("1");
+    expect(moved.delegate.toBase58()).toBe(delegate.publicKey.toBase58());
+
+    const pda = await getTokenAccount(context.banksClient, positionNftAccount);
+    expect(pda.amount.toString()).toBe("0");
+  });
+
   it("delegate with AddLiquidity permission can add liquidity", async () => {
     const { position, positionNft } = await createUserPosition();
 
-    const tx = await grantPermission(user, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.AddLiquidity,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.AddLiquidity],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     const before = await getPosition(
@@ -270,9 +395,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    const tx = await grantPermission(user, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.RemoveLiquidity,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.RemoveLiquidity],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     const before = await getPosition(
@@ -318,9 +447,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    const tx = await grantPermission(user, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.ClaimReward,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.ClaimReward],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     await advanceTimeBy(context, 60 * 60);
@@ -362,9 +495,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    const tx = await grantPermission(user, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.LockPosition,
-    ]);
+    const tx = await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.LockPosition],
+    );
     await executeTransaction(context.banksClient, tx, [user]);
 
     const before = await getPosition(
@@ -394,9 +531,13 @@ describe("Delegate Position", () => {
     const { position, positionNft } = await createUserPosition();
     await addLiquidity(user, position);
 
-    await grantPermission(user, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.AddLiquidity,
-    ]).then((tx) => executeTransaction(context.banksClient, tx, [user]));
+    await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.AddLiquidity],
+    ).then((tx) => executeTransaction(context.banksClient, tx, [user]));
 
     // InvalidAuthority = 6053 = 0x17a5
     await expectProgramError(
@@ -408,16 +549,24 @@ describe("Delegate Position", () => {
   it("rejects after the owner revokes the delegate permission", async () => {
     const { position, positionNft } = await createUserPosition();
 
-    await grantPermission(user, positionNft, delegate.publicKey, [
-      PositionDelegatePermission.AddLiquidity,
-    ]).then((tx) => executeTransaction(context.banksClient, tx, [user]));
+    await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [PositionDelegatePermission.AddLiquidity],
+    ).then((tx) => executeTransaction(context.banksClient, tx, [user]));
 
     await addLiquidity(delegate, position);
 
     // revoke: empty permission set
-    await grantPermission(user, positionNft, delegate.publicKey, []).then(
-      (tx) => executeTransaction(context.banksClient, tx, [user]),
-    );
+    await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      delegate.publicKey,
+      [],
+    ).then((tx) => executeTransaction(context.banksClient, tx, [user]));
 
     const positionState = await getPosition(
       context.banksClient,
@@ -428,5 +577,65 @@ describe("Delegate Position", () => {
 
     // InvalidPermission = 6054 = 0x17a6
     await expectProgramError(() => addLiquidity(delegate, position), "0x17a6");
+  });
+
+  it("finds positions delegated to 3mpTM845pEnwcwz9J79BphZAxv12xAsSgAe4QfBZosmz", async () => {
+    const { position, positionNft, positionNftAccount } =
+      await createUserPosition();
+    const tx = await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      DELEGATE,
+      [PositionDelegatePermission.ClaimPositionFee],
+    );
+    await executeTransaction(context.banksClient, tx, [user]);
+
+    const cpAmm = new CpAmm(
+      bankrunConnection(context.banksClient, [positionNftAccount]),
+    );
+
+    const byPool = await cpAmm.getDelegatePositionByPool(pool, DELEGATE);
+    expect(byPool.map((item) => item.position.toBase58())).toEqual([
+      position.toBase58(),
+    ]);
+    expect(byPool[0].positionNftAccount.equals(positionNftAccount)).toBe(true);
+
+    const byDelegate = await cpAmm.getPositionsByDelegate(DELEGATE);
+    expect(byDelegate.map((item) => item.position.toBase58())).toEqual([
+      position.toBase58(),
+    ]);
+
+    const byMint = await cpAmm.getPositionsByDelegateAndTokenMint(
+      DELEGATE,
+      tokenAMint,
+    );
+    expect(byMint.map((item) => item.pool.toBase58())).toEqual([
+      pool.toBase58(),
+    ]);
+
+    const otherMint = await cpAmm.getPositionsByDelegateAndTokenMint(
+      DELEGATE,
+      Keypair.generate().publicKey,
+    );
+    expect(otherMint).toHaveLength(0);
+
+    const otherDelegate = await cpAmm.getDelegatePositionByPool(
+      pool,
+      user.publicKey,
+    );
+    expect(otherDelegate).toHaveLength(0);
+
+    const revokeTx = await grantPermission(
+      user,
+      position,
+      derivePositionNftAccount(positionNft),
+      DELEGATE,
+      [],
+    );
+    await executeTransaction(context.banksClient, revokeTx, [user]);
+
+    const afterRevoke = await cpAmm.getPositionsByDelegate(DELEGATE);
+    expect(afterRevoke).toHaveLength(0);
   });
 });

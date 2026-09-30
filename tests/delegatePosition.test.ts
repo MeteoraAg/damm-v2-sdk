@@ -13,6 +13,7 @@ import {
   startTest,
 } from "./bankrun-utils/common";
 import { getTokenAccount, mintTo } from "./bankrun-utils/token";
+import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import { clusterApiUrl, Connection, Keypair, PublicKey } from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
@@ -31,6 +32,65 @@ import { DECIMALS, U64_MAX } from "./bankrun-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 
 const FULL_AMOUNT = new BN(1_000_000 * 10 ** DECIMALS);
+const DELEGATE = new PublicKey("3mpTM845pEnwcwz9J79BphZAxv12xAsSgAe4QfBZosmz");
+
+function bankrunConnection(
+  banksClient: ProgramTestContext["banksClient"],
+  nftAccounts: PublicKey[],
+): Connection {
+  return {
+    getProgramAccounts: async (
+      _programId: PublicKey,
+      config?: { filters?: Array<{ memcmp?: { offset: number; bytes: string } }> },
+    ) => {
+      const filters = config?.filters ?? [];
+      const accounts = [];
+      for (const pubkey of nftAccounts) {
+        const account = await banksClient.getAccount(pubkey);
+        if (!account) continue;
+        const data = Buffer.from(account.data);
+        const matches = filters.every((filter) => {
+          if (!filter.memcmp) return true;
+          const expected = Buffer.from(bs58.decode(filter.memcmp.bytes));
+          return data
+            .subarray(
+              filter.memcmp.offset,
+              filter.memcmp.offset + expected.length,
+            )
+            .equals(expected);
+        });
+        if (!matches) continue;
+        accounts.push({
+          pubkey,
+          account: {
+            data,
+            executable: account.executable,
+            lamports: Number(account.lamports),
+            owner: new PublicKey(account.owner),
+          },
+        });
+      }
+      return accounts;
+    },
+    getMultipleAccountsInfoAndContext: async (publicKeys: PublicKey[]) => {
+      const value = [];
+      for (const publicKey of publicKeys) {
+        const account = await banksClient.getAccount(publicKey);
+        value.push(
+          account
+            ? {
+                ...account,
+                owner: new PublicKey(account.owner),
+                data: Buffer.from(account.data),
+                lamports: Number(account.lamports),
+              }
+            : null,
+        );
+      }
+      return { context: { slot: 0 }, value };
+    },
+  } as unknown as Connection;
+}
 
 describe("Delegate Position", () => {
   let context: ProgramTestContext;
@@ -451,5 +511,53 @@ describe("Delegate Position", () => {
 
     // InvalidPermission = 6054 = 0x17a6
     await expectProgramError(() => addLiquidity(delegate, position), "0x17a6");
+  });
+
+  it("finds positions delegated to 3mpTM845pEnwcwz9J79BphZAxv12xAsSgAe4QfBZosmz", async () => {
+    const { position, positionNft, positionNftAccount } =
+      await createUserPosition();
+    const tx = await grantPermission(
+      user,
+      position,
+      positionNft,
+      DELEGATE,
+      [PositionDelegatePermission.ClaimPositionFee],
+    );
+    await executeTransaction(context.banksClient, tx, [user]);
+
+    const cpAmm = new CpAmm(
+      bankrunConnection(context.banksClient, [positionNftAccount]),
+    );
+
+    const byPool = await cpAmm.getDelegatePositionByPool(pool, DELEGATE);
+    expect(byPool.map((item) => item.position.toBase58())).toEqual([
+      position.toBase58(),
+    ]);
+    expect(byPool[0].positionNftAccount.equals(positionNftAccount)).toBe(true);
+
+    const byDelegate = await cpAmm.getPositionsByDelegate(DELEGATE);
+    expect(byDelegate.map((item) => item.position.toBase58())).toEqual([
+      position.toBase58(),
+    ]);
+
+    const byMint = await cpAmm.getPositionsByDelegateAndTokenMint(
+      DELEGATE,
+      tokenAMint,
+    );
+    expect(byMint.map((item) => item.pool.toBase58())).toEqual([
+      pool.toBase58(),
+    ]);
+
+    const otherMint = await cpAmm.getPositionsByDelegateAndTokenMint(
+      DELEGATE,
+      Keypair.generate().publicKey,
+    );
+    expect(otherMint).toHaveLength(0);
+
+    const otherDelegate = await cpAmm.getDelegatePositionByPool(
+      pool,
+      user.publicKey,
+    );
+    expect(otherDelegate).toHaveLength(0);
   });
 });

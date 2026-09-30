@@ -57,6 +57,9 @@
   - [getUserPositionByPool](#getuserpositionbypool)
   - [getPositionsByUser](#getpositionsbyuser)
   - [getPositionsByUserAndTokenMint](#getpositionsbyuserandtokenmint)
+  - [getDelegatePositionByPool](#getdelegatepositionbypool)
+  - [getPositionsByDelegate](#getpositionsbydelegate)
+  - [getPositionsByDelegateAndTokenMint](#getpositionsbydelegateandtokenmint)
   - [getAllVestingsByPosition](#getallvestingsbyposition)
   - [isLockedPosition](#islockedposition)
   - [isPermanentLockedPosition](#ispermanentlockedposition)
@@ -285,17 +288,15 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.preparePoolCreationParams({
   collectFeeMode: CollectFeeMode.BothToken,
 });
 
-const baseFeeParams = getBaseFeeParams(
-  {
-    baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-    feeTimeSchedulerParam: {
-      startingFeeBps: 5000,
-      endingFeeBps: 25,
-      numberOfPeriod: 50,
-      totalDuration: 300,
-    },
-  }
-);
+const baseFeeParams = getBaseFeeParams({
+  baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+  feeTimeSchedulerParam: {
+    startingFeeBps: 5000,
+    endingFeeBps: 25,
+    numberOfPeriod: 50,
+    totalDuration: 300,
+  },
+});
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
   baseFee: baseFeeParams,
@@ -402,17 +403,15 @@ const { initSqrtPrice, liquidityDelta } = cpAmm.getLiquidityDelta({
   collectFeeMode: CollectFeeMode.BothToken,
 });
 
-const baseFeeParams = getBaseFeeParams(
-  {
-    baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
-    feeTimeSchedulerParam: {
-      startingFeeBps: 5000,
-      endingFeeBps: 25,
-      numberOfPeriod: 50,
-      totalDuration: 300,
-    },
-  }
-);
+const baseFeeParams = getBaseFeeParams({
+  baseFeeMode: BaseFeeMode.FeeTimeSchedulerExponential,
+  feeTimeSchedulerParam: {
+    startingFeeBps: 5000,
+    endingFeeBps: 25,
+    numberOfPeriod: 50,
+    totalDuration: 300,
+  },
+});
 const dynamicFeeParams = getDynamicFeeParams(25); // max dynamic fee is 20% of 0.25%
 const poolFees: PoolFeesParams = {
   baseFee: baseFeeParams,
@@ -539,7 +538,10 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 **Example**
 
 ```typescript
-import { encodeDelegatePermissions, PositionDelegatePermission } from "@meteora-ag/cp-amm-sdk";
+import {
+  encodeDelegatePermissions,
+  PositionDelegatePermission,
+} from "@meteora-ag/cp-amm-sdk";
 
 // Grant the delegate add/remove liquidity and claim reward permissions
 const updateDelegatePermissionTx = await cpAmm.updateDelegatePermission({
@@ -3068,7 +3070,9 @@ Array of user positions (sorted by total liquidity, descending) with the pool ad
 const positions = await cpAmm.getPositionsByUserAndTokenMint(user, tokenMint);
 positions.forEach(({ position, pool, poolState }) => {
   console.log(`Position ${position.toString()} in pool ${pool.toString()}`);
-  console.log(`- Pair: ${poolState.tokenAMint.toString()} / ${poolState.tokenBMint.toString()}`);
+  console.log(
+    `- Pair: ${poolState.tokenAMint.toString()} / ${poolState.tokenBMint.toString()}`,
+  );
 });
 ```
 
@@ -3077,6 +3081,94 @@ positions.forEach(({ position, pool, poolState }) => {
 - Returns an empty array if the user has no positions in pools containing the mint
 - Preserves the liquidity-descending order of `getPositionsByUser`
 - Cheaper than pool-side scans: only the user's token accounts and their positions' pools are fetched
+
+---
+
+### getDelegatePositionByPool
+
+Gets positions in a pool where the wallet is the delegate on the position NFT.
+
+**Function**
+
+```typescript
+async getDelegatePositionByPool(pool: PublicKey, delegate: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState }>>
+```
+
+**Parameters**
+
+- `pool`: Public key of the pool.
+- `delegate`: Public key of the delegate.
+
+**Returns**
+
+List of delegated positions for the pool.
+
+**Example**
+
+```typescript
+const delegatedPositions = await cpAmm.getDelegatePositionByPool(
+  poolAddress,
+  delegateAddress,
+);
+console.log(`Delegate has ${delegatedPositions.length} positions in this pool`);
+```
+
+---
+
+### getPositionsByDelegate
+
+Gets all positions where the wallet is the delegate on the position NFT.
+
+**Function**
+
+```typescript
+async getPositionsByDelegate(delegate: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState }>>
+```
+
+**Parameters**
+
+- `delegate`: Public key of the delegate.
+
+**Returns**
+
+Array of delegated positions already sorted by liquidity.
+
+**Example**
+
+```typescript
+const positions = await cpAmm.getPositionsByDelegate(delegateAddress);
+console.log(`Delegate has ${positions.length} total positions`);
+```
+
+---
+
+### getPositionsByDelegateAndTokenMint
+
+Gets delegated positions in pools that contain the given token mint on either side of the pair.
+
+**Function**
+
+```typescript
+async getPositionsByDelegateAndTokenMint(delegate: PublicKey, tokenMint: PublicKey): Promise<Array<{ positionNftAccount: PublicKey; position: PublicKey; positionState: PositionState; pool: PublicKey; poolState: PoolState }>>
+```
+
+**Parameters**
+
+- `delegate`: Public key of the delegate.
+- `tokenMint`: Public key of the token mint.
+
+**Returns**
+
+Array of delegated positions (sorted by liquidity, descending) with their pool and state.
+
+**Example**
+
+```typescript
+const positions = await cpAmm.getPositionsByDelegateAndTokenMint(
+  delegateAddress,
+  tokenMint,
+);
+```
 
 ---
 
@@ -3766,11 +3858,7 @@ const displayPrice = tokenScale.scalePrice(
   getPriceFromSqrtPrice(pool.sqrtPrice, tokenADecimal, tokenBDecimal),
 );
 const rawPrice = tokenScale.unscalePriceString(walletVisiblePrice);
-const sqrtPrice = getSqrtPriceFromPrice(
-  rawPrice,
-  tokenADecimal,
-  tokenBDecimal,
-);
+const sqrtPrice = getSqrtPriceFromPrice(rawPrice, tokenADecimal, tokenBDecimal);
 ```
 
 ---
@@ -3989,18 +4077,16 @@ The base fee parameters in encoded Borsh format. (data: number[])
 **Example**
 
 ```typescript
-const baseFee = getBaseFeeParams(
-  {
-    baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
-    feeMarketCapSchedulerParam: {
-      startingFeeBps: 5000,
-      endingFeeBps: 100,
-      numberOfPeriod: 180,
-      priceMultiple: 1000, // 1000x growth in spot price
-      schedulerExpirationDuration: 2592000,
-    },
-  }
-);
+const baseFee = getBaseFeeParams({
+  baseFeeMode: BaseFeeMode.FeeMarketCapSchedulerLinear,
+  feeMarketCapSchedulerParam: {
+    startingFeeBps: 5000,
+    endingFeeBps: 100,
+    numberOfPeriod: 180,
+    priceMultiple: 1000, // 1000x growth in spot price
+    schedulerExpirationDuration: 2592000,
+  },
+});
 ```
 
 **Notes**

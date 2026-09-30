@@ -103,6 +103,7 @@ import {
   calculateTransferFeeIncludedAmount,
   getAvailableVestingLiquidity,
   isVestingComplete,
+  getAllPositionNftAccountByDelegate,
   getAllPositionNftAccountByOwner,
   getCurrentPoint,
   offsetBasedFilter,
@@ -1145,6 +1146,146 @@ export class CpAmm {
         return {
           ...userPosition,
           pool: userPosition.positionState.pool,
+          poolState,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  /**
+   * Gets positions in a pool where the wallet is the delegate on the position NFT.
+   * @param pool - Public key of the pool.
+   * @param delegate - Public key of the delegate.
+   * @returns List of delegated positions for the pool.
+   */
+  async getDelegatePositionByPool(
+    pool: PublicKey,
+    delegate: PublicKey,
+  ): Promise<
+    Array<{
+      positionNftAccount: PublicKey;
+      position: PublicKey;
+      positionState: PositionState;
+    }>
+  > {
+    const positions = await this.getPositionsByDelegate(delegate);
+    return positions.filter((position) =>
+      position.positionState.pool.equals(pool),
+    );
+  }
+
+  /**
+   * Gets all positions where the wallet is the delegate on the position NFT.
+   * @param delegate - Public key of the delegate.
+   * @returns Array of delegated positions already sorted by liquidity
+   */
+  async getPositionsByDelegate(delegate: PublicKey): Promise<
+    Array<{
+      positionNftAccount: PublicKey;
+      position: PublicKey;
+      positionState: PositionState;
+    }>
+  > {
+    const delegatedPositionAccounts = await getAllPositionNftAccountByDelegate(
+      this._program.provider.connection,
+      delegate,
+    );
+    if (delegatedPositionAccounts.length === 0) {
+      return [];
+    }
+
+    const positionAddresses = delegatedPositionAccounts.map((account) =>
+      derivePositionAddress(account.positionNft),
+    );
+
+    const positionStates =
+      await this._program.account.position.fetchMultiple(positionAddresses);
+    const positionResult = delegatedPositionAccounts
+      .map((account, index) => {
+        const positionState = positionStates[index];
+        if (!positionState) return null;
+
+        return {
+          positionNftAccount: account.positionNftAccount,
+          position: positionAddresses[index],
+          positionState,
+        };
+      })
+      .filter(Boolean);
+
+    positionResult.sort((a, b) => {
+      const totalLiquidityA = a.positionState.vestedLiquidity
+        .add(a.positionState.permanentLockedLiquidity)
+        .add(a.positionState.unlockedLiquidity);
+
+      const totalLiquidityB = b.positionState.vestedLiquidity
+        .add(b.positionState.permanentLockedLiquidity)
+        .add(b.positionState.unlockedLiquidity);
+
+      return totalLiquidityB.cmp(totalLiquidityA);
+    });
+
+    return positionResult;
+  }
+
+  /**
+   * Gets delegated positions in pools that contain the given token mint on either side of the pair.
+   * @param delegate - Public key of the delegate.
+   * @param tokenMint - Public key of the token mint.
+   * @returns Array of delegated positions (sorted by liquidity, descending) with their pool and state.
+   */
+  async getPositionsByDelegateAndTokenMint(
+    delegate: PublicKey,
+    tokenMint: PublicKey,
+  ): Promise<
+    Array<{
+      positionNftAccount: PublicKey;
+      position: PublicKey;
+      positionState: PositionState;
+      pool: PublicKey;
+      poolState: PoolState;
+    }>
+  > {
+    const delegatedPositions = await this.getPositionsByDelegate(delegate);
+    if (delegatedPositions.length === 0) {
+      return [];
+    }
+
+    const uniquePools: PublicKey[] = [];
+    const seenPools = new Set<string>();
+    for (const { positionState } of delegatedPositions) {
+      const poolKey = positionState.pool.toBase58();
+      if (!seenPools.has(poolKey)) {
+        seenPools.add(poolKey);
+        uniquePools.push(positionState.pool);
+      }
+    }
+
+    const poolStates =
+      await this._program.account.pool.fetchMultiple(uniquePools);
+
+    const matchedPools = new Map<string, PoolState>();
+    uniquePools.forEach((pool, index) => {
+      const poolState = poolStates[index];
+      if (!poolState) return;
+      if (
+        poolState.tokenAMint.equals(tokenMint) ||
+        poolState.tokenBMint.equals(tokenMint)
+      ) {
+        matchedPools.set(pool.toBase58(), poolState);
+      }
+    });
+
+    return delegatedPositions
+      .map((delegatedPosition) => {
+        const poolState = matchedPools.get(
+          delegatedPosition.positionState.pool.toBase58(),
+        );
+        if (!poolState) return null;
+
+        return {
+          ...delegatedPosition,
+          pool: delegatedPosition.positionState.pool,
           poolState,
         };
       })

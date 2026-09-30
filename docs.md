@@ -514,7 +514,8 @@ async updateDelegatePermission(params: UpdateDelegatePermissionParams): TxBuilde
 ```typescript
 interface UpdateDelegatePermissionParams {
   owner: PublicKey; // The owner of the position
-  positionNft: PublicKey; // The position NFT mint
+  position: PublicKey; // The position account
+  positionNftAccount: PublicKey; // Token account that currently holds the position NFT
   delegate: PublicKey; // The delegate to grant/revoke permissions for
   permission: number; // The permission bitmask (build with encodeDelegatePermissions)
 }
@@ -543,7 +544,8 @@ import { encodeDelegatePermissions, PositionDelegatePermission } from "@meteora-
 // Grant the delegate add/remove liquidity and claim reward permissions
 const updateDelegatePermissionTx = await cpAmm.updateDelegatePermission({
   owner: wallet.publicKey,
-  positionNft: positionNftMint,
+  position,
+  positionNftAccount,
   delegate: delegateAddress,
   permission: encodeDelegatePermissions([
     PositionDelegatePermission.AddLiquidity,
@@ -555,7 +557,8 @@ const updateDelegatePermissionTx = await cpAmm.updateDelegatePermission({
 // Revoke all permissions by passing an empty permission set
 const revokeTx = await cpAmm.updateDelegatePermission({
   owner: wallet.publicKey,
-  positionNft: positionNftMint,
+  position,
+  positionNftAccount,
   delegate: delegateAddress,
   permission: encodeDelegatePermissions([]),
 });
@@ -564,7 +567,8 @@ const revokeTx = await cpAmm.updateDelegatePermission({
 **Notes**
 
 - Only the position owner can call this function.
-- The transaction SPL-approves the `delegate` on the position NFT account and sets the on-chain permission bitmask, so both are kept in sync.
+- `positionNftAccount` is the token account that currently holds the position NFT.
+- The transaction SPL-approves the `delegate` on that token account and sets the on-chain permission bitmask, so both are kept in sync.
 - Build the `permission` bitmask with `encodeDelegatePermissions`, which OR-combines the `PositionDelegatePermission` flags.
 - The `*ToOwner` variants restrict the delegate to sending the withdrawn tokens/fees/rewards to the owner's token accounts rather than the delegate's.
 - Pass an empty permission set to revoke the delegate.

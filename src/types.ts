@@ -279,7 +279,8 @@ export type CreatePositionParams = {
 
 export type UpdateDelegatePermissionParams = {
   owner: PublicKey;
-  positionNft: PublicKey;
+  position: PublicKey;
+  positionNftAccount: PublicKey;
   delegate: PublicKey;
   permission: number;
 };

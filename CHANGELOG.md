@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## damm_v2_sdk [1.5.1]
+
+### Changed
+
+- **Breaking:** `updateDelegatePermission` takes `position` and `positionNftAccount` instead of `positionNft`. Pass the token account that currently holds the position NFT. The SDK no longer derives the position NFT account PDA, which failed with `ConstraintRaw` after the NFT was transferred out of that account.
+
 ## damm_v2_sdk [1.5.0]
 
 ### Changed

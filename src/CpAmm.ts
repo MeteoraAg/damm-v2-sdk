@@ -2135,10 +2135,8 @@ export class CpAmm {
   async updateDelegatePermission(
     params: UpdateDelegatePermissionParams,
   ): TxBuilder {
-    const { owner, positionNft, delegate, permission } = params;
-
-    const position = derivePositionAddress(positionNft);
-    const positionNftAccount = derivePositionNftAccount(positionNft);
+    const { owner, position, positionNftAccount, delegate, permission } =
+      params;
 
     const updateDelegatePermissionIx = await this._program.methods
       .updateDelegatePermission(permission)

@@ -443,6 +443,15 @@ export function attachBanksClient(
     context: { slot: 0 },
     value: await fetchAccountInfo(pubkey),
   });
+  connection.getMultipleAccountsInfoAndContext = async (
+    pubkeys: PublicKey[],
+  ) => {
+    const value = [];
+    for (const pubkey of pubkeys) {
+      value.push(await fetchAccountInfo(pubkey));
+    }
+    return { context: { slot: 0 }, value };
+  };
 }
 
 export async function getPool(

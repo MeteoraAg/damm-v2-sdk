@@ -613,14 +613,14 @@ Calculates the expected output amount for a swap, including fees and slippage pr
 **Function**
 
 ```typescript
-async getQuote(params: GetQuoteParams): Promise<{
+getQuote(params: GetQuoteParams): {
   swapInAmount: BN;
   consumedInAmount: BN;
   swapOutAmount: BN;
   minSwapOutAmount: BN;
   totalFee: BN;
-  priceImpact: number;
-}>
+  priceImpact: Decimal;
+}
 ```
 
 **Parameters**
@@ -629,7 +629,7 @@ async getQuote(params: GetQuoteParams): Promise<{
 interface GetQuoteParams {
   inAmount: BN; // The amount of input token to swap
   inputTokenMint: PublicKey; // The mint of the input token
-  slippage: number; // Slippage tolerance in percentage (e.g., 0.5 for 0.5%)
+  slippage: number; // Slippage tolerance in basis points (e.g., 50 for 0.5%)
   poolState: PoolState; // The state of the pool
   currentTime: number; // Current timestamp (for time-based fees)
   currentSlot: number; // Current slot (for slot-based fees)
@@ -664,19 +664,22 @@ An object containing:
 const poolState = await cpAmm.fetchPoolState(poolAddress);
 const currentSlot = await connection.getSlot();
 const blockTime = await connection.getBlockTime(currentSlot);
-const quote = await cpAmm.getQuote({
+// `inputTokenInfo.mint` / `outputTokenInfo.mint` expect the decoded `Mint` from @solana/spl-token
+const usdcMintInfo = await getMint(connection, usdcMint);
+const btcMintInfo = await getMint(connection, btcMint);
+const quote = cpAmm.getQuote({
   inAmount: new BN(100_000_000), // 100 USDC
   inputTokenMint: usdcMint,
-  slippage: 0.5, // 0.5% slippage
+  slippage: 50, // 0.5% slippage, in basis points
   poolState,
   currentTime: blockTime,
   currentSlot,
   inputTokenInfo: {
-    mint: usdcMint,
+    mint: usdcMintInfo,
     currentEpoch: currentEpoch,
   },
   outputTokenInfo: {
-    mint: btcMint,
+    mint: btcMintInfo,
     currentEpoch: currentEpoch,
   },
   tokenADecimal: 6,
@@ -706,7 +709,7 @@ Calculates the expected output amount or input amount for a swap depending on th
 **Function**
 
 ```typescript
-async getQuote2(params: GetQuote2Params): Promise<{
+getQuote2(params: GetQuote2Params): {
   includedFeeInputAmount: BN;
   excludedFeeInputAmount: BN;
   amountLeft: BN;
@@ -719,7 +722,7 @@ async getQuote2(params: GetQuote2Params): Promise<{
   priceImpact: Decimal;
   minimumAmountOut?: BN;
   maximumAmountIn?: BN;
-}>
+}
 ```
 
 **Parameters**
@@ -727,7 +730,7 @@ async getQuote2(params: GetQuote2Params): Promise<{
 ```typescript
 interface GetQuote2Params {
   inputTokenMint: PublicKey; // The mint of the input token
-  slippage: number; // Slippage tolerance in percentage (e.g., 0.5 for 0.5%)
+  slippage: number; // Slippage tolerance in basis points (e.g., 50 for 0.5%)
   currentPoint: BN; // Current point depending on the activation type
   poolState: PoolState; // The state of the pool
   inputTokenInfo?: {
@@ -772,9 +775,9 @@ const currentPoint = await getCurrentPoint(
   connection,
   poolState.activationType,
 );
-const quote = await cpAmm.getQuote2({
+const quote = cpAmm.getQuote2({
   inputTokenMint: poolState.tokenBMint,
-  slippage: 0.5,
+  slippage: 50, // 0.5%, in basis points
   currentPoint,
   poolState,
   tokenADecimal: 6,
@@ -800,7 +803,7 @@ Calculates the deposit quote for adding liquidity to a pool based on a single to
 **Function**
 
 ```typescript
-async getDepositQuote(params: GetDepositQuoteParams): Promise<DepositQuote>
+getDepositQuote(params: GetDepositQuoteParams): DepositQuote
 ```
 
 **Parameters**
@@ -841,7 +844,7 @@ An object containing:
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
 
-const depositQuote = await cpAmm.getDepositQuote({
+const depositQuote = cpAmm.getDepositQuote({
   inAmount: new BN(1_000_000_000), // 1,000 USDC
   isTokenA: true, // USDC is token A
   minSqrtPrice: poolState.sqrtMinPrice,
@@ -872,7 +875,7 @@ Calculates the withdrawal quote for removing liquidity from a pool.
 **Function**
 
 ```typescript
-async getWithdrawQuote(params: GetWithdrawQuoteParams): Promise<WithdrawQuote>
+getWithdrawQuote(params: GetWithdrawQuoteParams): WithdrawQuote
 ```
 
 **Parameters**
@@ -913,9 +916,9 @@ const poolState = await cpAmm.fetchPoolState(poolAddress);
 const positionState = await cpAmm.fetchPositionState(positionAddress);
 
 // Calculate quote for removing half the liquidity
-const liquidityToRemove = positionState.liquidity.div(new BN(2));
+const liquidityToRemove = positionState.unlockedLiquidity.div(new BN(2));
 
-const withdrawQuote = await cpAmm.getWithdrawQuote({
+const withdrawQuote = cpAmm.getWithdrawQuote({
   liquidityDelta: liquidityToRemove,
   sqrtPrice: poolState.sqrtPrice,
   minSqrtPrice: poolState.sqrtMinPrice,
@@ -964,8 +967,8 @@ interface SwapParams {
   tokenBMint: PublicKey; // Pool's token B mint
   tokenAProgram: PublicKey; // Token program for token A
   tokenBProgram: PublicKey; // Token program for token B
+  referralTokenAccount: PublicKey | null; // Referral account for fees, null if none
   receiver?: PublicKey; // Optional receiver of the input and output tokens
-  referralTokenAccount?: PublicKey; // Optional referral account for fees
   poolState?: PoolState; // Optional pool state to pass in to atomically fetch the pool state
 }
 ```
@@ -981,13 +984,15 @@ const poolState = await cpAmm.fetchPoolState(poolAddress);
 const currentSlot = await connection.getSlot();
 const blockTime = await connection.getBlockTime(currentSlot);
 // Get quote first
-const quote = await cpAmm.getQuote({
+const quote = cpAmm.getQuote({
   inAmount: new BN(100_000_000), // 100 USDC
   inputTokenMint: poolState.tokenAMint,
-  slippage: 0.5,
+  slippage: 50, // 0.5%, in basis points
   poolState,
   currentTime: blockTime,
   currentSlot,
+  tokenADecimal: 6,
+  tokenBDecimal: 9,
 });
 
 // Execute swap
@@ -1004,6 +1009,7 @@ const swapTx = await cpAmm.swap({
   tokenBMint: poolState.tokenBMint,
   tokenAProgram: TOKEN_PROGRAM_ID,
   tokenBProgram: TOKEN_PROGRAM_ID,
+  referralTokenAccount: null,
 });
 ```
 
@@ -1064,9 +1070,9 @@ const currentPoint = await getCurrentPoint(
   poolState.activationType,
 );
 // Get quote first
-const quote = await cpAmm.getQuote2({
+const quote = cpAmm.getQuote2({
   inputTokenMint: poolState.tokenBMint,
-  slippage: 0.5,
+  slippage: 50, // 0.5%, in basis points
   currentPoint,
   poolState,
   tokenADecimal: 6,
@@ -1148,7 +1154,7 @@ const poolState = await cpAmm.fetchPoolState(poolAddress);
 const positionState = await cpAmm.fetchPositionState(positionAddress);
 
 // Get deposit quote
-const depositQuote = await cpAmm.getDepositQuote({
+const depositQuote = cpAmm.getDepositQuote({
   inAmount: new BN(1_000_000_000), // 1,000 USDC
   isTokenA: true,
   minSqrtPrice: poolState.sqrtMinPrice,
@@ -1307,7 +1313,7 @@ const positionState = await cpAmm.fetchPositionState(positionAddress);
 
 // Get withdraw quote for half of the liquidity
 const liquidityToRemove = positionState.unlockedLiquidity.div(new BN(2));
-const withdrawQuote = await cpAmm.getWithdrawQuote({
+const withdrawQuote = cpAmm.getWithdrawQuote({
   liquidityDelta: liquidityToRemove,
   sqrtPrice: poolState.sqrtPrice,
   minSqrtPrice: poolState.sqrtMinPrice,
@@ -3656,9 +3662,9 @@ console.log(`Amount with slippage: ${amountWithSlippage.toString()}`);
 **Notes**
 
 - Used when you need to calculate the lower bound of an amount with slippage tolerance
-- Formula: amount \* (100 - slippageBps) / 100 (for ExactIn/PartialFill) or amount \* (100 + slippageBps) / 100 (for ExactOut)
+- Formula: amount \* (10000 - slippageBps) / 10000 (for ExactIn/PartialFill) or amount \* (10000 + slippageBps) / 10000 (for ExactOut)
 - Common use case: Setting a minimum output amount when swapping tokens
-- Slippage rate is expressed as a percentage and supports up to 2 decimal places
+- Slippage is expressed in basis points (1% = 100); `getQuote` and `getQuote2` pass their `slippage` parameter here unchanged
 
 ---
 

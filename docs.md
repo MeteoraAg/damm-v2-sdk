@@ -1059,13 +1059,14 @@ A transaction builder (`TxBuilder`) that can be used to build, sign, and send th
 
 ```typescript
 const poolState = await cpAmm.fetchPoolState(poolAddress);
+const inputTokenMint = poolState.tokenAMint;
 const currentPoint = await getCurrentPoint(
   connection,
   poolState.activationType,
 );
 // Get quote first
 const quote = await cpAmm.getQuote2({
-  inputTokenMint: poolState.tokenBMint,
+  inputTokenMint,
   slippage: 0.5,
   currentPoint,
   poolState,
@@ -1080,7 +1081,7 @@ const quote = await cpAmm.getQuote2({
 const swap2Tx = await cpAmm.swap2({
   payer: wallet.publicKey,
   pool: poolAddress,
-  inputTokenMint: poolState.tokenAMint,
+  inputTokenMint,
   outputTokenMint: poolState.tokenBMint,
   tokenAVault: poolState.tokenAVault,
   tokenBVault: poolState.tokenBVault,

@@ -1,7 +1,7 @@
 {
 	"name": "@meteora-ag/cp-amm-sdk",
 	"version": "1.5.1",
-	"packageManager": "pnpm@10.15.0",
+	"packageManager": "pnpm@10.33.1",
 	"description": "SDK for DAMM v2",
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",

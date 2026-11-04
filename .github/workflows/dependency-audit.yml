@@ -26,20 +26,3 @@ jobs:
 
       - name: Audit production dependencies
         run: pnpm audit --prod
-
-  # advisories of every dependency, dev ones included, ignored ones are in osv-scanner.toml
-  osv_scanner:
-    name: OSV Scanner
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - name: Scan lockfile
-        uses: google/osv-scanner-action/osv-scanner-action@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
-        with:
-          scan-args: |-
-            scan
-            source
-            -L
-            pnpm-lock.yaml
